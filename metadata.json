@@ -1,0 +1,7 @@
+{
+  "name": "Columbus Chiropractic Care",
+  "description": "Personalized chiropractic care in Columbus, OH for back, neck, sports injuries, and mobility with easy appointment booking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

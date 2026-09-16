@@ -1,0 +1,110 @@
+import React from 'react';
+import { Phone, MapPin, Clock } from 'lucide-react';
+import { ClinicInfo } from '../types';
+
+interface FooterProps {
+  clinic: ClinicInfo;
+  onOpenManager?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="bg-stone-950 text-stone-300 py-16 sm:py-20 border-t border-stone-800">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
+          
+          {/* Logo & NAP */}
+          <div className="md:col-span-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-800 text-stone-100 flex items-center justify-center font-serif text-lg font-bold">
+                <span>{clinic.name.charAt(0) || 'C'}</span>
+              </div>
+              <span className="font-serif font-bold text-xl text-white tracking-tight">
+                {clinic.name}
+              </span>
+            </div>
+
+            {/* FULL NAP EXACT MATCH */}
+            <div className="text-stone-400 text-sm space-y-1.5 pt-1">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>{clinic.address}, {clinic.city}, {clinic.state} {clinic.zip}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-500 shrink-0" />
+                <a href={`tel:${clinic.phoneRaw}`} className="hover:text-white transition-colors">
+                  {clinic.phone}
+                </a>
+              </div>
+            </div>
+
+            <p className="text-xs text-stone-500 max-w-sm pt-2">
+              {clinic.cityState} based chiropractic care focused on restorative biomechanics, personalized rehabilitation, and pain elimination.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div className="md:col-span-3 space-y-3">
+            <span className="text-xs uppercase tracking-wider font-semibold text-stone-400 block">
+              Quick Links
+            </span>
+            <ul className="space-y-2 text-sm text-stone-400">
+              <li><a href="#about" className="hover:text-white transition-colors">About</a></li>
+              <li><a href="#care" className="hover:text-white transition-colors">Care & Conditions</a></li>
+              <li><a href="#results" className="hover:text-white transition-colors">Patient Results</a></li>
+              <li><a href="#faq" className="hover:text-white transition-colors">Frequently Asked</a></li>
+              <li><a href="#location" className="hover:text-white transition-colors">Location & Parking</a></li>
+            </ul>
+          </div>
+
+          {/* Hours & Contact */}
+          <div className="md:col-span-3 space-y-3">
+            <span className="text-xs uppercase tracking-wider font-semibold text-stone-400 block">
+              Clinic Hours
+            </span>
+            <div className="text-sm text-stone-400 space-y-1.5">
+              <div className="flex items-center gap-2 text-stone-300">
+                <Clock className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>Mon – Thu: 8:00 AM – 6:00 PM</span>
+              </div>
+              <p className="text-xs text-stone-500 pl-6">Fri: 8:00 AM – 2:00 PM</p>
+              <p className="text-xs text-stone-500 pl-6">Sat: 9:00 AM – 1:00 PM</p>
+              <p className="text-xs text-emerald-400/90 pl-6 pt-1">Same-day appointments available</p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom Line */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
+          <p>
+            © {currentYear} {clinic.name}. All rights reserved.
+          </p>
+          <div className="flex items-center gap-4">
+            <a href="#" className="hover:text-stone-400 transition-colors">Privacy Policy</a>
+            <span>·</span>
+            <a href="#" className="hover:text-stone-400 transition-colors">Terms of Service</a>
+            <span>·</span>
+            <a href="#" className="hover:text-stone-400 transition-colors">HIPAA Compliance</a>
+            {onOpenManager && (
+              <>
+                <span>·</span>
+                <button
+                  onClick={onOpenManager}
+                  className="text-stone-400 hover:text-emerald-400 font-medium transition-colors cursor-pointer inline-flex items-center gap-1"
+                  title="Agency Client Template Manager (Press Cmd/Ctrl + Shift + C)"
+                >
+                  <span>Agency Manager ⚙️</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </footer>
+  );
+};
