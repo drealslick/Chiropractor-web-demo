@@ -43,6 +43,51 @@ export interface ClinicInfo {
   customProcessSteps?: ProcessStep[];
   customTestimonials?: { quote: string; author: string; rating: number; condition?: string }[];
   customFaqs?: { q: string; a: string }[];
+  
+  // Font pairing & Custom Styling
+  fontPairing?: string;
+
+  // Booking mode overrides
+  bookingMode?: 'modal' | 'external';
+
+  // Why Us Pillar details
+  whyUsPillar1Title?: string;
+  whyUsPillar1Desc?: string;
+  whyUsPillar2Title?: string;
+  whyUsPillar2Desc?: string;
+  whyUsPillar3Title?: string;
+  whyUsPillar3Desc?: string;
+
+  // Section Visibilities
+  showTrustBar?: boolean;
+  showWhyUs?: boolean;
+  showConditions?: boolean;
+  showTheClinic?: boolean;
+  showTheDoctor?: boolean;
+  showTheProcess?: boolean;
+  showPatients?: boolean;
+  showInsurancePayment?: boolean;
+  showFAQ?: boolean;
+
+  // SEO Fields
+  seoTitle?: string;
+  seoDescription?: string;
+
+  // Fully Editable Section Headings/Titles/Subtitles
+  whyUsTitle?: string;
+  whyUsSubtitle?: string;
+  conditionsTitle?: string;
+  conditionsSubtitle?: string;
+  clinicSectionTitle?: string;
+  clinicSectionSubtitle?: string;
+  doctorSectionTitle?: string;
+  doctorSectionSubtitle?: string;
+  processSectionTitle?: string;
+  processSectionSubtitle?: string;
+  patientsSectionTitle?: string;
+  patientsSectionSubtitle?: string;
+  faqSectionTitle?: string;
+  faqSectionSubtitle?: string;
 }
 
 export interface ProblemCondition {

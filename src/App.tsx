@@ -107,6 +107,80 @@ export default function App() {
     }
   }, [clinic.colorPalette, clinic.customPrimaryColor, clinic.customAccentColor, clinic.customBgColor, clinic.customTextColor]);
 
+  // Dynamic Fonts Injection
+  useEffect(() => {
+    const fontPair = clinic.fontPairing || 'classic-editorial';
+    let url = '';
+    let headingVal = "'Playfair Display', serif";
+    let bodyVal = "'Plus Jakarta Sans', sans-serif";
+
+    if (fontPair === 'modern-avant-garde') {
+      url = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Syne:wght@400..800&display=swap';
+      headingVal = "'Syne', sans-serif";
+      bodyVal = "'Space Grotesk', sans-serif";
+    } else if (fontPair === 'serene-academic') {
+      url = 'https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap';
+      headingVal = "'Lora', serif";
+      bodyVal = "'Inter', sans-serif";
+    } else if (fontPair === 'timeless-luxury') {
+      url = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Montserrat:wght@100..900&display=swap';
+      headingVal = "'Cinzel', serif";
+      bodyVal = "'Montserrat', sans-serif";
+    } else {
+      // default: classic-editorial
+      url = 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap';
+      headingVal = "'Playfair Display', serif";
+      bodyVal = "'Plus Jakarta Sans', sans-serif";
+    }
+
+    // Link loading
+    const linkId = 'dynamic-google-fonts';
+    let link = document.getElementById(linkId) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = url;
+
+    // Apply inline root styles
+    const styleId = 'dynamic-font-styles';
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      document.head.appendChild(style);
+    }
+    style.innerHTML = `
+      :root {
+        --font-heading: ${headingVal};
+        --font-body: ${bodyVal};
+      }
+      h1, h2, h3, h4, .font-serif {
+        font-family: var(--font-heading), Georgia, Cambria, "Times New Roman", Times, serif !important;
+      }
+      body, p, span, div, button, input, textarea, select, .font-sans {
+        font-family: var(--font-body), system-ui, -apple-system, sans-serif !important;
+      }
+    `;
+  }, [clinic.fontPairing]);
+
+  // Dynamic SEO Title and Meta Update
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = clinic.seoTitle || `${clinic.name} | Professional Chiropractic Care`;
+      
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', clinic.seoDescription || clinic.tagline || 'Chiropractic Care Specialist');
+    }
+  }, [clinic.seoTitle, clinic.seoDescription, clinic.name, clinic.tagline]);
+
   const handleUpdateClinic = (updated: ClinicInfo) => {
     setClinic(updated);
     try {
@@ -126,6 +200,10 @@ export default function App() {
   };
 
   const handleOpenBooking = (conditionTitle?: string) => {
+    if (clinic.bookingMode === 'external' && clinic.externalBookingUrl) {
+      window.open(clinic.externalBookingUrl, '_blank');
+      return;
+    }
     if (conditionTitle) {
       // Map to standard form condition
       if (conditionTitle.includes('Back')) {
@@ -166,40 +244,42 @@ export default function App() {
         />
 
         {/* 4. TRUST BAR */}
-        <TrustBar clinic={clinic} />
+        {(clinic.showTrustBar !== false) && <TrustBar clinic={clinic} />}
 
         {/* 5. THE PROBLEM */}
-        <TheProblem
-          conditions={clinic.customConditions || conditionsData}
-          onSelectCondition={(cond) => handleOpenBooking(cond)}
-        />
+        {(clinic.showConditions !== false) && (
+          <TheProblem
+            conditions={clinic.customConditions || conditionsData}
+            onSelectCondition={(cond) => handleOpenBooking(cond)}
+          />
+        )}
 
         {/* 6. WHY US */}
-        <WhyUs />
+        {(clinic.showWhyUs !== false) && <WhyUs clinic={clinic} />}
 
         {/* 7. THE PROCESS */}
-        <TheProcess clinic={clinic} />
+        {(clinic.showTheProcess !== false) && <TheProcess clinic={clinic} />}
 
         {/* 8. THE DOCTOR */}
-        <TheDoctor clinic={clinic} />
+        {(clinic.showTheDoctor !== false) && <TheDoctor clinic={clinic} />}
 
         {/* 9. PATIENTS */}
-        <PatientsSection clinic={clinic} />
+        {(clinic.showPatients !== false) && <PatientsSection clinic={clinic} />}
 
         {/* 10. THE CLINIC */}
-        <TheClinic clinic={clinic} />
+        {(clinic.showTheClinic !== false) && <TheClinic clinic={clinic} />}
 
         {/* 11. YOUR FIRST VISIT */}
         <FirstVisitSection />
 
         {/* 12. INSURANCE & PAYMENT */}
-        <InsurancePayment clinic={clinic} />
+        {(clinic.showInsurancePayment !== false) && <InsurancePayment clinic={clinic} />}
 
         {/* 13. LOCATION */}
         <LocationSection clinic={clinic} />
 
         {/* 14. FAQ */}
-        <FAQSection clinic={clinic} />
+        {(clinic.showFAQ !== false) && <FAQSection clinic={clinic} />}
 
         {/* 15. FINAL CTA */}
         <FinalCTA

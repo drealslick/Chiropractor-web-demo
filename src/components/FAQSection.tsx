@@ -31,10 +31,10 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ clinic }) => {
           className="text-center max-w-xl mx-auto mb-14"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-2">
-            Clear Answers
+            {clinic?.faqSectionSubtitle || "Clear Answers"}
           </span>
           <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
-            Frequently Asked Questions
+            {clinic?.faqSectionTitle || "Frequently Asked Questions"}
           </h2>
           <p className="text-sm text-stone-600 mt-2">
             Real questions patients actually ask before their first appointment.

@@ -23,10 +23,10 @@ export const TheProcess: React.FC<TheProcessProps> = ({ clinic }) => {
           className="text-center max-w-xl mx-auto mb-16"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full inline-block mb-3">
-            How It Works
+            {clinic?.processSectionSubtitle || "How It Works"}
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight">
-            The Process
+            {clinic?.processSectionTitle || "The Process"}
           </h2>
         </motion.div>
 

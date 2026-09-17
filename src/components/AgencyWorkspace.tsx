@@ -42,7 +42,10 @@ import {
   Sliders,
   HelpCircle,
   Sun,
-  Moon
+  Moon,
+  Undo,
+  Cloud,
+  FileUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo } from '../types';
@@ -158,6 +161,163 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
   const [highContrast, setHighContrast] = useState<boolean>(false);
   const [activeContentSection, setActiveContentSection] = useState<'hero' | 'about' | 'conditions' | 'testimonials' | 'process' | 'faqs' | 'cta'>('hero');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Undo History State & Handlers
+  const [undoStack, setUndoStack] = useState<ClinicInfo[]>([]);
+
+  const handleUndo = () => {
+    if (undoStack.length === 0) {
+      showNotification("Nothing to undo!");
+      return;
+    }
+    const previous = undoStack[0];
+    setUndoStack((prev) => prev.slice(1));
+    onUpdateClinic(previous);
+    showNotification("Undone last change!");
+  };
+
+  // Create Client Wizard State & Handlers
+  const [showCreateWizard, setShowCreateWizard] = useState<boolean>(false);
+  const [wizardName, setWizardName] = useState<string>('');
+  const [wizardDoctor, setWizardDoctor] = useState<string>('');
+  const [wizardCity, setWizardCity] = useState<string>('');
+  const [wizardState, setWizardState] = useState<string>('');
+  const [wizardTemplate, setWizardTemplate] = useState<'columbus' | 'austin' | 'denver' | 'blank'>('columbus');
+
+  const handleCreateWizardProfile = () => {
+    if (!wizardName.trim()) {
+      showNotification("Please enter a Practice Name!");
+      return;
+    }
+    const newId = 'client-' + Date.now();
+    let baseData = { ...defaultClinic };
+
+    if (wizardTemplate === 'austin') {
+      baseData = {
+        ...defaultClinic,
+        name: wizardName,
+        city: wizardCity || "Austin",
+        state: wizardState || "TX",
+        cityState: `${wizardCity || "Austin"}, ${wizardState || "TX"}`,
+        doctorName: wizardDoctor || "Dr. Sarah Jenkins",
+        colorPalette: 'warm-bone-charcoal'
+      };
+    } else if (wizardTemplate === 'denver') {
+      baseData = {
+        ...defaultClinic,
+        name: wizardName,
+        city: wizardCity || "Denver",
+        state: wizardState || "CO",
+        cityState: `${wizardCity || "Denver"}, ${wizardState || "CO"}`,
+        doctorName: wizardDoctor || "Dr. Elena Rostova",
+        colorPalette: 'warm-sand-terracotta'
+      };
+    } else if (wizardTemplate === 'blank') {
+      baseData = {
+        ...defaultClinic,
+        name: wizardName,
+        tagline: "Custom targeted pain relief and high-performance chiropractic care.",
+        city: wizardCity || "City",
+        state: wizardState || "ST",
+        cityState: `${wizardCity || "City"}, ${wizardState || "ST"}`,
+        doctorName: wizardDoctor || "Lead Doctor",
+        doctorCredentials: "D.C.",
+        doctorYears: "10",
+        doctorQuote: "Your spinal health determines your mobility, longevity, and quality of life.",
+        offerHeadline: "New Patient Special: Initial Consultation & Exam",
+        offerSubtext: "Book your path to complete recovery today.",
+        colorPalette: "soft-ivory-forest"
+      };
+    } else {
+      // columbus
+      baseData = {
+        ...defaultClinic,
+        name: wizardName,
+        city: wizardCity || "Columbus",
+        state: wizardState || "OH",
+        cityState: `${wizardCity || "Columbus"}, ${wizardState || "OH"}`,
+        doctorName: wizardDoctor || "Dr. Marcus Vance",
+        colorPalette: "soft-ivory-forest"
+      };
+    }
+
+    const newProj: ClientProject = {
+      id: newId,
+      name: wizardName,
+      doctorName: wizardDoctor || "Lead Chiropractor",
+      city: wizardCity || "City",
+      state: wizardState || "ST",
+      colorPalette: baseData.colorPalette as any || 'soft-ivory-forest',
+      status: 'active',
+      lastEdited: 'Just now',
+      data: baseData,
+    };
+
+    setClientProjects([newProj, ...clientProjects]);
+    onUpdateClinic(baseData);
+    setShowCreateWizard(false);
+    setWizardName('');
+    setWizardDoctor('');
+    setWizardCity('');
+    setWizardState('');
+    showNotification(`Built & loaded workspace for "${wizardName}"!`);
+  };
+
+  // Image upload base64 processor
+  const handleImageUpload = (field: keyof ClinicInfo, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        handleFieldChange(field, base64);
+        showNotification("Custom image uploaded and applied successfully!");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // JSON Import processor
+  const handleImportJSON = (jsonString: string) => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!parsed.name || typeof parsed.name !== 'string') {
+        alert("Invalid config file: 'name' field is missing or invalid.");
+        return;
+      }
+      const updatedClinic = { ...defaultClinic, ...parsed };
+      onUpdateClinic(updatedClinic);
+
+      const existingIdx = clientProjects.findIndex(p => p.name.toLowerCase() === parsed.name.toLowerCase());
+      if (existingIdx >= 0) {
+        const updatedList = [...clientProjects];
+        updatedList[existingIdx] = {
+          ...updatedList[existingIdx],
+          name: parsed.name,
+          data: updatedClinic,
+          lastEdited: 'Imported just now'
+        };
+        setClientProjects(updatedList);
+      } else {
+        const newProj: ClientProject = {
+          id: 'imported-' + Date.now(),
+          name: parsed.name,
+          doctorName: parsed.doctorName || "Lead Chiropractor",
+          city: parsed.city || "City",
+          state: parsed.state || "ST",
+          colorPalette: parsed.colorPalette || 'soft-ivory-forest',
+          status: 'active',
+          lastEdited: 'Imported just now',
+          data: updatedClinic
+        };
+        setClientProjects([newProj, ...clientProjects]);
+      }
+      showNotification("Imported and activated JSON configuration successfully!");
+    } catch (err) {
+      alert("Failed to parse JSON. Please ensure it is a valid backup file.");
+    }
+  };
 
   // Conditions list handlers
   const handleUpdateCondition = (index: number, updatedField: string, value: any) => {
@@ -319,6 +479,9 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
   };
 
   const handleFieldChange = (field: keyof ClinicInfo, value: any) => {
+    // Save to undo stack before updating
+    setUndoStack((prev) => [clinic, ...prev].slice(0, 15));
+
     const updated = { ...clinic, [field]: value };
     if (field === 'city' || field === 'state') {
       const c = field === 'city' ? value : clinic.city;
@@ -332,6 +495,9 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
   };
 
   const handleSelectPalette = (paletteId: ColorPaletteId) => {
+    // Save to undo stack
+    setUndoStack((prev) => [clinic, ...prev].slice(0, 15));
+
     onUpdateClinic({ ...clinic, colorPalette: paletteId });
     showNotification(`Palette switched to ${colorPalettes[paletteId].name}`);
   };
@@ -471,12 +637,39 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Auto-Saved Status Badge */}
+            <span className="hidden sm:inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-emerald-100">
+              <Cloud className="w-3.5 h-3.5 text-emerald-600 shrink-0 animate-pulse" />
+              <span>Auto-Saved</span>
+            </span>
+
+            {/* Undo Last Action button */}
+            <button
+              onClick={handleUndo}
+              disabled={undoStack.length === 0}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                undoStack.length > 0
+                  ? 'bg-stone-100 hover:bg-stone-200 text-stone-800'
+                  : 'opacity-40 bg-stone-100 text-stone-400 cursor-not-allowed'
+              }`}
+              title={undoStack.length > 0 ? `Undo last change (${undoStack.length} left)` : 'Nothing to undo'}
+            >
+              <Undo className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Undo</span>
+              {undoStack.length > 0 && (
+                <span className="ml-0.5 px-1 bg-stone-300 text-[9px] rounded-full text-stone-800 font-mono">
+                  {undoStack.length}
+                </span>
+              )}
+            </button>
+
             {copiedNotification && (
               <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 animate-fade-in">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {copiedNotification}
               </span>
             )}
+
             <button
               onClick={() => {
                 onResetDefault();
@@ -546,22 +739,182 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                 </div>
               </div>
 
-              {/* Action Banner */}
-              <div className="p-6 bg-stone-900 text-white rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
-                <div>
-                  <h3 className="text-lg font-serif font-bold">Ready to pitch a new chiropractor?</h3>
-                  <p className="text-xs text-stone-300 mt-1">
-                    Create a custom-branded landing page in seconds with our pre-built chiropractic conversion templates.
-                  </p>
+              {/* Prominent Booking / Conversion Configurator */}
+              <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-xs space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-emerald-50 rounded-lg text-emerald-800">
+                    <Rocket className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wide">Primary Booking Conversion Strategy</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">Define how patients schedule appointments from CTA buttons across the landing page.</p>
+                  </div>
                 </div>
-                <button
-                  onClick={handleCreateNewClient}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Create New Client</span>
-                </button>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleFieldChange('bookingMode', 'modal')}
+                    className={`p-4 text-left rounded-xl border transition-all flex flex-col gap-1.5 cursor-pointer ${
+                      clinic.bookingMode !== 'external'
+                        ? 'border-emerald-700 bg-emerald-50/40 ring-2 ring-emerald-700/10'
+                        : 'border-stone-200 hover:border-stone-300 bg-stone-50/30'
+                    }`}
+                  >
+                    <span className="font-semibold text-xs sm:text-sm text-stone-900">In-App High-Converting Lead Form (Default)</span>
+                    <span className="text-xs text-stone-500">Collects patient details, symptoms, and preferred slots natively to maximize lead capture rate.</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFieldChange('bookingMode', 'external')}
+                    className={`p-4 text-left rounded-xl border transition-all flex flex-col gap-1.5 cursor-pointer ${
+                      clinic.bookingMode === 'external'
+                        ? 'border-emerald-700 bg-emerald-50/40 ring-2 ring-emerald-700/10'
+                        : 'border-stone-200 hover:border-stone-300 bg-stone-50/30'
+                    }`}
+                  >
+                    <span className="font-semibold text-xs sm:text-sm text-stone-900">External Booking Link (JaneApp, Calendly, etc)</span>
+                    <span className="text-xs text-stone-500">Directly routes patients to external software. Essential for active practices.</span>
+                  </button>
+                </div>
+
+                {clinic.bookingMode === 'external' && (
+                  <div className="p-4 bg-stone-50 rounded-xl border border-stone-200/80 animate-fade-in space-y-2">
+                    <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">External Scheduling URL</label>
+                    <input
+                      type="url"
+                      value={clinic.externalBookingUrl || ''}
+                      onChange={(e) => handleFieldChange('externalBookingUrl', e.target.value)}
+                      placeholder="https://your-practice.janeapp.com/embed/book"
+                      className="w-full text-xs px-3 py-2.5 bg-white border border-stone-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700 transition-all font-mono"
+                    />
+                    <p className="text-[10px] text-stone-500">Every CTA, booking request, and offer button across the landing page will automatically link to this URL.</p>
+                  </div>
+                )}
               </div>
+
+              {/* Action Banner or New Practice Creator Wizard */}
+              {!showCreateWizard ? (
+                <div className="p-6 bg-stone-900 text-white rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
+                  <div>
+                    <h3 className="text-lg font-serif font-bold">Ready to pitch a new chiropractor?</h3>
+                    <p className="text-xs text-stone-300 mt-1">
+                      Instantly generate a beautifully pre-configured, custom-branded landing page for a prospect.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowCreateWizard(true)}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0 flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create New Client</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="p-6 bg-white rounded-2xl border border-emerald-700/30 ring-2 ring-emerald-700/5 shadow-md space-y-5 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <div>
+                      <h3 className="text-base font-serif font-bold text-stone-900">New Chiropractic Practice Workspace</h3>
+                      <p className="text-xs text-stone-500 mt-0.5">Let's create an isolated custom landing page structure for a new practitioner.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateWizard(false)}
+                      className="text-stone-400 hover:text-stone-600 text-xs font-semibold px-2 py-1 rounded hover:bg-stone-100"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">Clinic / Practice Name</label>
+                      <input
+                        type="text"
+                        value={wizardName}
+                        onChange={(e) => setWizardName(e.target.value)}
+                        placeholder="e.g. Wellness Chiropractic Center"
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-emerald-700/10 focus:border-emerald-700 transition-all font-serif"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">Lead Chiropractor Name</label>
+                      <input
+                        type="text"
+                        value={wizardDoctor}
+                        onChange={(e) => setWizardDoctor(e.target.value)}
+                        placeholder="e.g. Dr. Arthur Pendelton, D.C."
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-emerald-700/10 focus:border-emerald-700 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">Practice City</label>
+                      <input
+                        type="text"
+                        value={wizardCity}
+                        onChange={(e) => setWizardCity(e.target.value)}
+                        placeholder="e.g. Portland"
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-emerald-700/10 focus:border-emerald-700 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">Practice State (Abbr.)</label>
+                      <input
+                        type="text"
+                        value={wizardState}
+                        onChange={(e) => setWizardState(e.target.value)}
+                        placeholder="e.g. OR"
+                        maxLength={2}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-emerald-700/10 focus:border-emerald-700 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">Select Custom Content Presets Template</label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { id: 'columbus', label: 'Columbus Preset', desc: 'Modern & traditional' },
+                        { id: 'austin', label: 'Austin Preset', desc: 'Sports injury & wellness' },
+                        { id: 'denver', label: 'Denver Preset', desc: 'Family care & mobility' },
+                        { id: 'blank', label: 'Custom Blank Slate', desc: 'Raw templates & outlines' },
+                      ].map((tpl) => (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          onClick={() => setWizardTemplate(tpl.id as any)}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                            wizardTemplate === tpl.id
+                              ? 'border-emerald-700 bg-emerald-50 text-stone-900 ring-2 ring-emerald-700/5'
+                              : 'border-stone-200 hover:border-stone-300 text-stone-600 bg-stone-50/50'
+                          }`}
+                        >
+                          <span className="block font-semibold text-xs">{tpl.label}</span>
+                          <span className="block text-[10px] text-stone-500 mt-0.5">{tpl.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-stone-100 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateWizard(false)}
+                      className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateWizardProfile}
+                      className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold shadow-sm"
+                    >
+                      Generate Custom Practice Site
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Recent Clients List */}
               <div className="space-y-3">
@@ -780,14 +1133,31 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                     <p className="text-[11px] text-stone-500 mt-1 font-normal">Controls header navigation logo text and footer copyright.</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Logo Icon / Image URL (Optional)</label>
-                    <input
-                      type="text"
-                      value={clinic.logoImage || ""}
-                      placeholder="e.g. https://example.com/logo.png"
-                      onChange={(e) => handleFieldChange('logoImage', e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-stone-700">Logo Icon / Image URL (Optional)</label>
+                      <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Real Upload Supported</span>
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={clinic.logoImage || ""}
+                        placeholder="e.g. https://example.com/logo.png"
+                        onChange={(e) => handleFieldChange('logoImage', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                      <div className="flex items-center gap-2">
+                        <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-stone-300 hover:border-emerald-700 rounded-xl cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-xs font-semibold text-stone-700 hover:text-emerald-900 transition-all">
+                          <FileUp className="w-4 h-4 text-stone-500" />
+                          <span>Upload Local File</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload('logoImage', e)}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
                     <p className="text-[11px] text-stone-500 mt-1 font-normal">If provided, this image will replace/pair with logo text.</p>
                   </div>
                 </div>
@@ -850,6 +1220,108 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                       <option value="https://img.icons8.com/color/96/back-pain.png">Therapeutic Spinal Icon</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* Font Pairing Selector (High Priority Feature) */}
+              <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Typography & Font Pairings</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">Select a premium typographic pairing to shape the clinic's visual tone and aura.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id: 'classic-editorial', name: 'Classic Editorial', heading: 'Playfair Display', body: 'Plus Jakarta Sans', desc: 'Elegant, comforting and deeply clinical', hClass: 'font-serif' },
+                    { id: 'modern-avant-garde', name: 'Modern Avant-Garde', heading: 'Syne Display', body: 'Space Grotesk', desc: 'Sleek, forward-thinking and sports-focused', hClass: 'font-sans font-extrabold tracking-tight' },
+                    { id: 'serene-academic', name: 'Serene Academic', heading: 'Lora Serif', body: 'Inter Sans', desc: 'Trustworthy, balanced, clinical, and intellectual', hClass: 'font-serif' },
+                    { id: 'timeless-luxury', name: 'Timeless Luxury', heading: 'Cinzel Serif', body: 'Montserrat Sans', desc: 'High-end, premium spa, or cash-only practice', hClass: 'font-serif tracking-widest' },
+                  ].map((pairing) => {
+                    const isCurrent = (clinic.fontPairing || 'classic-editorial') === pairing.id;
+                    return (
+                      <button
+                        key={pairing.id}
+                        type="button"
+                        onClick={() => {
+                          handleFieldChange('fontPairing', pairing.id);
+                          showNotification(`Applied font pairing: ${pairing.name}`);
+                        }}
+                        className={`p-5 rounded-2xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          isCurrent
+                            ? 'border-emerald-700 bg-white shadow-md ring-4 ring-emerald-700/10'
+                            : 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-2xs'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-stone-400 font-mono uppercase tracking-widest">Preset Stack</span>
+                            {isCurrent && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <span className={`block text-xl text-stone-900 ${pairing.hClass}`}>{pairing.heading}</span>
+                          <span className="block text-xs text-stone-500 font-medium font-sans mt-0.5">Body text: {pairing.body}</span>
+                        </div>
+                        <p className="text-[11px] text-stone-600 mt-3 border-t border-stone-100 pt-2.5 leading-relaxed">
+                          {pairing.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section Visibility Toggles (Medium Priority Feature) */}
+              <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Section Visibility & Page Architecture</h3>
+                  <p className="text-xs text-stone-500 mt-0.5">Toggle sections on or off to match the practitioner's specific practice scale and goals.</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { field: 'showTrustBar', label: 'Trust Bar (Google Review Stats)' },
+                    { field: 'showWhyUs', label: 'Why Us (Pillars & Standard)' },
+                    { field: 'showConditions', label: 'Problem & Conditions Accordion' },
+                    { field: 'showTheClinic', label: 'The Clinic Showcase (Space Gallery)' },
+                    { field: 'showTheDoctor', label: 'Lead Doctor (Biography & Quote)' },
+                    { field: 'showTheProcess', label: 'The Process (Step Journey)' },
+                    { field: 'showPatients', label: 'Patient Testimonials' },
+                    { field: 'showInsurancePayment', label: 'Insurance & Payment Policies' },
+                    { field: 'showFAQ', label: 'Frequently Asked Questions' },
+                  ].map((sec) => {
+                    const isVisible = clinic[sec.field as keyof ClinicInfo] !== false;
+                    return (
+                      <label
+                        key={sec.field}
+                        className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer select-none transition-all ${
+                          isVisible
+                            ? 'border-emerald-700/30 bg-emerald-50/10 hover:bg-emerald-50/20'
+                            : 'border-stone-200/80 bg-stone-50/40 text-stone-400 hover:border-stone-300'
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <span className="block text-xs font-bold text-stone-900">{sec.label}</span>
+                          <span className="block text-[9px] text-stone-500">
+                            {isVisible ? 'Displayed on page' : 'Hidden from page'}
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isVisible}
+                          onChange={(e) => {
+                            handleFieldChange(sec.field as keyof ClinicInfo, e.target.checked);
+                            showNotification(`${e.target.checked ? 'Enabled' : 'Disabled'} ${sec.label}`);
+                          }}
+                          className="w-4 h-4 rounded text-emerald-800 border-stone-300 focus:ring-emerald-700/20 cursor-pointer"
+                        />
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1097,19 +1569,131 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                 </div>
               )}
 
-              {/* SECTION: DOCTOR & BIO */}
+              {/* SECTION: DOCTOR & BIO & WHY US */}
               {activeContentSection === 'about' && (
-                <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Lead Doctor Bio & Quote Philosophy</h3>
-                  
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Doctor Philosophy Statement / Signature Quote</label>
-                    <textarea
-                      rows={3}
-                      value={clinic.doctorQuote}
-                      onChange={(e) => handleFieldChange('doctorQuote', e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif italic text-stone-900"
-                    />
+                <div className="space-y-6">
+                  {/* Doctor Info card */}
+                  <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Lead Doctor Bio & Quote Philosophy</h3>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Doctor Philosophy Statement / Signature Quote</label>
+                      <textarea
+                        rows={3}
+                        value={clinic.doctorQuote}
+                        onChange={(e) => handleFieldChange('doctorQuote', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif italic text-stone-900"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Why Us section headings */}
+                  <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Why Us Section Typography & Copy</h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Why Us Header Title</label>
+                        <input
+                          type="text"
+                          value={clinic.whyUsTitle || "Healthcare should feel personal again."}
+                          onChange={(e) => handleFieldChange('whyUsTitle', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif text-stone-900 font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Why Us Eyebrow / Subtitle</label>
+                        <input
+                          type="text"
+                          value={clinic.whyUsSubtitle || "Our Standard"}
+                          onChange={(e) => handleFieldChange('whyUsSubtitle', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Why Us Pillars (The 3 standard pillars) */}
+                  <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <div>
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Why Us 3 Core Pillars</h3>
+                      <p className="text-xs text-stone-500 mt-0.5">Customize the core messaging of each marketing value pillar shown on-page.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Pillar 1 */}
+                      <div className="p-4 bg-stone-50 rounded-xl border border-stone-200/80 space-y-3">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest block">Pillar #1 (Communication)</span>
+                        <div className="grid sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-1">
+                            <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Pillar Title</label>
+                            <input
+                              type="text"
+                              value={clinic.whyUsPillar1Title || "A real conversation."}
+                              onChange={(e) => handleFieldChange('whyUsPillar1Title', e.target.value)}
+                              className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg font-bold"
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Pillar Description</label>
+                            <input
+                              type="text"
+                              value={clinic.whyUsPillar1Desc || "No rush. We listen first."}
+                              onChange={(e) => handleFieldChange('whyUsPillar1Desc', e.target.value)}
+                              className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pillar 2 */}
+                      <div className="p-4 bg-stone-50 rounded-xl border border-stone-200/80 space-y-3">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest block">Pillar #2 (Methodology)</span>
+                        <div className="grid sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-1">
+                            <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Pillar Title</label>
+                            <input
+                              type="text"
+                              value={clinic.whyUsPillar2Title || "An actual plan."}
+                              onChange={(e) => handleFieldChange('whyUsPillar2Title', e.target.value)}
+                              className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg font-bold"
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Pillar Description</label>
+                            <input
+                              type="text"
+                              value={clinic.whyUsPillar2Desc || "Targeted physical rehab and modern adjustments."}
+                              onChange={(e) => handleFieldChange('whyUsPillar2Desc', e.target.value)}
+                              className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pillar 3 */}
+                      <div className="p-4 bg-stone-50 rounded-xl border border-stone-200/80 space-y-3">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-widest block">Pillar #3 (Pricing/Contracts)</span>
+                        <div className="grid sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-1">
+                            <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Pillar Title</label>
+                            <input
+                              type="text"
+                              value={clinic.whyUsPillar3Title || "Respect for your goals."}
+                              onChange={(e) => handleFieldChange('whyUsPillar3Title', e.target.value)}
+                              className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg font-bold"
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Pillar Description</label>
+                            <input
+                              type="text"
+                              value={clinic.whyUsPillar3Desc || "No high-pressure sales. No lifetime contracts."}
+                              onChange={(e) => handleFieldChange('whyUsPillar3Desc', e.target.value)}
+                              className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1456,14 +2040,24 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   <div className="aspect-video rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
                     <img src={clinic.heroImage} alt="Hero preview" className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-600 mb-1">Custom Image URL</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-stone-600">Custom Image URL or Local File</label>
                     <input
                       type="text"
                       value={clinic.heroImage}
                       onChange={(e) => handleFieldChange('heroImage', e.target.value)}
                       className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
                     />
+                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
+                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Upload Hero Image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload('heroImage', e)}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-bold text-stone-600">Unsplash Presets (Click to Swap)</label>
@@ -1508,14 +2102,24 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   <div className="aspect-[4/3] rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
                     <img src={clinic.doctorImage} alt="Doctor portrait preview" className="w-full h-full object-cover object-top animate-fade-in" referrerPolicy="no-referrer" />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-600 mb-1">Custom Portrait URL</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-stone-600">Custom Portrait URL or Local File</label>
                     <input
                       type="text"
                       value={clinic.doctorImage}
                       onChange={(e) => handleFieldChange('doctorImage', e.target.value)}
                       className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
                     />
+                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
+                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Upload Portrait Image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload('doctorImage', e)}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-bold text-stone-600">Unsplash Doctor Presets</label>
@@ -1560,14 +2164,24 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   <div className="aspect-video rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
                     <img src={clinic.clinicImage} alt="Clinic interior preview" className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-600 mb-1">Custom Image URL</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-stone-600">Custom Image URL or Local File</label>
                     <input
                       type="text"
                       value={clinic.clinicImage}
                       onChange={(e) => handleFieldChange('clinicImage', e.target.value)}
                       className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
                     />
+                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
+                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Upload Studio Image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload('clinicImage', e)}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-bold text-stone-600">Unsplash Presets</label>
@@ -1610,14 +2224,24 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   <div className="aspect-[4/3] rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
                     <img src={clinic.patientImage} alt="Patient story preview" className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-600 mb-1">Custom Image URL</label>
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-bold text-stone-600">Custom Image URL or Local File</label>
                     <input
                       type="text"
                       value={clinic.patientImage}
                       onChange={(e) => handleFieldChange('patientImage', e.target.value)}
                       className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
                     />
+                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
+                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
+                      <span>Upload Athlete Image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload('patientImage', e)}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
                   <div className="space-y-1">
                     <label className="block text-[10px] font-bold text-stone-600">Unsplash Athlete Presets</label>
@@ -1710,29 +2334,92 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
               <div>
                 <h2 className="text-2xl font-serif font-bold text-stone-900 tracking-tight">Agency Settings & Backups</h2>
                 <p className="text-sm text-stone-600 mt-1">
-                  Manage JSON backups, restore previous versions, and agency account preferences.
+                  Manage SEO metadata, JSON backups, restore previous versions, and agency account preferences.
                 </p>
               </div>
 
+              {/* SEO Configurer Card */}
               <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">JSON Config Backup</h3>
-                <p className="text-xs text-stone-600">Export or import entire client configuration files for offline backups or client transfers.</p>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-stone-100 rounded text-stone-700">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Search Engine Optimization (SEO)</h3>
+                </div>
+                <p className="text-xs text-stone-500">Inject high-ranking, client-specific title tags and description tags to maximize local map-pack search visibility.</p>
                 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(clinic, null, 2));
-                      const dl = document.createElement('a');
-                      dl.setAttribute("href", dataStr);
-                      dl.setAttribute("download", `${clinic.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-backup.json`);
-                      dl.click();
-                      showNotification("Exported client config JSON successfully!");
-                    }}
-                    className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export JSON Backup</span>
-                  </button>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">SEO Page Title Tag</label>
+                    <input
+                      type="text"
+                      value={clinic.seoTitle || ""}
+                      onChange={(e) => handleFieldChange('seoTitle', e.target.value)}
+                      placeholder={`${clinic.name} | Chiropractor in ${clinic.cityState}`}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium text-stone-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">SEO Meta Description</label>
+                    <textarea
+                      rows={2}
+                      value={clinic.seoDescription || ""}
+                      onChange={(e) => handleFieldChange('seoDescription', e.target.value)}
+                      placeholder={`Looking for relief? ${clinic.name} in ${clinic.cityState} provides modern chiropractic adjustments, spinal care, and physical therapies for back pain and sports injuries.`}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-stone-800"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* JSON Config Backup Card with Export & Import */}
+              <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-stone-100 rounded text-stone-700">
+                    <FolderOpen className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Config Import & Export Engine</h3>
+                </div>
+                <p className="text-xs text-stone-600">Export your configured layout as a single portable JSON file, or drag & drop to import a previously generated practice design instantly.</p>
+                
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 flex flex-col justify-between gap-3">
+                    <div>
+                      <span className="block font-bold text-xs text-stone-800">Export Current Client</span>
+                      <span className="block text-[11px] text-stone-500 mt-0.5">Download a secure copy of the currently loaded profile configuration.</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(clinic, null, 2));
+                        const dl = document.createElement('a');
+                        dl.setAttribute("href", dataStr);
+                        dl.setAttribute("download", `${clinic.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-backup.json`);
+                        dl.click();
+                        showNotification("Exported client config JSON successfully!");
+                      }}
+                      className="w-full px-4 py-2 rounded-xl bg-stone-950 text-white text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Export JSON Backup</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 flex flex-col justify-between gap-3">
+                    <div>
+                      <span className="block font-bold text-xs text-stone-800">Import Client Configuration</span>
+                      <span className="block text-[11px] text-stone-500 mt-0.5">Upload a client .json backup to restore, clone, or migrate designs instantly.</span>
+                    </div>
+                    <label className="w-full px-4 py-2 rounded-xl bg-white border border-stone-300 text-stone-700 text-xs font-semibold hover:border-emerald-700 hover:text-emerald-900 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs">
+                      <Upload className="w-4 h-4 text-stone-500" />
+                      <span>Upload JSON Backup</span>
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportJSON}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

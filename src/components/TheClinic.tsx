@@ -19,10 +19,10 @@ export const TheClinic: React.FC<TheClinicProps> = ({ clinic }) => {
           className="text-center max-w-xl mx-auto mb-10"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-2">
-            Our Space
+            {clinic.clinicSectionSubtitle || "Our Space"}
           </span>
           <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
-            The Clinic
+            {clinic.clinicSectionTitle || "The Clinic"}
           </h2>
         </motion.div>
 

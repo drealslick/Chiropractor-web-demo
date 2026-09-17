@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import { ArrowRight, ChevronDown, CheckCircle2, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ProblemCondition } from '../types';
+import { ProblemCondition, ClinicInfo } from '../types';
 
 interface TheProblemProps {
   conditions: ProblemCondition[];
   onSelectCondition: (conditionTitle: string) => void;
+  clinic?: ClinicInfo;
 }
 
-export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCondition }) => {
+export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCondition, clinic }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedId(prev => prev === id ? null : id);
   };
+
+  const sectionTitle = clinic?.conditionsTitle || "Pain shouldn't determine how you live your life.";
+  const sectionSubtitle = clinic?.conditionsSubtitle || "Targeted Relief";
 
   return (
     <section id="care" className="py-20 md:py-28 bg-stone-50 border-b border-stone-200 overflow-hidden">
@@ -28,10 +32,10 @@ export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCond
           className="text-center max-w-2xl mx-auto mb-14"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full inline-block mb-3">
-            Targeted Relief
+            {sectionSubtitle}
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight leading-tight">
-            Pain shouldn't determine how you live your life.
+            {sectionTitle}
           </h2>
         </motion.div>
 

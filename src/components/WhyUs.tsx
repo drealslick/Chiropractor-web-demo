@@ -2,12 +2,35 @@ import React from 'react';
 import { UserCheck, Stethoscope, Target } from 'lucide-react';
 import { motion } from 'motion/react';
 import { whyUsFeatures } from '../data/clinicData';
+import { ClinicInfo } from '../types';
 
-export const WhyUs: React.FC = () => {
+interface WhyUsProps {
+  clinic?: ClinicInfo;
+}
+
+export const WhyUs: React.FC<WhyUsProps> = ({ clinic }) => {
   const icons = [
     <UserCheck className="w-6 h-6 text-emerald-700" />,
     <Stethoscope className="w-6 h-6 text-emerald-700" />,
     <Target className="w-6 h-6 text-emerald-700" />
+  ];
+
+  const sectionTitle = clinic?.whyUsTitle || "Healthcare should feel personal again.";
+  const sectionSubtitle = clinic?.whyUsSubtitle || "Our Standard";
+
+  const pillars = [
+    {
+      title: clinic?.whyUsPillar1Title || whyUsFeatures[0]?.title || "A real conversation.",
+      description: clinic?.whyUsPillar1Desc || whyUsFeatures[0]?.description || "No rush. We listen first."
+    },
+    {
+      title: clinic?.whyUsPillar2Title || whyUsFeatures[1]?.title || "An actual plan.",
+      description: clinic?.whyUsPillar2Desc || whyUsFeatures[1]?.description || "Targeted physical rehab and modern adjustments."
+    },
+    {
+      title: clinic?.whyUsPillar3Title || whyUsFeatures[2]?.title || "Respect for your goals.",
+      description: clinic?.whyUsPillar3Desc || whyUsFeatures[2]?.description || "No high-pressure sales. No lifetime contracts."
+    }
   ];
 
   return (
@@ -23,16 +46,16 @@ export const WhyUs: React.FC = () => {
           className="text-center max-w-2xl mx-auto mb-16"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-3">
-            Our Standard
+            {sectionSubtitle}
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight leading-tight">
-            Healthcare should feel personal again.
+            {sectionTitle}
           </h2>
         </motion.div>
 
         {/* 3 Pillars */}
         <div className="grid md:grid-cols-3 gap-8 sm:gap-10">
-          {whyUsFeatures.map((feature, index) => (
+          {pillars.map((feature, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 25 }}
