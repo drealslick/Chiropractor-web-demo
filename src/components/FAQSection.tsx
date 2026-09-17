@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { faqs } from '../data/clinicData';
+import { ClinicInfo } from '../types';
 
-export const FAQSection: React.FC = () => {
+interface FAQSectionProps {
+  clinic?: ClinicInfo;
+}
+
+export const FAQSection: React.FC<FAQSectionProps> = ({ clinic }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(0); // first open by default
 
   const toggle = (idx: number) => {
     setOpenIndex(prev => prev === idx ? null : idx);
   };
+
+  const list = clinic?.customFaqs 
+    ? clinic.customFaqs.map(f => ({ question: f.q, answer: f.a }))
+    : faqs;
 
   return (
     <section id="faq" className="py-20 md:py-28 bg-white border-b border-stone-200 overflow-hidden">
@@ -33,7 +42,7 @@ export const FAQSection: React.FC = () => {
         </motion.div>
 
         <div className="space-y-3">
-          {faqs.map((faq, index) => {
+          {list.map((faq, index) => {
             const isOpen = openIndex === index;
 
             return (

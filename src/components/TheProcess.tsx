@@ -2,8 +2,15 @@ import React from 'react';
 import { ArrowDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import { processSteps } from '../data/clinicData';
+import { ClinicInfo } from '../types';
 
-export const TheProcess: React.FC = () => {
+interface TheProcessProps {
+  clinic?: ClinicInfo;
+}
+
+export const TheProcess: React.FC<TheProcessProps> = ({ clinic }) => {
+  const steps = clinic?.customProcessSteps || processSteps;
+
   return (
     <section className="py-20 md:py-28 bg-stone-50 border-b border-stone-200 overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,7 +32,7 @@ export const TheProcess: React.FC = () => {
 
         {/* Steps */}
         <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-4 md:gap-4 relative">
-          {processSteps.map((step, idx) => (
+          {steps.map((step, idx) => (
             <React.Fragment key={step.number}>
               <motion.div
                 initial={{ opacity: 0, y: 25 }}
@@ -48,7 +55,7 @@ export const TheProcess: React.FC = () => {
               </motion.div>
 
               {/* Arrow separator for mobile (down) or desktop (right) */}
-              {idx < processSteps.length - 1 && (
+              {idx < steps.length - 1 && (
                 <div className="flex md:hidden justify-center py-1 text-stone-400">
                   <ArrowDown className="w-5 h-5 text-emerald-700" />
                 </div>

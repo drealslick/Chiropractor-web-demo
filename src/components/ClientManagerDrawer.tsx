@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo } from '../types';
-import { defaultClinic, alternativeOffers } from '../data/clinicData';
+import { defaultClinic, alternativeOffers, conditionsData, processSteps, testimonials, faqs } from '../data/clinicData';
 import { colorPalettes, ColorPaletteId, resolvePalette } from '../data/colorPalettes';
 
 interface ClientManagerDrawerProps {
@@ -181,8 +181,8 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
   onResetDefault,
   onEnterPresentationMode
 }) => {
-  // Navigation Tabs: 'clients' | 'palettes' | 'form' | 'roi' | 'seo' | 'json'
-  const [activeTab, setActiveTab] = useState<'clients' | 'palettes' | 'form' | 'roi' | 'seo' | 'json'>('clients');
+  // Navigation Tabs: 'clients' | 'palettes' | 'form' | 'sections' | 'roi' | 'seo' | 'json'
+  const [activeTab, setActiveTab] = useState<'clients' | 'palettes' | 'form' | 'sections' | 'roi' | 'seo' | 'json'>('clients');
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState<string>('');
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -238,6 +238,30 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
       updated.phoneRaw = String(value).replace(/\D/g, '');
     }
     onUpdateClinic(updated);
+  };
+
+  const handleUpdateCondition = (index: number, field: string, value: any) => {
+    const list = [...(clinic.customConditions || conditionsData)];
+    list[index] = { ...list[index], [field]: value };
+    onUpdateClinic({ ...clinic, customConditions: list });
+  };
+
+  const handleUpdateProcessStep = (index: number, field: string, value: any) => {
+    const list = [...(clinic.customProcessSteps || processSteps)];
+    list[index] = { ...list[index], [field]: value };
+    onUpdateClinic({ ...clinic, customProcessSteps: list });
+  };
+
+  const handleUpdateTestimonial = (index: number, field: string, value: any) => {
+    const list = [...(clinic.customTestimonials || testimonials)];
+    list[index] = { ...list[index], [field]: value };
+    onUpdateClinic({ ...clinic, customTestimonials: list });
+  };
+
+  const handleUpdateFaq = (index: number, field: string, value: any) => {
+    const list = [...(clinic.customFaqs || faqs.map(f => ({ q: f.question, a: f.answer })))];
+    list[index] = { ...list[index], [field]: value };
+    onUpdateClinic({ ...clinic, customFaqs: list });
   };
 
   // 1-Tap Client Switcher: Activate selected client project
@@ -525,6 +549,16 @@ ${typeof window !== 'undefined' ? window.location.origin : 'https://your-site.co
               >
                 <Building2 className="w-3.5 h-3.5" />
                 <span>Clinic & Toggles</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('sections')}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === 'sections' ? 'bg-stone-900 text-white shadow-xs' : 'hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Site Content</span>
               </button>
 
               <button
@@ -1013,6 +1047,159 @@ ${typeof window !== 'undefined' ? window.location.origin : 'https://your-site.co
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* TAB: SITE CONTENT SECTIONS */}
+              {activeTab === 'sections' && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-emerald-800" />
+                      <span>Site Content & Copy Editor</span>
+                    </h4>
+                    <p className="text-xs text-stone-600 leading-relaxed">
+                      Customize every condition, treatment step, patient review, and FAQ without touching code.
+                    </p>
+                  </div>
+
+                  {/* Conditions Section */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <h5 className="font-semibold text-xs text-stone-800 uppercase tracking-wider">
+                      1. Targeted Conditions & Symptoms
+                    </h5>
+                    {(clinic.customConditions || conditionsData).map((cond, idx) => (
+                      <div key={cond.id} className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                        <div className="grid sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-600 mb-1">Condition Title</label>
+                            <input
+                              type="text"
+                              value={cond.title}
+                              onChange={(e) => handleUpdateCondition(idx, 'title', e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg focus:ring-1 focus:ring-emerald-700"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-600 mb-1">Short Description</label>
+                            <input
+                              type="text"
+                              value={cond.description}
+                              onChange={(e) => handleUpdateCondition(idx, 'description', e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg focus:ring-1 focus:ring-emerald-700"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">Clinical Approach / Care Plan</label>
+                          <textarea
+                            rows={2}
+                            value={cond.approach}
+                            onChange={(e) => handleUpdateCondition(idx, 'approach', e.target.value)}
+                            className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg focus:ring-1 focus:ring-emerald-700"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Process Steps Section */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <h5 className="font-semibold text-xs text-stone-800 uppercase tracking-wider">
+                      2. Treatment Process Steps
+                    </h5>
+                    {(clinic.customProcessSteps || processSteps).map((step, idx) => (
+                      <div key={step.number} className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                            {step.number}
+                          </span>
+                          <input
+                            type="text"
+                            value={step.title}
+                            onChange={(e) => handleUpdateProcessStep(idx, 'title', e.target.value)}
+                            className="flex-1 text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg font-semibold"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={step.description}
+                          onChange={(e) => handleUpdateProcessStep(idx, 'description', e.target.value)}
+                          className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-stone-600"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Testimonials Section */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <h5 className="font-semibold text-xs text-stone-800 uppercase tracking-wider">
+                      3. Patient Testimonials & Quotes
+                    </h5>
+                    {(clinic.customTestimonials || testimonials).map((item, idx) => (
+                      <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">Quote</label>
+                          <textarea
+                            rows={2}
+                            value={item.quote}
+                            onChange={(e) => handleUpdateTestimonial(idx, 'quote', e.target.value)}
+                            className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg italic"
+                          />
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-600 mb-1">Patient Name</label>
+                            <input
+                              type="text"
+                              value={item.author}
+                              onChange={(e) => handleUpdateTestimonial(idx, 'author', e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-stone-600 mb-1">Condition Tag</label>
+                            <input
+                              type="text"
+                              value={item.condition || ''}
+                              onChange={(e) => handleUpdateTestimonial(idx, 'condition', e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* FAQs Section */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <h5 className="font-semibold text-xs text-stone-800 uppercase tracking-wider">
+                      4. Frequently Asked Questions (FAQs)
+                    </h5>
+                    {(clinic.customFaqs || faqs.map(f => ({ q: f.question, a: f.answer }))).map((faq, idx) => (
+                      <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">Question</label>
+                          <input
+                            type="text"
+                            value={faq.q}
+                            onChange={(e) => handleUpdateFaq(idx, 'q', e.target.value)}
+                            className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">Answer</label>
+                          <textarea
+                            rows={2}
+                            value={faq.a}
+                            onChange={(e) => handleUpdateFaq(idx, 'a', e.target.value)}
+                            className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg text-stone-600"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                 </div>
               )}
 

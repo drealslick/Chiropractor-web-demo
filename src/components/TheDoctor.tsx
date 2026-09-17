@@ -28,6 +28,7 @@ export const TheDoctor: React.FC<TheDoctorProps> = ({ clinic }) => {
                 alt={`${clinic.doctorName}, Lead Chiropractor`}
                 className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                 loading="lazy"
+                referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-2xl" />
             </div>

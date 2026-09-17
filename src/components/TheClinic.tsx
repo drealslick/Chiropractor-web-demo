@@ -39,6 +39,7 @@ export const TheClinic: React.FC<TheClinicProps> = ({ clinic }) => {
             alt={`Modern treatment room at ${clinic.name}`}
             className="w-full h-[360px] sm:h-[480px] md:h-[560px] object-cover transition-transform duration-700 group-hover:scale-[1.01]"
             loading="lazy"
+            referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-transparent to-transparent flex items-end">
             <motion.div

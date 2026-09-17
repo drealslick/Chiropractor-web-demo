@@ -2,8 +2,15 @@ import React from 'react';
 import { Star, Trophy } from 'lucide-react';
 import { motion } from 'motion/react';
 import { testimonials, featuredStory } from '../data/clinicData';
+import { ClinicInfo } from '../types';
 
-export const PatientsSection: React.FC = () => {
+interface PatientsSectionProps {
+  clinic?: ClinicInfo;
+}
+
+export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
+  const list = clinic?.customTestimonials || testimonials;
+
   return (
     <section id="results" className="py-20 md:py-28 bg-stone-50 border-b border-stone-200 overflow-hidden">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,7 +33,7 @@ export const PatientsSection: React.FC = () => {
 
         {/* 3 Testimonial Quotes */}
         <div className="grid md:grid-cols-3 gap-6 sm:gap-8 mb-16">
-          {testimonials.map((item, idx) => (
+          {list.map((item, idx) => (
             <motion.div
               key={idx}
               initial={{ opacity: 0, y: 25 }}
@@ -37,7 +44,7 @@ export const PatientsSection: React.FC = () => {
             >
               <div>
                 <div className="flex text-amber-400 mb-4">
-                  {[...Array(item.rating)].map((_, i) => (
+                  {[...Array(item.rating || 5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
@@ -79,10 +86,11 @@ export const PatientsSection: React.FC = () => {
               <div className="sm:col-span-4">
                 <div className="relative rounded-xl overflow-hidden aspect-square border border-stone-200 shadow-sm bg-stone-100">
                   <img
-                    src={featuredStory.image}
+                    src={clinic?.patientImage || featuredStory.image}
                     alt={`${featuredStory.patientName} back playing tennis`}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
                 <p className="text-xs text-stone-500 text-center mt-2 font-medium">

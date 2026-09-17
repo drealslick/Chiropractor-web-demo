@@ -21,7 +21,7 @@ import { FinalCTA } from './components/FinalCTA';
 import { Footer } from './components/Footer';
 import { MobileStickyBar } from './components/MobileStickyBar';
 import { BookingModal } from './components/BookingModal';
-import { ClientManagerDrawer } from './components/ClientManagerDrawer';
+import { AgencyWorkspace } from './components/AgencyWorkspace';
 
 const STORAGE_KEY = 'agency_clinic_config_v1';
 
@@ -78,7 +78,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Update root CSS variables whenever clinic.colorPalette changes
+  // Update root CSS variables whenever clinic.colorPalette or custom color overrides change
   useEffect(() => {
     const config = resolvePalette(clinic.colorPalette);
 
@@ -87,8 +87,25 @@ export default function App() {
       Object.entries(config.variables).forEach(([cssVar, colorVal]) => {
         root.style.setProperty(cssVar, colorVal);
       });
+
+      // Apply overrides if they exist
+      if (clinic.customPrimaryColor) {
+        root.style.setProperty('--theme-primary-500', clinic.customPrimaryColor);
+        root.style.setProperty('--theme-primary-600', clinic.customPrimaryColor);
+        root.style.setProperty('--theme-primary-700', clinic.customPrimaryColor);
+        root.style.setProperty('--theme-primary-800', clinic.customPrimaryColor);
+      }
+      if (clinic.customAccentColor) {
+        root.style.setProperty('--theme-accent', clinic.customAccentColor);
+      }
+      if (clinic.customBgColor) {
+        root.style.setProperty('--theme-bg-page', clinic.customBgColor);
+      }
+      if (clinic.customTextColor) {
+        root.style.setProperty('--theme-primary-950', clinic.customTextColor);
+      }
     }
-  }, [clinic.colorPalette]);
+  }, [clinic.colorPalette, clinic.customPrimaryColor, clinic.customAccentColor, clinic.customBgColor, clinic.customTextColor]);
 
   const handleUpdateClinic = (updated: ClinicInfo) => {
     setClinic(updated);
@@ -153,7 +170,7 @@ export default function App() {
 
         {/* 5. THE PROBLEM */}
         <TheProblem
-          conditions={conditionsData}
+          conditions={clinic.customConditions || conditionsData}
           onSelectCondition={(cond) => handleOpenBooking(cond)}
         />
 
@@ -161,13 +178,13 @@ export default function App() {
         <WhyUs />
 
         {/* 7. THE PROCESS */}
-        <TheProcess />
+        <TheProcess clinic={clinic} />
 
         {/* 8. THE DOCTOR */}
         <TheDoctor clinic={clinic} />
 
         {/* 9. PATIENTS */}
-        <PatientsSection />
+        <PatientsSection clinic={clinic} />
 
         {/* 10. THE CLINIC */}
         <TheClinic clinic={clinic} />
@@ -182,7 +199,7 @@ export default function App() {
         <LocationSection clinic={clinic} />
 
         {/* 14. FAQ */}
-        <FAQSection />
+        <FAQSection clinic={clinic} />
 
         {/* 15. FINAL CTA */}
         <FinalCTA
@@ -214,8 +231,8 @@ export default function App() {
         initialCondition={selectedConditionForBooking}
       />
 
-      {/* 19. AGENCY CLIENT MANAGER DRAWER */}
-      <ClientManagerDrawer
+      {/* 19. AGENCY WORKSPACE COMMAND SUITE */}
+      <AgencyWorkspace
         isOpen={isManagerOpen}
         onClose={() => setIsManagerOpen(false)}
         clinic={clinic}

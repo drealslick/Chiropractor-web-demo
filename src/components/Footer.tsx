@@ -23,7 +23,7 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
                 <span>{clinic.name.charAt(0) || 'C'}</span>
               </div>
               <span className="font-serif font-bold text-xl text-white tracking-tight">
-                {clinic.name}
+                {clinic.logoText || clinic.name}
               </span>
             </div>
 

@@ -15,12 +15,21 @@ export const Navbar: React.FC<NavbarProps> = ({ clinic, onBookClick }) => {
         {/* LOGO & Location Badge */}
         <div className="flex items-center gap-3">
           <a href="#" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-lg bg-stone-900 text-stone-50 flex items-center justify-center font-serif text-xl font-bold tracking-tight shadow-sm transition-transform group-hover:scale-105">
-              <span>{clinic.name.charAt(0) || 'C'}</span>
-            </div>
+            {clinic.logoImage ? (
+              <img
+                src={clinic.logoImage}
+                alt={clinic.logoText || clinic.name}
+                style={{ width: clinic.logoWidth ? `${clinic.logoWidth}px` : '150px' }}
+                className="h-auto max-h-12 object-contain rounded-md"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-stone-900 text-stone-50 flex items-center justify-center font-serif text-xl font-bold tracking-tight shadow-sm transition-transform group-hover:scale-105">
+                <span>{(clinic.logoText || clinic.name).charAt(0) || 'C'}</span>
+              </div>
+            )}
             <div className="flex flex-col">
               <span className="font-serif font-bold text-lg leading-tight tracking-tight text-stone-900 group-hover:text-emerald-800 transition-colors">
-                {clinic.name}
+                {clinic.logoText || clinic.name}
               </span>
               <span className="text-xs tracking-wider uppercase text-stone-500 font-medium">
                 {clinic.cityState}

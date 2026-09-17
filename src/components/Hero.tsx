@@ -88,6 +88,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             alt="Doctor examining patient in treatment room at Columbus Chiropractic Care"
             className="w-full h-[360px] sm:h-[480px] md:h-[560px] object-cover object-center transition-transform duration-700 group-hover:scale-[1.01]"
             loading="eager"
+            referrerPolicy="no-referrer"
           />
           {/* Subtle natural photo caption badge */}
           <motion.div

@@ -23,12 +23,26 @@ export interface ClinicInfo {
   offerSubtext: string;
   offerCtaText: string;
   colorPalette?: string;
+  customPrimaryColor?: string;
+  customAccentColor?: string;
+  customBgColor?: string;
+  customTextColor?: string;
+  logoText?: string;
+  logoImage?: string;
+  logoWidth?: number;
+  logoPosition?: 'left' | 'center';
+  finalCtaHeadline?: string;
+  finalCtaButtonText?: string;
   externalBookingUrl?: string;
   bookingType?: 'modal' | 'external';
   showStickyBanner?: boolean;
   paymentModel?: 'insurance_and_cash' | 'cash_only_concierge';
   googleRating?: number;
   googleReviewsCount?: number;
+  customConditions?: ProblemCondition[];
+  customProcessSteps?: ProcessStep[];
+  customTestimonials?: { quote: string; author: string; rating: number; condition?: string }[];
+  customFaqs?: { q: string; a: string }[];
 }
 
 export interface ProblemCondition {
