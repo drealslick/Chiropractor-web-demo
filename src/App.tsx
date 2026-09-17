@@ -315,13 +315,60 @@ export default function App() {
       />
 
       {/* 19. AGENCY WORKSPACE COMMAND SUITE */}
-      <AgencyWorkspace
-        isOpen={isManagerOpen}
-        onClose={() => setIsManagerOpen(false)}
-        clinic={clinic}
-        onUpdateClinic={handleUpdateClinic}
-        onResetDefault={handleResetDefault}
-      />
+      {isManagerOpen && (
+  !isUnlocked ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div className="w-full max-w-xs rounded-xl border border-stone-800 bg-stone-900 p-6 text-white shadow-2xl">
+        <h3 className="mb-1 text-base font-semibold">Admin Verification</h3>
+        <p className="mb-4 text-xs text-stone-400">Enter passcode to open Agency Manager.</p>
+
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (passcode === 'Slick2026!') {
+            setIsUnlocked(true);
+            setError('');
+          } else {
+            setError('Incorrect passcode');
+          }
+        }}>
+          <input
+            type="password"
+            placeholder="Enter secret passcode"
+            value={passcode}
+            onChange={(e) => setPasscode(e.target.value)}
+            className="mb-2 w-full rounded-lg border border-stone-700 bg-stone-800 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+          />
+          {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
+
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              type="button"
+              onClick={() => setIsManagerOpen(false)}
+              className="px-3 py-1.5 text-xs text-stone-400 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
+            >
+              Unlock
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : (
+    <AgencyWorkspace
+      isOpen={isManagerOpen}
+      onClose={() => setIsManagerOpen(false)}
+      clinic={clinic}
+      onUpdateClinic={handleUpdateClinic}
+      onResetDefault={handleResetDefault}
+    />
+  )
+)}
+
 
     </div>
   );
