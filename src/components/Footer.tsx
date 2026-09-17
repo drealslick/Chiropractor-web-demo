@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, MapPin, Clock } from 'lucide-react';
+import { Phone, MapPin, Clock, Mail, Instagram, Facebook, Globe } from 'lucide-react';
 import { ClinicInfo } from '../types';
 
 interface FooterProps {
@@ -28,7 +28,7 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
             </div>
 
             {/* FULL NAP EXACT MATCH */}
-            <div className="text-stone-400 text-sm space-y-1.5 pt-1">
+            <div className="text-stone-400 text-sm space-y-2 pt-1">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>{clinic.address}, {clinic.city}, {clinic.state} {clinic.zip}</span>
@@ -39,7 +39,55 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
                   {clinic.phone}
                 </a>
               </div>
+              {clinic.email && (
+                <div className="flex items-center gap-2 animate-fade-in">
+                  <Mail className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <a href={`mailto:${clinic.email}`} className="hover:text-white transition-colors break-all">
+                    {clinic.email}
+                  </a>
+                </div>
+              )}
             </div>
+
+            {/* Social Links Row */}
+            {(clinic.instagram || clinic.facebook || clinic.googleBusiness) && (
+              <div className="flex items-center gap-3 pt-2 animate-fade-in">
+                {clinic.instagram && (
+                  <a
+                    href={clinic.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-700 transition-all shadow-xs"
+                    aria-label="Instagram Profile"
+                  >
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                )}
+                {clinic.facebook && (
+                  <a
+                    href={clinic.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-700 transition-all shadow-xs"
+                    aria-label="Facebook Page"
+                  >
+                    <Facebook className="w-4 h-4" />
+                  </a>
+                )}
+                {clinic.googleBusiness && (
+                  <a
+                    href={clinic.googleBusiness}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-700 transition-all shadow-xs flex items-center gap-1 text-[11px] font-bold tracking-wider"
+                    aria-label="Google Business Listing"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span className="uppercase text-[9px] text-stone-400 font-sans">Maps</span>
+                  </a>
+                )}
+              </div>
+            )}
 
             <p className="text-xs text-stone-500 max-w-sm pt-2">
               {clinic.cityState} based chiropractic care focused on restorative biomechanics, personalized rehabilitation, and pain elimination.

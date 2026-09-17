@@ -31,7 +31,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
           transition={{ duration: 0.55, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-stone-900 tracking-tight leading-[1.1] mb-6"
         >
-          Get Back to What Pain Took Away.
+          {clinic.heroHeadline || "Get Back to What Pain Took Away."}
         </motion.h1>
 
         {/* HERO SUBTITLE */}
@@ -41,7 +41,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
           transition={{ duration: 0.55, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="text-lg sm:text-xl text-stone-600 font-normal leading-relaxed max-w-2xl mx-auto mb-10"
         >
-          Personalized chiropractic care in {clinic.city} for people who refuse to slow down.
+          {clinic.heroSubheadline || `Personalized chiropractic care in ${clinic.city} for people who refuse to slow down.`}
         </motion.p>
 
         {/* HERO CTA BUTTON */}
@@ -54,10 +54,10 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
           <button
             onClick={onBookClick}
             id="hero-book-first-visit-btn"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-base font-semibold tracking-wide rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer group"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-base font-semibold tracking-wide rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer group uppercase"
           >
             <Calendar className="w-5 h-5 text-emerald-400" />
-            <span>BOOK YOUR FIRST VISIT</span>
+            <span>{clinic.heroCtaText || "BOOK YOUR FIRST VISIT"}</span>
             <ArrowRight className="w-4 h-4 text-stone-400 group-hover:translate-x-1 transition-transform" />
           </button>
         </motion.div>

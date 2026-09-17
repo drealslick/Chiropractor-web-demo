@@ -88,6 +88,24 @@ export interface ClinicInfo {
   patientsSectionSubtitle?: string;
   faqSectionTitle?: string;
   faqSectionSubtitle?: string;
+
+  // Hero custom text
+  heroHeadline?: string;
+  heroSubheadline?: string;
+  heroCtaText?: string;
+
+  // Email and Social Profiles
+  email?: string;
+  instagram?: string;
+  facebook?: string;
+  googleBusiness?: string;
+
+  // Editable Featured Patient Story Details
+  patientStoryName?: string;
+  patientStoryRole?: string;
+  patientStorySummary?: string;
+  patientStoryTimeline?: string;
+  patientStoryOutcome?: string;
 }
 
 export interface ProblemCondition {

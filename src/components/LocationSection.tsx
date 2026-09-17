@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Clock, Car, Phone } from 'lucide-react';
+import { MapPin, Clock, Car, Phone, Mail } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ClinicInfo } from '../types';
 
@@ -103,18 +103,31 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ clinic }) => {
             </div>
 
             {/* BIG TAPPABLE PHONE */}
-            <div className="pt-6 border-t border-stone-100">
-              <span className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2">
-                Questions or immediate appointments:
-              </span>
-              <a
-                href={`tel:${clinic.phoneRaw}`}
-                id="location-call-phone-button"
-                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-emerald-900 hover:bg-stone-900 text-white font-bold text-lg sm:text-xl rounded-xl shadow-md transition-all active:scale-[0.99] group cursor-pointer"
-              >
-                <Phone className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
-                <span>{clinic.phone}</span>
-              </a>
+            <div className="pt-6 border-t border-stone-100 space-y-3">
+              <div>
+                <span className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2">
+                  Questions or immediate appointments:
+                </span>
+                <a
+                  href={`tel:${clinic.phoneRaw}`}
+                  id="location-call-phone-button"
+                  className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-emerald-900 hover:bg-stone-900 text-white font-bold text-lg sm:text-xl rounded-xl shadow-md transition-all active:scale-[0.99] group cursor-pointer"
+                >
+                  <Phone className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>{clinic.phone}</span>
+                </a>
+              </div>
+              {clinic.email && (
+                <div className="flex justify-center pt-1 animate-fade-in">
+                  <a
+                    href={`mailto:${clinic.email}`}
+                    className="text-xs font-semibold text-stone-600 hover:text-emerald-800 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <Mail className="w-4 h-4 text-emerald-600" />
+                    <span>{clinic.email}</span>
+                  </a>
+                </div>
+              )}
             </div>
 
           </motion.div>

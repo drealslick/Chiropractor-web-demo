@@ -87,27 +87,27 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
                 <div className="relative rounded-xl overflow-hidden aspect-square border border-stone-200 shadow-sm bg-stone-100">
                   <img
                     src={clinic?.patientImage || featuredStory.image}
-                    alt={`${featuredStory.patientName} back playing tennis`}
+                    alt={`${clinic?.patientStoryName || featuredStory.patientName} success story`}
                     className="w-full h-full object-cover"
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
                 </div>
                 <p className="text-xs text-stone-500 text-center mt-2 font-medium">
-                  {featuredStory.patientName} · Tennis enthusiast
+                  {clinic?.patientStoryName || featuredStory.patientName} · {clinic?.patientStoryRole || "Tennis enthusiast"}
                 </p>
               </div>
 
               {/* Story Copy */}
               <div className="sm:col-span-8 space-y-4 text-stone-700 text-base leading-relaxed">
                 <p>
-                  {featuredStory.summary}
+                  {clinic?.patientStorySummary || featuredStory.summary}
                 </p>
-                <p className="text-stone-600">
-                  {featuredStory.timeline}
+                <p className="text-stone-600 text-sm italic">
+                  {clinic?.patientStoryTimeline || featuredStory.timeline}
                 </p>
                 <p className="font-semibold text-stone-900 text-lg font-serif">
-                  {featuredStory.outcome}
+                  {clinic?.patientStoryOutcome || featuredStory.outcome}
                 </p>
               </div>
             </div>

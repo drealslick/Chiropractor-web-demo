@@ -51,6 +51,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo } from '../types';
 import { defaultClinic, alternativeOffers, conditionsData, processSteps, testimonials, faqs } from '../data/clinicData';
 import { colorPalettes, ColorPaletteId, resolvePalette } from '../data/colorPalettes';
+import { ImageUpload } from './ImageUpload';
 
 interface AgencyWorkspaceProps {
   isOpen: boolean;
@@ -584,6 +585,7 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as WorkspaceTab)}
+                title={item.label}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
                   isActive
                     ? 'bg-emerald-800 text-white shadow-sm font-semibold'
@@ -1133,32 +1135,17 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                     <p className="text-[11px] text-stone-500 mt-1 font-normal">Controls header navigation logo text and footer copyright.</p>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-bold text-stone-700">Logo Icon / Image URL (Optional)</label>
-                      <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Real Upload Supported</span>
-                    </div>
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={clinic.logoImage || ""}
-                        placeholder="e.g. https://example.com/logo.png"
-                        onChange={(e) => handleFieldChange('logoImage', e.target.value)}
-                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
-                      />
-                      <div className="flex items-center gap-2">
-                        <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-stone-300 hover:border-emerald-700 rounded-xl cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-xs font-semibold text-stone-700 hover:text-emerald-900 transition-all">
-                          <FileUp className="w-4 h-4 text-stone-500" />
-                          <span>Upload Local File</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload('logoImage', e)}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-stone-500 mt-1 font-normal">If provided, this image will replace/pair with logo text.</p>
+                    <ImageUpload
+                      label="Logo Icon / Image"
+                      description="Upload a custom logo file or provide a URL. Stored as local Base64 string."
+                      currentValue={clinic.logoImage || ""}
+                      onChange={(val) => handleFieldChange('logoImage', val)}
+                      onReset={() => {
+                        handleFieldChange('logoImage', '');
+                        showNotification("Reset logo to pure typographic branding!");
+                      }}
+                      aspectRatioClassName="aspect-[3/1]"
+                    />
                   </div>
                 </div>
 
@@ -1469,6 +1456,60 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Email & Social Channels Card */}
+              <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Email & Social Media Profiles</h3>
+                  <p className="text-xs text-stone-500 mt-0.5">Configure digital contact options and social proofs visible in the footer and contact sections.</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Practice Email Address</label>
+                    <input
+                      type="email"
+                      value={clinic.email || ""}
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                      placeholder="e.g. contact@wellnesscolumbus.com"
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Instagram URL</label>
+                    <input
+                      type="url"
+                      value={clinic.instagram || ""}
+                      onChange={(e) => handleFieldChange('instagram', e.target.value)}
+                      placeholder="e.g. https://instagram.com/wellnesschiro"
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Facebook Page URL</label>
+                    <input
+                      type="url"
+                      value={clinic.facebook || ""}
+                      onChange={(e) => handleFieldChange('facebook', e.target.value)}
+                      placeholder="e.g. https://facebook.com/wellnesschirocolumbus"
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Google Business Profile / Maps URL</label>
+                    <input
+                      type="url"
+                      value={clinic.googleBusiness || ""}
+                      onChange={(e) => handleFieldChange('googleBusiness', e.target.value)}
+                      placeholder="e.g. https://maps.google.com/?cid=..."
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-mono text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1509,10 +1550,51 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
 
               {/* SECTION: HERO & OFFER */}
               {activeContentSection === 'hero' && (
-                <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Hero Section & Sticky Special Offers</h3>
+                <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-5">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Primary Hero Section Copy</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">Customize the main landing page headline, subheadline and direct booking button text.</p>
+                  </div>
                   
                   <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Main Hero Headline</label>
+                      <input
+                        type="text"
+                        value={clinic.heroHeadline || ""}
+                        onChange={(e) => handleFieldChange('heroHeadline', e.target.value)}
+                        placeholder="Get Back to What Pain Took Away."
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif font-bold text-stone-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Main Hero Subheadline</label>
+                      <textarea
+                        rows={2}
+                        value={clinic.heroSubheadline || ""}
+                        onChange={(e) => handleFieldChange('heroSubheadline', e.target.value)}
+                        placeholder={`Personalized chiropractic care in ${clinic.city} for people who refuse to slow down.`}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-stone-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Primary Hero CTA Button Text</label>
+                      <input
+                        type="text"
+                        value={clinic.heroCtaText || ""}
+                        onChange={(e) => handleFieldChange('heroCtaText', e.target.value)}
+                        placeholder="BOOK YOUR FIRST VISIT"
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold uppercase"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-stone-100 space-y-4">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800">New Patient Sticky Special & Banner</h4>
+                      <p className="text-xs text-stone-500 mt-0.5">Configure the promotional banner that floats on the screen or sits in headers.</p>
+                    </div>
+
                     <div>
                       <label className="block text-xs font-bold text-stone-700 mb-1">New Patient Special Offer Title</label>
                       <input
@@ -1553,16 +1635,17 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                         </select>
                       </div>
                     </div>
-                    {clinic.bookingType === 'external' && (
-                      <div>
-                        <label className="block text-xs font-bold text-stone-700 mb-1">External Booking Link URL</label>
+                    {(clinic.bookingType === 'external' || clinic.bookingMode === 'external') && (
+                      <div className="p-4 bg-emerald-50/20 border border-emerald-600/20 rounded-xl space-y-2 animate-fade-in">
+                        <label className="block text-xs font-bold text-stone-700">JaneApp / Calendly External Scheduling URL</label>
                         <input
-                          type="text"
+                          type="url"
                           value={clinic.externalBookingUrl || ""}
-                          placeholder="e.g. https://janeapp.com/columbus-chiro/book"
+                          placeholder="e.g. https://columbus-chiro.janeapp.com/embed/book"
                           onChange={(e) => handleFieldChange('externalBookingUrl', e.target.value)}
-                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-mono"
+                          className="w-full text-xs px-3 py-2 bg-white border border-stone-300 rounded-xl font-mono text-emerald-950"
                         />
+                        <span className="block text-[10px] text-stone-500">Every CTA click on the landing page will directly open this scheduling link in a new secure window.</span>
                       </div>
                     )}
                   </div>
@@ -1863,6 +1946,71 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                       </div>
                     ))}
                   </div>
+
+                  {/* Featured Success Story Card */}
+                  <div className="pt-6 border-t border-stone-200 space-y-4">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800">Featured Athlete/Patient Success Story</h4>
+                      <p className="text-[11px] text-stone-500 mt-0.5">Edit the highlighted case study displayed beneath the patient review cards.</p>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Patient Name</label>
+                        <input
+                          type="text"
+                          value={clinic.patientStoryName || ""}
+                          placeholder="e.g. Sarah Jenkins"
+                          onChange={(e) => handleFieldChange('patientStoryName', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Patient Role / Identifier</label>
+                        <input
+                          type="text"
+                          value={clinic.patientStoryRole || ""}
+                          placeholder="e.g. Competitive Tennis Player & Mother of Two"
+                          onChange={(e) => handleFieldChange('patientStoryRole', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Case Study Summary / Problem Statement</label>
+                      <textarea
+                        rows={2}
+                        value={clinic.patientStorySummary || ""}
+                        placeholder="e.g. After years of chronic lumbar spasms during matches, Sarah was told she needed surgery. She had to quit tournaments and couldn't lift her kids."
+                        onChange={(e) => handleFieldChange('patientStorySummary', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Recovery Timeline & Care Plan</label>
+                        <input
+                          type="text"
+                          value={clinic.patientStoryTimeline || ""}
+                          placeholder="e.g. Within 6 weeks of active stabilization & customized dry needling."
+                          onChange={(e) => handleFieldChange('patientStoryTimeline', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Ultimate Recovery Outcome / Achievement</label>
+                        <input
+                          type="text"
+                          value={clinic.patientStoryOutcome || ""}
+                          placeholder="e.g. Sarah finished her first full season completely pain-free."
+                          onChange={(e) => handleFieldChange('patientStoryOutcome', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -2024,43 +2172,20 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
               <div className="grid sm:grid-cols-2 gap-6">
                 
                 {/* 1. HERO MAIN PHOTO */}
-                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-stone-700">1. Hero Banner Image</span>
-                    <button
-                      onClick={() => {
-                        handleFieldChange('heroImage', 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=800');
-                        showNotification("Reset hero back to modern medical suite!");
-                      }}
-                      className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold cursor-pointer"
-                    >
-                      Reset Default
-                    </button>
-                  </div>
-                  <div className="aspect-video rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
-                    <img src={clinic.heroImage} alt="Hero preview" className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-stone-600">Custom Image URL or Local File</label>
-                    <input
-                      type="text"
-                      value={clinic.heroImage}
-                      onChange={(e) => handleFieldChange('heroImage', e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
-                    />
-                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
-                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
-                      <span>Upload Hero Image</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload('heroImage', e)}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-stone-600">Unsplash Presets (Click to Swap)</label>
+                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                  <ImageUpload
+                    label="1. Hero Banner Image"
+                    description="Upload a custom hero image file or provide a URL."
+                    currentValue={clinic.heroImage || ""}
+                    onChange={(val) => handleFieldChange('heroImage', val)}
+                    onReset={() => {
+                      handleFieldChange('heroImage', 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=800');
+                      showNotification("Reset hero back to modern medical suite!");
+                    }}
+                    aspectRatioClassName="aspect-video"
+                  />
+                  <div className="space-y-1 pt-1">
+                    <label className="block text-[10px] font-bold text-stone-500">Unsplash Presets (Click to Swap)</label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
                         { url: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=800", label: "Medical Suite" },
@@ -2070,6 +2195,7 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                       ].map((img, i) => (
                         <button
                           key={i}
+                          type="button"
                           onClick={() => {
                             handleFieldChange('heroImage', img.url);
                             showNotification(`Applied ${img.label} hero image!`);
@@ -2086,43 +2212,20 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                 </div>
 
                 {/* 2. DOCTOR PORTRAIT PHOTO */}
-                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-stone-700">2. Doctor Biography Portrait</span>
-                    <button
-                      onClick={() => {
-                        handleFieldChange('doctorImage', 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=600');
-                        showNotification("Reset doctor portrait!");
-                      }}
-                      className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold cursor-pointer"
-                    >
-                      Reset Default
-                    </button>
-                  </div>
-                  <div className="aspect-[4/3] rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
-                    <img src={clinic.doctorImage} alt="Doctor portrait preview" className="w-full h-full object-cover object-top animate-fade-in" referrerPolicy="no-referrer" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-stone-600">Custom Portrait URL or Local File</label>
-                    <input
-                      type="text"
-                      value={clinic.doctorImage}
-                      onChange={(e) => handleFieldChange('doctorImage', e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
-                    />
-                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
-                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
-                      <span>Upload Portrait Image</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload('doctorImage', e)}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-stone-600">Unsplash Doctor Presets</label>
+                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                  <ImageUpload
+                    label="2. Doctor Biography Portrait"
+                    description="Upload a professional doctor headshot file or provide a URL."
+                    currentValue={clinic.doctorImage || ""}
+                    onChange={(val) => handleFieldChange('doctorImage', val)}
+                    onReset={() => {
+                      handleFieldChange('doctorImage', 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=600');
+                      showNotification("Reset doctor portrait!");
+                    }}
+                    aspectRatioClassName="aspect-[4/3]"
+                  />
+                  <div className="space-y-1 pt-1">
+                    <label className="block text-[10px] font-bold text-stone-500">Unsplash Doctor Presets</label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
                         { url: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=600", label: "Female Doctor (Warm)" },
@@ -2132,6 +2235,7 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                       ].map((img, i) => (
                         <button
                           key={i}
+                          type="button"
                           onClick={() => {
                             handleFieldChange('doctorImage', img.url);
                             showNotification(`Applied ${img.label} portrait!`);
@@ -2148,43 +2252,20 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                 </div>
 
                 {/* 3. CLINIC INTERIOR ROOM */}
-                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-stone-700">3. Clinic Room / Studio Photo</span>
-                    <button
-                      onClick={() => {
-                        handleFieldChange('clinicImage', 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=800');
-                        showNotification("Reset clinic interior photo!");
-                      }}
-                      className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold cursor-pointer"
-                    >
-                      Reset Default
-                    </button>
-                  </div>
-                  <div className="aspect-video rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
-                    <img src={clinic.clinicImage} alt="Clinic interior preview" className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-stone-600">Custom Image URL or Local File</label>
-                    <input
-                      type="text"
-                      value={clinic.clinicImage}
-                      onChange={(e) => handleFieldChange('clinicImage', e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
-                    />
-                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
-                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
-                      <span>Upload Studio Image</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload('clinicImage', e)}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-stone-600">Unsplash Presets</label>
+                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                  <ImageUpload
+                    label="3. Clinic Room / Studio Photo"
+                    description="Upload an interior room or equipment photo file or provide a URL."
+                    currentValue={clinic.clinicImage || ""}
+                    onChange={(val) => handleFieldChange('clinicImage', val)}
+                    onReset={() => {
+                      handleFieldChange('clinicImage', 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=800');
+                      showNotification("Reset clinic interior photo!");
+                    }}
+                    aspectRatioClassName="aspect-video"
+                  />
+                  <div className="space-y-1 pt-1">
+                    <label className="block text-[10px] font-bold text-stone-500">Unsplash Presets</label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
                         { url: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=800", label: "Clinic Room Bed" },
@@ -2192,6 +2273,7 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                       ].map((img, i) => (
                         <button
                           key={i}
+                          type="button"
                           onClick={() => {
                             handleFieldChange('clinicImage', img.url);
                             showNotification(`Applied ${img.label} interior photo!`);
@@ -2208,43 +2290,20 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                 </div>
 
                 {/* 4. PATIENT SUCCESS STORY PHOTO */}
-                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-stone-700">4. Patient Success Story Image</span>
-                    <button
-                      onClick={() => {
-                        handleFieldChange('patientImage', 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=600');
-                        showNotification("Reset success story photo!");
-                      }}
-                      className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold cursor-pointer"
-                    >
-                      Reset Default
-                    </button>
-                  </div>
-                  <div className="aspect-[4/3] rounded-xl overflow-hidden border border-stone-200 bg-stone-100 relative">
-                    <img src={clinic.patientImage} alt="Patient story preview" className="w-full h-full object-cover animate-fade-in" referrerPolicy="no-referrer" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-bold text-stone-600">Custom Image URL or Local File</label>
-                    <input
-                      type="text"
-                      value={clinic.patientImage}
-                      onChange={(e) => handleFieldChange('patientImage', e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 bg-stone-50 border border-stone-300 rounded-lg font-mono text-stone-700"
-                    />
-                    <label className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-stone-300 hover:border-emerald-700 rounded-lg cursor-pointer bg-stone-50 hover:bg-emerald-50/20 text-[10px] font-semibold text-stone-700 hover:text-emerald-900 transition-all">
-                      <FileUp className="w-3.5 h-3.5 text-stone-500" />
-                      <span>Upload Athlete Image</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload('patientImage', e)}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-stone-600">Unsplash Athlete Presets</label>
+                <div className="p-5 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                  <ImageUpload
+                    label="4. Patient Success Story Image"
+                    description="Upload an image showing athletic recovery/active patient or provide a URL."
+                    currentValue={clinic.patientImage || ""}
+                    onChange={(val) => handleFieldChange('patientImage', val)}
+                    onReset={() => {
+                      handleFieldChange('patientImage', 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=600');
+                      showNotification("Reset success story photo!");
+                    }}
+                    aspectRatioClassName="aspect-[4/3]"
+                  />
+                  <div className="space-y-1 pt-1">
+                    <label className="block text-[10px] font-bold text-stone-500">Unsplash Athlete Presets</label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {[
                         { url: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=600", label: "Yoga Pose Spine Alignment" },
@@ -2253,6 +2312,7 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                       ].map((img, i) => (
                         <button
                           key={i}
+                          type="button"
                           onClick={() => {
                             handleFieldChange('patientImage', img.url);
                             showNotification(`Applied ${img.label} patient photo!`);
