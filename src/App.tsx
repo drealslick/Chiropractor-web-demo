@@ -50,6 +50,9 @@ export default function App() {
 
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [isManagerOpen, setIsManagerOpen] = useState<boolean>(false);
+  const [passcode, setPasscode] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [error, setError] = useState('');
   const [isStaffMode, setIsStaffMode] = useState<boolean>(false);
   const [selectedConditionForBooking, setSelectedConditionForBooking] = useState<string>('Back pain');
 
