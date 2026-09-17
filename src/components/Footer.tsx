@@ -83,20 +83,21 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
           <p>
             © {currentYear} {clinic.name}. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-stone-400 transition-colors">Privacy Policy</a>
-            <span>·</span>
-            <a href="#" className="hover:text-stone-400 transition-colors">Terms of Service</a>
-            <span>·</span>
-            <a href="#" className="hover:text-stone-400 transition-colors">HIPAA Compliance</a>
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-2">
+            <a href="#" className="hover:text-stone-400 transition-colors py-1">Privacy Policy</a>
+            <span className="text-stone-700">·</span>
+            <a href="#" className="hover:text-stone-400 transition-colors py-1">Terms of Service</a>
+            <span className="text-stone-700">·</span>
+            <a href="#" className="hover:text-stone-400 transition-colors py-1">HIPAA Compliance</a>
             {onOpenManager && (
               <>
-                <span>·</span>
+                <span className="text-stone-700">·</span>
                 <button
                   onClick={onOpenManager}
-                  className="text-stone-400 hover:text-emerald-400 font-medium transition-colors cursor-pointer inline-flex items-center gap-1"
-                  title="Agency Client Template Manager (Press Cmd/Ctrl + Shift + C)"
+                  className="text-stone-400 hover:text-emerald-400 font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 py-1 px-2 rounded hover:bg-stone-900"
+                  title="Agency Client Template Manager"
                 >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   <span>Agency Manager ⚙️</span>
                 </button>
               </>

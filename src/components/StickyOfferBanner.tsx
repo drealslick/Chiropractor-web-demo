@@ -10,7 +10,7 @@ interface StickyOfferBannerProps {
 export const StickyOfferBanner: React.FC<StickyOfferBannerProps> = ({ clinic, onClaim }) => {
   const [dismissed, setDismissed] = React.useState(false);
 
-  if (dismissed) return null;
+  if (dismissed || clinic.showStickyBanner === false) return null;
 
   return (
     <div className="bg-emerald-900 text-emerald-50 border-b border-emerald-950/40 relative z-30 transition-all">

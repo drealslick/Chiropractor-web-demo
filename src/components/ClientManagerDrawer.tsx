@@ -1,9 +1,37 @@
-import React, { useState, useRef } from 'react';
-import { X, Download, Upload, Copy, Check, RotateCcw, Sparkles, Building2, User, Phone, MapPin, Tag, Image as ImageIcon, FileCode, CheckCircle2, ChevronRight, Eye, Palette } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  X,
+  Download,
+  Upload,
+  Copy,
+  Check,
+  RotateCcw,
+  Sparkles,
+  Building2,
+  User,
+  Phone,
+  MapPin,
+  Tag,
+  Palette,
+  Briefcase,
+  TrendingUp,
+  Search,
+  CheckCircle2,
+  ExternalLink,
+  Plus,
+  Trash2,
+  FolderOpen,
+  DollarSign,
+  Star,
+  Layers,
+  ChevronRight,
+  ShieldCheck,
+  Share2
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo } from '../types';
 import { defaultClinic, alternativeOffers } from '../data/clinicData';
-import { colorPalettes, ColorPaletteId } from '../data/colorPalettes';
+import { colorPalettes, ColorPaletteId, resolvePalette } from '../data/colorPalettes';
 
 interface ClientManagerDrawerProps {
   isOpen: boolean;
@@ -11,14 +39,47 @@ interface ClientManagerDrawerProps {
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
   onResetDefault: () => void;
+  onEnterPresentationMode?: () => void;
 }
 
-// Sample presets for quick agency demoing / testing
-const agencyPresets: { name: string; city: string; data: Partial<ClinicInfo> }[] = [
+export interface ClientProject {
+  id: string;
+  name: string;
+  doctorName: string;
+  city: string;
+  state: string;
+  colorPalette: ColorPaletteId;
+  status: 'active' | 'prospect' | 'proposal_sent' | 'live';
+  lastEdited: string;
+  data: ClinicInfo;
+}
+
+const STORAGE_PROJECTS_KEY = 'agency_client_projects_v2';
+
+// Starter presets ready to load as client projects
+const defaultProjects: ClientProject[] = [
   {
-    name: "Apex Spine & Sports Injury",
-    city: "Austin, TX",
+    id: 'columbus-vance',
+    name: 'Columbus Chiropractic Care',
+    doctorName: 'Dr. Marcus Vance',
+    city: 'Columbus',
+    state: 'OH',
+    colorPalette: 'soft-ivory-forest',
+    status: 'active',
+    lastEdited: 'Current Active',
+    data: { ...defaultClinic },
+  },
+  {
+    id: 'austin-jenkins',
+    name: 'Apex Spine & Sports Injury',
+    doctorName: 'Dr. Sarah Jenkins',
+    city: 'Austin',
+    state: 'TX',
+    colorPalette: 'warm-bone-charcoal',
+    status: 'proposal_sent',
+    lastEdited: 'Proposal Ready',
     data: {
+      ...defaultClinic,
       name: "Apex Spine & Sports Injury",
       city: "Austin",
       state: "TX",
@@ -34,16 +95,25 @@ const agencyPresets: { name: string; city: string; data: Partial<ClinicInfo> }[]
       doctorCredentials: "D.C., DACBSP",
       doctorYears: "12",
       doctorQuote: "Our mission is simple: get athletes and active professionals out of acute pain and back to peak performance without surgery.",
-      offerHeadline: "New Patients: $39 Spinal Exam & Adjustment",
+      offerHeadline: "New Patients: $39 Spinal Exam & Movement Assessment",
       offerSubtext: "Includes orthopedic exam & personalized treatment plan.",
       offerCtaText: "CLAIM $39 SPECIAL →",
-      colorPalette: "modern-minimal",
-    }
+      colorPalette: "warm-bone-charcoal",
+      googleRating: 5.0,
+      googleReviewsCount: 184,
+    },
   },
   {
-    name: "Denver Family Chiropractic",
-    city: "Denver, CO",
+    id: 'denver-rostova',
+    name: 'Denver Family Chiropractic',
+    doctorName: 'Dr. Elena Rostova',
+    city: 'Denver',
+    state: 'CO',
+    colorPalette: 'warm-sand-terracotta',
+    status: 'prospect',
+    lastEdited: 'Demo Draft',
     data: {
+      ...defaultClinic,
       name: "Denver Family Chiropractic",
       city: "Denver",
       state: "CO",
@@ -59,16 +129,25 @@ const agencyPresets: { name: string; city: string; data: Partial<ClinicInfo> }[]
       doctorCredentials: "D.C., CACCP (Prenatal & Pediatric)",
       doctorYears: "18",
       doctorQuote: "Gentle, non-invasive chiropractic care allows your nervous system to self-heal and stay resilient through every phase of life.",
-      offerHeadline: "Complimentary 15-Minute Consultation",
+      offerHeadline: "Complimentary 15-Minute Doctor Consultation",
       offerSubtext: "Speak directly with Dr. Rostova before your first appointment.",
       offerCtaText: "BOOK FREE CONSULT →",
-      colorPalette: "warm-earth",
-    }
+      colorPalette: "warm-sand-terracotta",
+      googleRating: 4.9,
+      googleReviewsCount: 96,
+    },
   },
   {
-    name: "Pacific Coast Health & Spine",
-    city: "San Diego, CA",
+    id: 'sandiego-hayes',
+    name: 'Pacific Coast Health & Spine',
+    doctorName: 'Dr. Tyler Hayes',
+    city: 'San Diego',
+    state: 'CA',
+    colorPalette: 'pale-stone-teal',
+    status: 'live',
+    lastEdited: 'Client Live',
     data: {
+      ...defaultClinic,
       name: "Pacific Coast Health & Spine",
       city: "San Diego",
       state: "CA",
@@ -84,12 +163,14 @@ const agencyPresets: { name: string; city: string; data: Partial<ClinicInfo> }[]
       doctorCredentials: "D.C., CCSP, CSCS",
       doctorYears: "10",
       doctorQuote: "We blend modern spinal adjustments with functional movement rehab so your pain relief actually lasts.",
-      offerHeadline: "New Patient Special: $49 Exam & Deep Tissue Release",
-      offerSubtext: "First 20 patients this month only.",
+      offerHeadline: "New Patient Special: $49 Exam & Soft Tissue Release",
+      offerSubtext: "First 20 new patients this month only.",
       offerCtaText: "CLAIM YOUR SPOT →",
-      colorPalette: "professional-blue",
-    }
-  }
+      colorPalette: "pale-stone-teal",
+      googleRating: 4.9,
+      googleReviewsCount: 215,
+    },
+  },
 ];
 
 export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
@@ -97,19 +178,48 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
   onClose,
   clinic,
   onUpdateClinic,
-  onResetDefault
+  onResetDefault,
+  onEnterPresentationMode
 }) => {
-  const [activeTab, setActiveTab] = useState<'palettes' | 'form' | 'json' | 'presets'>('palettes');
+  // Navigation Tabs: 'clients' | 'palettes' | 'form' | 'roi' | 'seo' | 'json'
+  const [activeTab, setActiveTab] = useState<'clients' | 'palettes' | 'form' | 'roi' | 'seo' | 'json'>('clients');
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState<string>('');
   const [jsonError, setJsonError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const currentPaletteId = (clinic.colorPalette as ColorPaletteId) || 'emerald-healing';
+  // Multi-Client Project Store
+  const [clientProjects, setClientProjects] = useState<ClientProject[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_PROJECTS_KEY);
+        if (saved) return JSON.parse(saved);
+      }
+    } catch {}
+    return defaultProjects;
+  });
+
+  // Save projects to localStorage whenever changed
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_PROJECTS_KEY, JSON.stringify(clientProjects));
+      }
+    } catch {}
+  }, [clientProjects]);
+
+  // Active Palette resolution
+  const activePaletteConfig = resolvePalette(clinic.colorPalette);
+  const currentPaletteId = activePaletteConfig.id;
+
+  // ROI Calculator State
+  const [patientValue, setPatientValue] = useState<number>(1800); // LTV per new patient
+  const [monthlyNewPatients, setMonthlyNewPatients] = useState<number>(8); // Extra patients per month
+  const [agencyWebsiteFee, setAgencyWebsiteFee] = useState<number>(3500); // Your agency fee
 
   const showNotification = (msg: string) => {
     setCopiedNotification(msg);
-    setTimeout(() => setCopiedNotification(null), 3000);
+    setTimeout(() => setCopiedNotification(null), 3500);
   };
 
   const handleSelectPalette = (paletteId: ColorPaletteId) => {
@@ -117,22 +227,86 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
     showNotification(`Switched palette to ${colorPalettes[paletteId].name}`);
   };
 
-  const handleFieldChange = (field: keyof ClinicInfo, value: string) => {
+  const handleFieldChange = (field: keyof ClinicInfo, value: any) => {
     const updated = { ...clinic, [field]: value };
-    // Auto sync cityState if city or state changed
     if (field === 'city' || field === 'state') {
       const c = field === 'city' ? value : clinic.city;
       const s = field === 'state' ? value : clinic.state;
       updated.cityState = `${c}, ${s}`.trim();
     }
-    // Auto clean phoneRaw if phone changed
     if (field === 'phone') {
-      updated.phoneRaw = value.replace(/\D/g, '');
+      updated.phoneRaw = String(value).replace(/\D/g, '');
     }
     onUpdateClinic(updated);
   };
 
-  // Export JSON file download
+  // 1-Tap Client Switcher: Activate selected client project
+  const handleActivateProject = (project: ClientProject) => {
+    onUpdateClinic({ ...defaultClinic, ...project.data });
+    showNotification(`Activated project: ${project.name}`);
+  };
+
+  // Duplicate current clinic as a new client project slot
+  const handleDuplicateCurrentAsClient = () => {
+    const newId = 'client-' + Date.now();
+    const newProject: ClientProject = {
+      id: newId,
+      name: `${clinic.name} (Copy)`,
+      doctorName: clinic.doctorName,
+      city: clinic.city,
+      state: clinic.state,
+      colorPalette: currentPaletteId,
+      status: 'prospect',
+      lastEdited: 'Just now',
+      data: { ...clinic, name: `${clinic.name} (Copy)` },
+    };
+    setClientProjects([newProject, ...clientProjects]);
+    onUpdateClinic(newProject.data);
+    showNotification(`Duplicated "${clinic.name}" into new client slot!`);
+  };
+
+  // Create clean blank client project
+  const handleCreateNewBlankClient = () => {
+    const newId = 'client-' + Date.now();
+    const newClinic: ClinicInfo = {
+      ...defaultClinic,
+      name: 'New Chiropractic Clinic',
+      city: 'City',
+      state: 'ST',
+      cityState: 'City, ST',
+      doctorName: 'Dr. New Doctor',
+      colorPalette: 'soft-ivory-forest',
+    };
+    const newProject: ClientProject = {
+      id: newId,
+      name: 'New Chiropractic Clinic',
+      doctorName: 'Dr. New Doctor',
+      city: 'City',
+      state: 'ST',
+      colorPalette: 'soft-ivory-forest',
+      status: 'prospect',
+      lastEdited: 'Just now',
+      data: newClinic,
+    };
+    setClientProjects([newProject, ...clientProjects]);
+    onUpdateClinic(newClinic);
+    setActiveTab('form');
+    showNotification('Created new client draft! Edit details below.');
+  };
+
+  // Delete client project
+  const handleDeleteProject = (id: string, name: string) => {
+    if (clientProjects.length <= 1) {
+      alert("You must have at least one client project in your pipeline.");
+      return;
+    }
+    if (window.confirm(`Delete client project "${name}"?`)) {
+      setClientProjects(clientProjects.filter((p) => p.id !== id));
+      showNotification(`Deleted ${name}`);
+    }
+  };
+
+  // Export JSON file
   const handleExportJson = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(clinic, null, 2));
     const downloadAnchor = document.createElement('a');
@@ -143,12 +317,6 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
     downloadAnchor.click();
     downloadAnchor.remove();
     showNotification("Client JSON file exported successfully!");
-  };
-
-  // Copy JSON to clipboard
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(clinic, null, 2));
-    showNotification("JSON copied to clipboard!");
   };
 
   // Import JSON from file upload
@@ -174,198 +342,367 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
     if (e.target) e.target.value = '';
   };
 
-  // Import JSON from raw text box
-  const handleApplyJsonText = () => {
-    try {
-      setJsonError(null);
-      const parsed = JSON.parse(jsonInput);
-      if (parsed.name) {
-        onUpdateClinic({ ...defaultClinic, ...parsed });
-        showNotification(`Applied config for: ${parsed.name}`);
-        setActiveTab('form');
-      } else {
-        setJsonError("Invalid JSON: 'name' field is required.");
-      }
-    } catch (err) {
-      setJsonError("Malformed JSON. Please check commas, quotes, and braces.");
-    }
+  // Copy ROI Pitch Summary to clipboard
+  const handleCopyRoiPitch = () => {
+    const addedMonthlyRev = monthlyNewPatients * patientValue;
+    const addedAnnualRev = addedMonthlyRev * 12;
+    const daysToPayback = Math.round((agencyWebsiteFee / (addedAnnualRev / 365)));
+
+    const pitch = `Dr. ${clinic.doctorName || 'Doctor'} — Here is the patient acquisition breakdown for ${clinic.name}:
+
+• Target New Patient Inquiries: +${monthlyNewPatients} patients/month
+• Average New Patient Care Plan Value: $${patientValue.toLocaleString()}
+• Projected Extra Monthly Practice Revenue: +$${addedMonthlyRev.toLocaleString()}/mo
+• Projected Extra Annual Practice Revenue: +$${addedAnnualRev.toLocaleString()}/year
+• Website Investment Payback Period: ~${daysToPayback} days (under 2 patients pays for the entire site)
+
+Live interactive preview prepared for you:
+${typeof window !== 'undefined' ? window.location.origin : 'https://your-site.com'}/`;
+
+    navigator.clipboard.writeText(pitch);
+    showNotification("ROI Pitch Summary copied! Paste into WhatsApp or Email.");
   };
 
-  // Load preset
-  const handleLoadPreset = (preset: typeof agencyPresets[0]) => {
-    onUpdateClinic({ ...clinic, ...preset.data });
-    showNotification(`Applied preset: ${preset.name}`);
+  // Copy JSON-LD Schema
+  const handleCopySchema = () => {
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Chiropractor",
+      "name": clinic.name,
+      "description": clinic.tagline,
+      "telephone": clinic.phone,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": clinic.address,
+        "addressLocality": clinic.city,
+        "addressRegion": clinic.state,
+        "postalCode": clinic.zip,
+        "addressCountry": "US"
+      },
+      "openingHours": [clinic.hoursWeekday, clinic.hoursSaturday].filter(Boolean),
+      "priceRange": "$$",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": clinic.googleRating || 4.9,
+        "reviewCount": clinic.googleReviewsCount || 127
+      }
+    };
+    navigator.clipboard.writeText(JSON.stringify(schema, null, 2));
+    showNotification("LocalBusiness Schema copied to clipboard!");
   };
+
+  // Calculated ROI Metrics
+  const extraMonthlyRevenue = monthlyNewPatients * patientValue;
+  const extraAnnualRevenue = extraMonthlyRevenue * 12;
+  const roiMultiplier = Math.round(extraAnnualRevenue / (agencyWebsiteFee || 1));
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex justify-end bg-stone-950/60 backdrop-blur-xs"
-        >
-          {/* Backdrop click to close */}
-          <div className="absolute inset-0" onClick={onClose} />
+        <div className="fixed inset-0 z-50 flex justify-end">
+          
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs cursor-pointer"
+          />
 
-          {/* Drawer Body */}
+          {/* Drawer Container */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 240 }}
-            className="relative w-full max-w-2xl bg-white shadow-2xl h-full flex flex-col z-10 border-l border-stone-200"
-            role="dialog"
-            aria-label="Client Manager"
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="relative z-50 w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col overflow-hidden text-stone-900 border-l border-stone-200"
           >
-            {/* Drawer Header */}
-            <div className="px-6 py-5 border-b border-stone-200 bg-stone-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-700 text-emerald-100 flex items-center justify-center font-bold">
-                  <Sparkles className="w-4 h-4" />
+            
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-stone-200 bg-stone-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-700 text-white flex items-center justify-center font-bold shadow-xs">
+                  <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-lg text-white leading-tight">
-                    Client Template Manager
+                  <h3 className="font-serif font-bold text-base tracking-tight text-white flex items-center gap-2">
+                    <span>Agency Command Suite</span>
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-900 text-emerald-300 font-semibold border border-emerald-700">
+                      Mobile HQ
+                    </span>
                   </h3>
                   <p className="text-xs text-stone-400">
-                    Fill out info once · Live preview updates instantly · Export or load anytime
+                    Active Client: <strong className="text-stone-200">{clinic.name}</strong> ({clinic.cityState})
                   </p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                aria-label="Close client manager"
-                className="w-8 h-8 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white transition-colors cursor-pointer"
+                  title="Close Manager"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Notification Toast */}
             {copiedNotification && (
-              <div className="bg-emerald-800 text-emerald-100 px-4 py-2 text-xs font-semibold flex items-center gap-2 justify-center shadow-inner">
-                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+              <div className="bg-emerald-900 text-emerald-100 px-4 py-2.5 text-xs font-semibold flex items-center justify-center gap-2 border-b border-emerald-800 shadow-inner">
+                <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
                 <span>{copiedNotification}</span>
               </div>
             )}
 
-            {/* Tab navigation & Quick Action Bar */}
-            <div className="px-6 py-3 border-b border-stone-200 bg-stone-50 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-1 bg-stone-200/80 p-1 rounded-lg text-xs font-semibold text-stone-600">
-                <button
-                  onClick={() => setActiveTab('palettes')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
-                    activeTab === 'palettes' ? 'bg-white text-stone-900 shadow-xs' : 'hover:text-stone-900'
-                  }`}
-                >
-                  <Palette className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Color Palettes</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('form')}
-                  className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
-                    activeTab === 'form' ? 'bg-white text-stone-900 shadow-xs' : 'hover:text-stone-900'
-                  }`}
-                >
-                  Edit Info
-                </button>
-                <button
-                  onClick={() => {
-                    setJsonInput(JSON.stringify(clinic, null, 2));
-                    setActiveTab('json');
-                  }}
-                  className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
-                    activeTab === 'json' ? 'bg-white text-stone-900 shadow-xs' : 'hover:text-stone-900'
-                  }`}
-                >
-                  Raw JSON / Paste
-                </button>
-                <button
-                  onClick={() => setActiveTab('presets')}
-                  className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
-                    activeTab === 'presets' ? 'bg-white text-stone-900 shadow-xs' : 'hover:text-stone-900'
-                  }`}
-                >
-                  Sample Presets
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleExportJson}
-                  title="Export this client's config as a JSON file"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Save JSON</span>
-                </button>
-
-                <label
-                  title="Import a previously saved client JSON file"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold border border-stone-300 transition-colors cursor-pointer shadow-xs"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Load JSON</span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Shareable Prospect Demo Link Banner */}
-            <div className="bg-emerald-950/90 text-emerald-100 px-6 py-2.5 flex items-center justify-between border-b border-emerald-900 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-medium text-emerald-200">
-                  Prospect Demo Link:
-                </span>
-                <span className="text-stone-300 font-mono text-[11px] truncate max-w-xs sm:max-w-sm hidden sm:inline">
+            {/* Quick Pitch & Demo Link Bar */}
+            <div className="bg-stone-900 text-stone-200 px-5 py-2.5 flex items-center justify-between border-b border-stone-800 text-xs">
+              <div className="flex items-center gap-2 truncate pr-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="font-semibold text-stone-300 hidden sm:inline">Prospect URL:</span>
+                <span className="text-emerald-300 font-mono text-[11px] truncate">
                   {typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://your-domain.com/'}
                 </span>
               </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      navigator.clipboard.writeText(window.location.origin);
+                      showNotification("Prospect preview link copied!");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 text-[11px] font-semibold transition-colors cursor-pointer border border-stone-700"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>Copy Link</span>
+                </button>
+                {onEnterPresentationMode && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onEnterPresentationMode();
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                    title="Hides agency controls for presenting live to the doctor"
+                  >
+                    <Share2 className="w-3 h-3" />
+                    <span>Pitch Mode</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Thumb-Friendly Navigation Tabs */}
+            <div className="px-4 py-2.5 border-b border-stone-200 bg-stone-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs font-semibold text-stone-600">
+              <button
+                onClick={() => setActiveTab('clients')}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === 'clients' ? 'bg-stone-900 text-white shadow-xs' : 'hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>Clients ({clientProjects.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('palettes')}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === 'palettes' ? 'bg-stone-900 text-white shadow-xs' : 'hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Palette className="w-3.5 h-3.5" />
+                <span>Palettes (6)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('form')}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === 'form' ? 'bg-stone-900 text-white shadow-xs' : 'hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Clinic & Toggles</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('roi')}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === 'roi' ? 'bg-emerald-800 text-white shadow-xs' : 'hover:bg-stone-200 text-emerald-900'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                <span>ROI Pitch Deck</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('seo')}
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === 'seo' ? 'bg-stone-900 text-white shadow-xs' : 'hover:bg-stone-200 text-stone-700'
+                }`}
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Google Local SEO</span>
+              </button>
+
               <button
                 onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    // Generate clean URL without admin params for the prospect
-                    const url = `${window.location.origin}/`;
-                    navigator.clipboard.writeText(url);
-                    showNotification("Clean demo URL copied to clipboard!");
-                  }
+                  setJsonInput(JSON.stringify(clinic, null, 2));
+                  setActiveTab('json');
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === 'json' ? 'bg-stone-900 text-white shadow-xs' : 'hover:bg-stone-200 text-stone-700'
+                }`}
               >
-                <Copy className="w-3 h-3" />
-                <span>Copy Demo Link</span>
+                <Download className="w-3.5 h-3.5" />
+                <span>Export / Backup</span>
               </button>
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Scrollable Content Container */}
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 bg-stone-50/50">
 
-              {/* TAB 0: COLOR PALETTES */}
+              {/* TAB 1: MULTI-CLIENT PIPELINE / WORKSPACE */}
+              {activeTab === 'clients' && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                        <FolderOpen className="w-5 h-5 text-emerald-800" />
+                        <span>Client Projects & Pipeline</span>
+                      </h4>
+                      <p className="text-xs text-stone-600 leading-relaxed">
+                        Switch between paying clients and prospects with 1 tap. Duplicate any client into a new template.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleDuplicateCurrentAsClient}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                        title="Duplicate currently loaded clinic into a new client project"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Duplicate Current</span>
+                      </button>
+                      <button
+                        onClick={handleCreateNewBlankClient}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+ New Client</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Client Cards List */}
+                  <div className="space-y-3">
+                    {clientProjects.map((proj) => {
+                      const isActive = clinic.name === proj.data.name;
+                      const projPalette = resolvePalette(proj.data.colorPalette);
+
+                      return (
+                        <div
+                          key={proj.id}
+                          className={`p-4 rounded-xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                            isActive
+                              ? 'border-emerald-700 bg-white shadow-sm ring-2 ring-emerald-700/10'
+                              : 'border-stone-200 bg-white hover:border-stone-300 shadow-2xs'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-serif font-bold shrink-0 shadow-xs"
+                              style={{ backgroundColor: projPalette.previewColors.primary }}
+                            >
+                              <span>{proj.data.name.charAt(0)}</span>
+                            </div>
+
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h5 className="font-serif font-bold text-stone-900 text-sm">
+                                  {proj.data.name}
+                                </h5>
+                                {isActive && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    ● Currently Live
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-stone-500">
+                                {proj.data.doctorName} · {proj.data.cityState} · {projPalette.name}
+                              </p>
+                              <div className="flex items-center gap-3 pt-1 text-[11px] text-stone-600">
+                                <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                                  <Phone className="w-3 h-3" />
+                                  {proj.data.phone}
+                                </span>
+                                <span>·</span>
+                                <span className="text-stone-500">
+                                  {proj.data.offerHeadline}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                            {isActive ? (
+                              <button
+                                onClick={() => setActiveTab('form')}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
+                              >
+                                Edit Details →
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleActivateProject(proj)}
+                                className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                              >
+                                Activate Client
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => handleDeleteProject(proj.id, proj.data.name)}
+                              className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Delete Client Project"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Mobile Agency Quick Tip */}
+                  <div className="p-4 rounded-xl bg-stone-100 border border-stone-200 text-xs text-stone-600 space-y-1.5">
+                    <p className="font-semibold text-stone-900 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-emerald-700" />
+                      Agency Mobile Workflow Tip
+                    </p>
+                    <p className="leading-relaxed">
+                      Whenever you sign a new doctor, tap <strong>Duplicate Current</strong>, type their clinic name, address, and phone, then choose their brand palette. You can pitch, preview, and deliver complete sites from your phone.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: BRAND COLOR PALETTES */}
               {activeTab === 'palettes' && (
                 <div className="space-y-6">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Palette className="w-5 h-5 text-emerald-700" />
-                      <h4 className="text-base font-serif font-bold text-stone-900">
-                        Brand Color Palettes
-                      </h4>
-                    </div>
+                    <h4 className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                      <Palette className="w-5 h-5 text-emerald-800" />
+                      <span>The 6 Premium Palette Directions</span>
+                    </h4>
                     <p className="text-xs text-stone-600 leading-relaxed">
-                      Instantly restyle the entire site's primary Tailwind brand colors, buttons, badges, navigation accents, and hero gradients with one click.
+                      Selecting any palette immediately updates the entire site's primary brand colors, buttons, badges, navigation accents, and the background canvas.
                     </p>
                   </div>
 
-                  {/* Palette Grid */}
                   <div className="grid sm:grid-cols-2 gap-4">
                     {(Object.keys(colorPalettes) as ColorPaletteId[]).map((paletteKey) => {
                       const pal = colorPalettes[paletteKey];
@@ -375,18 +712,18 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                         <div
                           key={paletteKey}
                           onClick={() => handleSelectPalette(paletteKey)}
-                          className={`relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between text-left ${
+                          className={`relative p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between text-left ${
                             isSelected
                               ? 'border-stone-900 bg-white shadow-md ring-2 ring-stone-900/10'
-                              : 'border-stone-200 bg-stone-50/80 hover:bg-white hover:border-stone-400 hover:shadow-xs'
+                              : 'border-stone-200 bg-white hover:border-stone-400 hover:shadow-xs'
                           }`}
                         >
                           <div>
                             {/* Palette Header */}
-                            <div className="flex items-start justify-between gap-2 mb-3">
+                            <div className="flex items-start justify-between gap-2 mb-2">
                               <div>
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block">
-                                  {pal.category}
+                                  {pal.category} · {pal.tagline}
                                 </span>
                                 <h5 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2 mt-0.5">
                                   {pal.name}
@@ -399,39 +736,51 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                                   Active
                                 </span>
                               ) : (
-                                <span className="text-[11px] font-semibold text-stone-500 hover:text-stone-900 px-2 py-0.5 rounded bg-stone-200/80 shrink-0">
+                                <span className="text-[11px] font-semibold text-stone-500 hover:text-stone-900 px-2 py-0.5 rounded bg-stone-100 shrink-0">
                                   Select
                                 </span>
                               )}
                             </div>
 
+                            {/* Background & Accent pill indicators */}
+                            <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[10px]">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-medium border border-stone-200/80">
+                                <span className="w-2 h-2 rounded-full border border-stone-300" style={{ backgroundColor: pal.previewColors.background }}></span>
+                                <span>{pal.backgroundLabel}</span>
+                              </span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 font-medium border border-stone-200/80">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pal.previewColors.accent }}></span>
+                                <span>{pal.accentLabel}</span>
+                              </span>
+                            </div>
+
                             {/* Color Swatches */}
-                            <div className="flex items-center gap-2 mb-4 p-2.5 rounded-xl bg-white/90 border border-stone-200/90 shadow-2xs">
+                            <div className="flex items-center gap-2 mb-3.5 p-2 rounded-xl bg-stone-50 border border-stone-200/90 shadow-2xs">
                               <div
                                 className="flex-1 h-8 rounded-lg shadow-inner flex items-end justify-center pb-1 text-[9px] font-bold text-white uppercase tracking-wider"
                                 style={{ backgroundColor: pal.previewColors.primary }}
-                                title="Primary Main"
+                                title="Primary Brand Color"
                               >
-                                Pri
+                                Primary
                               </div>
                               <div
                                 className="flex-1 h-8 rounded-lg shadow-inner flex items-end justify-center pb-1 text-[9px] font-bold text-white uppercase tracking-wider"
                                 style={{ backgroundColor: pal.previewColors.secondary }}
-                                title="Primary Dark"
+                                title="Deep Secondary Tone"
                               >
-                                Dark
+                                Deep
                               </div>
                               <div
                                 className="flex-1 h-8 rounded-lg border border-stone-200 flex items-end justify-center pb-1 text-[9px] font-bold text-stone-800 uppercase tracking-wider"
-                                style={{ backgroundColor: pal.previewColors.light }}
-                                title="Surface Light Tint"
+                                style={{ backgroundColor: pal.previewColors.background }}
+                                title="Canvas Background Tone"
                               >
-                                Tint
+                                Canvas
                               </div>
                               <div
-                                className="w-8 h-8 rounded-lg shadow-xs flex items-center justify-center text-[10px] font-bold text-stone-900"
+                                className="w-8 h-8 rounded-lg shadow-xs flex items-center justify-center text-[10px] font-bold text-stone-900 shrink-0"
                                 style={{ backgroundColor: pal.previewColors.accent }}
-                                title="Highlight Accent"
+                                title="Accent Highlight"
                               >
                                 ★
                               </div>
@@ -447,39 +796,39 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                             <span className="text-[11px] text-stone-500 font-medium">
                               Sample UI:
                             </span>
-                            <div
-                              className="px-3 py-1 rounded-md text-[11px] font-bold text-white shadow-xs"
-                              style={{ backgroundColor: pal.previewColors.primary }}
-                            >
-                              BOOK VISIT →
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="px-2 py-0.5 rounded text-[10px] font-bold"
+                                style={{
+                                  backgroundColor: pal.previewColors.light,
+                                  color: pal.previewColors.primary
+                                }}
+                              >
+                                $49 Special
+                              </span>
+                              <div
+                                className="px-3 py-1 rounded-md text-[11px] font-bold text-white shadow-xs"
+                                style={{ backgroundColor: pal.previewColors.primary }}
+                              >
+                                BOOK VISIT →
+                              </div>
                             </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-
-                  {/* Helpful Quick Tip Box */}
-                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs space-y-1">
-                    <p className="font-semibold flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-amber-600" />
-                      Automatic Brand Propagation
-                    </p>
-                    <p className="text-amber-800/90 leading-relaxed">
-                      Selecting any palette immediately updates the entire site: navigation highlights, hero badges, sticky banners, CTA buttons, condition tags, doctor review stars, and mobile tap targets. When you click <strong>Save JSON</strong>, the chosen palette is saved into the client profile.
-                    </p>
-                  </div>
                 </div>
               )}
 
-              {/* TAB 1: FORM FIELDS */}
+              {/* TAB 3: CLINIC CONTENT & FEATURE TOGGLES */}
               {activeTab === 'form' && (
                 <div className="space-y-6">
                   
                   {/* Group 1: Core Clinic Info */}
-                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200/90 space-y-4">
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
                     <div className="flex items-center gap-2 text-stone-800 font-semibold text-xs uppercase tracking-wider">
-                      <Building2 className="w-4 h-4 text-emerald-700" />
+                      <Building2 className="w-4 h-4 text-emerald-800" />
                       <span>1. Clinic Identity & Location</span>
                     </div>
 
@@ -490,19 +839,17 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                           type="text"
                           value={clinic.name}
                           onChange={(e) => handleFieldChange('name', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. Apex Chiropractic Care"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Tagline / Hero Subtitle</label>
+                        <label className="block text-xs font-semibold text-stone-600 mb-1">Tagline / Subtitle</label>
                         <input
                           type="text"
                           value={clinic.tagline}
                           onChange={(e) => handleFieldChange('tagline', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. Personalized chiropractic care for people who refuse to slow down."
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
@@ -512,19 +859,17 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                           type="text"
                           value={clinic.city}
                           onChange={(e) => handleFieldChange('city', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. Columbus"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">State (Abbreviation)</label>
+                        <label className="block text-xs font-semibold text-stone-600 mb-1">State</label>
                         <input
                           type="text"
                           value={clinic.state}
                           onChange={(e) => handleFieldChange('state', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. OH"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
@@ -534,8 +879,7 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                           type="text"
                           value={clinic.address}
                           onChange={(e) => handleFieldChange('address', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. 742 S High St"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
@@ -545,55 +889,37 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                           type="text"
                           value={clinic.zip}
                           onChange={(e) => handleFieldChange('zip', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. 43206"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
-                      <div className="sm:col-span-2 pt-2 border-t border-stone-200/80">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="text-xs font-semibold text-stone-700 flex items-center gap-1.5">
-                            <Palette className="w-3.5 h-3.5 text-emerald-700" />
-                            Brand Color Theme
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => setActiveTab('palettes')}
-                            className="text-[11px] text-emerald-800 hover:underline font-semibold cursor-pointer"
-                          >
-                            Explore Visual Palettes →
-                          </button>
-                        </div>
-                        <select
-                          value={currentPaletteId}
-                          onChange={(e) => handleSelectPalette(e.target.value as ColorPaletteId)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none font-medium text-stone-800 cursor-pointer"
-                        >
-                          <option value="emerald-healing">Restorative Green (Holistic & Clinical)</option>
-                          <option value="modern-minimal">Modern Minimal (Charcoal & Zinc Slate)</option>
-                          <option value="warm-earth">Warm Earth (Terracotta & Amber Cinnamon)</option>
-                          <option value="professional-blue">Professional Blue (Navy & Clinical Sky)</option>
-                        </select>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-stone-600 mb-1">Phone Number (Call & SMS)</label>
+                        <input
+                          type="text"
+                          value={clinic.phone}
+                          onChange={(e) => handleFieldChange('phone', e.target.value)}
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* Group 2: Doctor Profile */}
-                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200/90 space-y-4">
+                  {/* Group 2: Doctor Bio */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
                     <div className="flex items-center gap-2 text-stone-800 font-semibold text-xs uppercase tracking-wider">
-                      <User className="w-4 h-4 text-emerald-700" />
-                      <span>2. Lead Chiropractor</span>
+                      <User className="w-4 h-4 text-emerald-800" />
+                      <span>2. Treating Chiropractor & Credentials</span>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
+                    <div className="grid sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
                         <label className="block text-xs font-semibold text-stone-600 mb-1">Doctor Name</label>
                         <input
                           type="text"
                           value={clinic.doctorName}
                           onChange={(e) => handleFieldChange('doctorName', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. Dr. Marcus Vance"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
@@ -603,323 +929,366 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
                           type="text"
                           value={clinic.doctorCredentials}
                           onChange={(e) => handleFieldChange('doctorCredentials', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                           placeholder="e.g. D.C., CCSP"
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Years in Practice</label>
-                        <input
-                          type="text"
-                          value={clinic.doctorYears}
-                          onChange={(e) => handleFieldChange('doctorYears', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="e.g. 15"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Doctor Image URL (Optional)</label>
-                        <input
-                          type="text"
-                          value={clinic.doctorImage}
-                          onChange={(e) => handleFieldChange('doctorImage', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none truncate"
-                          placeholder="Local asset or https://..."
-                        />
-                      </div>
-
-                      <div className="sm:col-span-2">
+                      <div className="sm:col-span-3">
                         <label className="block text-xs font-semibold text-stone-600 mb-1">Doctor Quote / Philosophy</label>
                         <textarea
                           rows={2}
                           value={clinic.doctorQuote}
                           onChange={(e) => handleFieldChange('doctorQuote', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none resize-none"
-                          placeholder="Doctor quote shown on website..."
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Group 3: Contact & Hours */}
-                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200/90 space-y-4">
+                  {/* Group 3: Offer & Sticky Banner Toggles */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
                     <div className="flex items-center gap-2 text-stone-800 font-semibold text-xs uppercase tracking-wider">
-                      <Phone className="w-4 h-4 text-emerald-700" />
-                      <span>3. Contact & Hours</span>
+                      <Tag className="w-4 h-4 text-emerald-800" />
+                      <span>3. Offer & Feature Toggles</span>
                     </div>
 
                     <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Display Phone</label>
-                        <input
-                          type="text"
-                          value={clinic.phone}
-                          onChange={(e) => handleFieldChange('phone', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="(614) 555-0194"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Dialable Phone (Numbers only)</label>
-                        <input
-                          type="text"
-                          value={clinic.phoneRaw}
-                          onChange={(e) => handleFieldChange('phoneRaw', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="6145550194"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Weekday Hours</label>
-                        <input
-                          type="text"
-                          value={clinic.hoursWeekday}
-                          onChange={(e) => handleFieldChange('hoursWeekday', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="Mon–Thu: 8am–6pm, Fri: 8am–2pm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Saturday Hours</label>
-                        <input
-                          type="text"
-                          value={clinic.hoursSaturday}
-                          onChange={(e) => handleFieldChange('hoursSaturday', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="Sat: 9am–1pm"
-                        />
-                      </div>
-
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Parking Instructions</label>
-                        <input
-                          type="text"
-                          value={clinic.parkingNote}
-                          onChange={(e) => handleFieldChange('parkingNote', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="Free parking in rear lot."
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Group 4: Offer & Conversion */}
-                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200/90 space-y-4">
-                    <div className="flex items-center gap-2 text-stone-800 font-semibold text-xs uppercase tracking-wider">
-                      <Tag className="w-4 h-4 text-emerald-700" />
-                      <span>4. Lead Generation Offer</span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Top Banner Offer Headline</label>
+                        <label className="block text-xs font-semibold text-stone-600 mb-1">Special Offer Headline</label>
                         <input
                           type="text"
                           value={clinic.offerHeadline}
                           onChange={(e) => handleFieldChange('offerHeadline', e.target.value)}
-                          className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                          placeholder="New Patients: $49 Initial Exam + Consultation"
+                          className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                         />
                       </div>
 
-                      <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="sm:col-span-2 flex items-center justify-between p-3 rounded-lg bg-stone-50 border border-stone-200">
                         <div>
-                          <label className="block text-xs font-semibold text-stone-600 mb-1">Offer Subtext</label>
+                          <span className="text-xs font-bold text-stone-900 block">Top Sticky Offer Banner</span>
+                          <span className="text-[11px] text-stone-500">Shows floating promotion bar across top of screen</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleFieldChange('showStickyBanner', clinic.showStickyBanner === false ? true : false)}
+                          className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${
+                            clinic.showStickyBanner !== false ? 'bg-emerald-700' : 'bg-stone-300'
+                          }`}
+                        >
+                          <span
+                            className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
+                              clinic.showStickyBanner !== false ? 'left-7' : 'left-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      <div className="sm:col-span-2 flex items-center justify-between p-3 rounded-lg bg-stone-50 border border-stone-200">
+                        <div>
+                          <span className="text-xs font-bold text-stone-900 block">Booking Flow Type</span>
+                          <span className="text-[11px] text-stone-500">Choose in-app calendar or external EHR booking link</span>
+                        </div>
+                        <select
+                          value={clinic.bookingType || 'modal'}
+                          onChange={(e) => handleFieldChange('bookingType', e.target.value)}
+                          className="text-xs font-semibold px-3 py-1.5 bg-white border border-stone-300 rounded-lg cursor-pointer"
+                        >
+                          <option value="modal">In-App Booking Modal</option>
+                          <option value="external">External EHR (Jane App / Calendly)</option>
+                        </select>
+                      </div>
+
+                      {clinic.bookingType === 'external' && (
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-semibold text-stone-600 mb-1">External EHR / Booking URL</label>
                           <input
-                            type="text"
-                            value={clinic.offerSubtext}
-                            onChange={(e) => handleFieldChange('offerSubtext', e.target.value)}
-                            className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                            placeholder="Limited slots each week."
+                            type="url"
+                            value={clinic.externalBookingUrl || ''}
+                            onChange={(e) => handleFieldChange('externalBookingUrl', e.target.value)}
+                            placeholder="https://clinic.janeapp.com/ or Calendly link"
+                            className="w-full text-sm px-3 py-2 bg-stone-50 border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-stone-600 mb-1">Offer CTA Button Text</label>
-                          <input
-                            type="text"
-                            value={clinic.offerCtaText}
-                            onChange={(e) => handleFieldChange('offerCtaText', e.target.value)}
-                            className="w-full text-sm px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none"
-                            placeholder="CLAIM YOURS →"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Quick Offer Presets */}
-                      <div className="pt-2">
-                        <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider block mb-1.5">
-                          Quick Pre-Tested Offers:
-                        </span>
-                        <div className="grid gap-1.5">
-                          {alternativeOffers.map((alt, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={() => {
-                                onUpdateClinic({
-                                  ...clinic,
-                                  offerHeadline: alt.headline,
-                                  offerSubtext: alt.subtext,
-                                  offerCtaText: alt.cta
-                                });
-                                showNotification("Applied offer: " + alt.headline);
-                              }}
-                              className="text-left text-xs p-2 rounded-lg bg-white border border-stone-200 hover:border-emerald-600 text-stone-700 flex items-center justify-between transition-colors cursor-pointer"
-                            >
-                              <span className="font-medium text-stone-900">{alt.headline}</span>
-                              <span className="text-[10px] text-emerald-700 font-semibold shrink-0 ml-2">Apply</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Group 5: Photography URLs */}
-                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200/90 space-y-4">
-                    <div className="flex items-center gap-2 text-stone-800 font-semibold text-xs uppercase tracking-wider">
-                      <ImageIcon className="w-4 h-4 text-emerald-700" />
-                      <span>5. Images (URLs or Local Paths)</span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Hero Clinic Image</label>
-                        <input
-                          type="text"
-                          value={clinic.heroImage}
-                          onChange={(e) => handleFieldChange('heroImage', e.target.value)}
-                          className="w-full text-xs px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none font-mono"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-stone-600 mb-1">Clinic Interior Room Image</label>
-                        <input
-                          type="text"
-                          value={clinic.clinicImage}
-                          onChange={(e) => handleFieldChange('clinicImage', e.target.value)}
-                          className="w-full text-xs px-3 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-emerald-700 focus:outline-none font-mono"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                 </div>
               )}
 
-              {/* TAB 2: RAW JSON / PASTE */}
-              {activeTab === 'json' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-semibold text-stone-900">Direct JSON Editor</h4>
-                      <p className="text-xs text-stone-500">
-                        Paste a client's JSON configuration here to populate the site immediately.
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleCopyJson}
-                      className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium transition-colors cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy Current</span>
-                    </button>
-                  </div>
-
-                  {jsonError && (
-                    <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
-                      {jsonError}
-                    </div>
-                  )}
-
-                  <textarea
-                    rows={16}
-                    value={jsonInput}
-                    onChange={(e) => {
-                      setJsonInput(e.target.value);
-                      setJsonError(null);
-                    }}
-                    className="w-full text-xs font-mono p-3 bg-stone-900 text-emerald-300 rounded-xl border border-stone-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Paste valid client JSON..."
-                  />
-
-                  <button
-                    onClick={handleApplyJsonText}
-                    className="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold tracking-wide transition-colors cursor-pointer shadow-sm"
-                  >
-                    Apply JSON to Website
-                  </button>
-                </div>
-              )}
-
-              {/* TAB 3: SAMPLE PRESETS */}
-              {activeTab === 'presets' && (
-                <div className="space-y-4">
+              {/* TAB 4: CHIRO ROI PITCH DECK & CALCULATOR */}
+              {activeTab === 'roi' && (
+                <div className="space-y-6">
                   <div>
-                    <h4 className="text-sm font-semibold text-stone-900">1-Click Client Demos</h4>
-                    <p className="text-xs text-stone-500">
-                      Instantly test the landing page with different clinic specialties and cities.
+                    <h4 className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-emerald-800" />
+                      <span>Chiropractic Patient ROI Pitch Deck</span>
+                    </h4>
+                    <p className="text-xs text-stone-600 leading-relaxed">
+                      Use this live calculator on sales calls with the doctor to demonstrate that this website pays for itself in under two weeks.
                     </p>
                   </div>
 
-                  <div className="grid gap-3">
-                    {agencyPresets.map((p, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-xl border border-stone-200 bg-stone-50 hover:bg-white hover:border-emerald-600 transition-all flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-serif font-bold text-stone-900 text-sm">{p.name}</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
-                              {p.city}
-                            </span>
-                          </div>
-                          <p className="text-xs text-stone-500 mt-1">
-                            {p.data.doctorName} ({p.data.doctorCredentials}) · {p.data.offerHeadline}
-                          </p>
-                        </div>
-                          <div className="flex items-center gap-2 shrink-0 ml-3">
-                            <button
-                              onClick={() => {
-                                const key = p.city.includes('Austin') ? 'austin' : p.city.includes('Denver') ? 'denver' : 'sandiego';
-                                if (typeof window !== 'undefined') {
-                                  const url = `${window.location.origin}/?demo=${key}`;
-                                  navigator.clipboard.writeText(url);
-                                  showNotification(`Copied prospective demo link for ${p.name}!`);
-                                }
-                              }}
-                              className="px-2.5 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold transition-colors cursor-pointer"
-                              title="Copy a shareable link that loads this preset automatically"
-                            >
-                              Share Link
-                            </button>
-                            <button
-                              onClick={() => handleLoadPreset(p)}
-                              className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors cursor-pointer"
-                            >
-                              Load
-                            </button>
-                          </div>
+                  {/* Big Revenue Impact Stat Card */}
+                  <div className="p-6 rounded-2xl bg-stone-950 text-white shadow-lg space-y-4">
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                      Projected Practice Financial Impact
+                    </span>
+                    <div className="grid grid-cols-2 gap-4 pt-1">
+                      <div>
+                        <span className="text-xs text-stone-400 block">Extra Monthly Revenue</span>
+                        <span className="text-2xl sm:text-3xl font-serif font-bold text-emerald-400">
+                          +${extraMonthlyRevenue.toLocaleString()}
+                        </span>
                       </div>
-                    ))}
+                      <div>
+                        <span className="text-xs text-stone-400 block">Extra Annual Revenue</span>
+                        <span className="text-2xl sm:text-3xl font-serif font-bold text-white">
+                          +${extraAnnualRevenue.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t border-stone-800 flex items-center justify-between text-xs text-stone-300">
+                      <span>Agency Fee: ${agencyWebsiteFee.toLocaleString()}</span>
+                      <span className="font-bold text-emerald-400">
+                        {roiMultiplier}x Annual Return on Investment
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="pt-4 border-t border-stone-200">
+                  {/* Interactive Sliders */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-5">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
+                        <span className="text-stone-800">New Patient Lifetime Value (LTV):</span>
+                        <span className="text-emerald-800 font-bold">${patientValue.toLocaleString()}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="800"
+                        max="3500"
+                        step="100"
+                        value={patientValue}
+                        onChange={(e) => setPatientValue(Number(e.target.value))}
+                        className="w-full accent-emerald-700 cursor-pointer"
+                      />
+                      <span className="text-[11px] text-stone-500">Average chiropractic care plan (12–18 visits + exams).</span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
+                        <span className="text-stone-800">Extra Monthly Patients from Website:</span>
+                        <span className="text-emerald-800 font-bold">+{monthlyNewPatients} patients/mo</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="2"
+                        max="25"
+                        step="1"
+                        value={monthlyNewPatients}
+                        onChange={(e) => setMonthlyNewPatients(Number(e.target.value))}
+                        className="w-full accent-emerald-700 cursor-pointer"
+                      />
+                      <span className="text-[11px] text-stone-500">Driven by mobile-first booking, verified reviews & local SEO.</span>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
+                        <span className="text-stone-800">Your Agency Project Fee:</span>
+                        <span className="text-stone-900 font-bold">${agencyWebsiteFee.toLocaleString()}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1500"
+                        max="8000"
+                        step="250"
+                        value={agencyWebsiteFee}
+                        onChange={(e) => setAgencyWebsiteFee(Number(e.target.value))}
+                        className="w-full accent-stone-800 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 1-Tap Copy Pitch Button */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
                     <button
-                      onClick={() => {
-                        onResetDefault();
-                        showNotification("Reset to original Columbus Chiropractic default");
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-stone-900 font-semibold cursor-pointer"
+                      onClick={handleCopyRoiPitch}
+                      className="w-full py-3 px-4 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Doctor Sales Pitch Summary</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: GOOGLE LOCAL SEO & SERP SIMULATOR */}
+              {activeTab === 'seo' && (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                      <Search className="w-5 h-5 text-emerald-800" />
+                      <span>Google Local Pack & SERP Preview</span>
+                    </h4>
+                    <p className="text-xs text-stone-600 leading-relaxed">
+                      See exactly how this clinic appears when a patient searches "best chiropractor near me" on mobile.
+                    </p>
+                  </div>
+
+                  {/* Simulated Mobile Google Result Card */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+                    <div className="flex items-center gap-2 text-xs text-stone-600">
+                      <div className="w-5 h-5 rounded-full bg-stone-100 border border-stone-300 flex items-center justify-center text-[10px] font-bold">
+                        G
+                      </div>
+                      <span className="truncate">https://www.{clinic.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com</span>
+                    </div>
+
+                    <div>
+                      <h5 className="text-base font-semibold text-blue-800 hover:underline cursor-pointer">
+                        {clinic.name} | Top Chiropractor in {clinic.city}, {clinic.state}
+                      </h5>
+                      <div className="flex items-center gap-2 pt-1 text-xs text-stone-600">
+                        <div className="flex items-center text-amber-500">
+                          {'★'.repeat(5)}
+                        </div>
+                        <span className="font-semibold text-stone-800">{clinic.googleRating || 4.9}</span>
+                        <span className="text-stone-500">({clinic.googleReviewsCount || 127} reviews)</span>
+                        <span>·</span>
+                        <span className="text-stone-600">Chiropractor</span>
+                      </div>
+                      <p className="text-xs text-stone-600 pt-1.5 leading-relaxed">
+                        {clinic.doctorName} provides gentle, non-invasive chiropractic care in {clinic.cityState}. Back pain, neck pain & sciatica relief. {clinic.offerHeadline}.
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-stone-100 flex items-center gap-3 text-xs text-emerald-800 font-semibold">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" />
+                        {clinic.address}
+                      </span>
+                      <span>·</span>
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5" />
+                        {clinic.phone}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* SEO Health Check Checklist */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+                    <span className="text-xs font-bold text-stone-900 uppercase tracking-wider block">
+                      Local SEO Signals Included in this Template
+                    </span>
+                    <ul className="space-y-2 text-xs text-stone-600">
+                      <li className="flex items-center gap-2 text-emerald-800 font-medium">
+                        <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>Exact NAP (Name, Address, Phone) consistency in Header, Footer & Location</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-emerald-800 font-medium">
+                        <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>One-tap Click-to-Call tel: links optimized for iOS and Android</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-emerald-800 font-medium">
+                        <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>High-intent condition landing sections (Back, Neck, Sciatica, Sports Injury)</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-emerald-800 font-medium">
+                        <Check className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>Fast Core Web Vitals with minimal layout shift and lightweight assets</span>
+                      </li>
+                    </ul>
+
+                    <div className="pt-3">
+                      <button
+                        onClick={handleCopySchema}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy LocalBusiness JSON-LD Schema</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 6: BACKUP & RAW JSON */}
+              {activeTab === 'json' && (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-base font-serif font-bold text-stone-900">
+                        Export, Import & Raw JSON
+                      </h4>
+                      <p className="text-xs text-stone-600">
+                        Download a client profile file or paste custom JSON data directly.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExportJson}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold cursor-pointer shadow-xs"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download JSON</span>
+                      </button>
+
+                      <label className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold border border-stone-300 cursor-pointer shadow-xs">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload File</span>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".json"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <textarea
+                      rows={14}
+                      value={jsonInput}
+                      onChange={(e) => setJsonInput(e.target.value)}
+                      className="w-full font-mono text-xs p-3 bg-stone-900 text-emerald-400 rounded-xl border border-stone-800 focus:outline-none"
+                    />
+
+                    {jsonError && (
+                      <div className="text-xs text-red-600 font-semibold p-2 bg-red-50 rounded-lg">
+                        {jsonError}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      onClick={onResetDefault}
+                      className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-red-600 transition-colors cursor-pointer"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Reset to Original Default (Columbus Chiropractic Care)</span>
+                      <span>Reset to Original Defaults</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        try {
+                          setJsonError(null);
+                          const parsed = JSON.parse(jsonInput);
+                          if (parsed.name) {
+                            onUpdateClinic({ ...defaultClinic, ...parsed });
+                            showNotification(`Applied JSON for ${parsed.name}`);
+                            setActiveTab('form');
+                          }
+                        } catch {
+                          setJsonError("Invalid JSON syntax.");
+                        }
+                      }}
+                      className="px-4 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold cursor-pointer"
+                    >
+                      Apply JSON to Site
                     </button>
                   </div>
                 </div>
@@ -927,22 +1296,24 @@ export const ClientManagerDrawer: React.FC<ClientManagerDrawerProps> = ({
 
             </div>
 
-            {/* Drawer Footer */}
-            <div className="px-6 py-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between">
-              <span className="text-xs text-stone-500 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                Live Preview Active
+            {/* Sticky Bottom Actions Bar */}
+            <div className="p-4 border-t border-stone-200 bg-white flex items-center justify-between gap-3 text-xs">
+              <span className="text-stone-500 font-medium truncate">
+                Palette: <strong>{activePaletteConfig.name}</strong>
               </span>
-              <button
-                onClick={onClose}
-                className="px-5 py-2 rounded-lg bg-stone-900 hover:bg-emerald-900 text-white text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Close & View Page
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-semibold cursor-pointer shadow-xs"
+                >
+                  Done Editing
+                </button>
+              </div>
             </div>
 
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

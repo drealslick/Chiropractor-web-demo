@@ -21,7 +21,7 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerHeadline: "New Patients: $39 Spinal Exam & Movement Assessment",
     offerSubtext: "Includes orthopedic exam & personalized treatment plan.",
     offerCtaText: "CLAIM $39 SPECIAL →",
-    colorPalette: "modern-minimal",
+    colorPalette: "warm-bone-charcoal",
   },
   denver: {
     name: "Denver Family Chiropractic",
@@ -43,7 +43,7 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerHeadline: "Complimentary 15-Minute Doctor Consultation",
     offerSubtext: "Speak directly with Dr. Rostova before your first appointment.",
     offerCtaText: "BOOK FREE CONSULT →",
-    colorPalette: "warm-earth",
+    colorPalette: "warm-sand-terracotta",
   },
   sandiego: {
     name: "Pacific Coast Health & Spine",
@@ -65,6 +65,6 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerHeadline: "New Patient Special: $49 Exam & Soft Tissue Release",
     offerSubtext: "First 20 new patients this month only.",
     offerCtaText: "CLAIM YOUR SPOT →",
-    colorPalette: "professional-blue",
+    colorPalette: "pale-stone-teal",
   }
 };

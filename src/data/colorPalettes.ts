@@ -1,16 +1,26 @@
-export type ColorPaletteId = 'emerald-healing' | 'modern-minimal' | 'warm-earth' | 'professional-blue';
+export type ColorPaletteId =
+  | 'soft-ivory-forest'
+  | 'warm-bone-charcoal'
+  | 'cool-ivory-navy'
+  | 'warm-sand-terracotta'
+  | 'pale-stone-teal'
+  | 'soft-greige-black';
 
 export interface ColorPaletteConfig {
   id: ColorPaletteId;
   name: string;
+  tagline: string;
   category: string;
   description: string;
+  backgroundLabel: string;
+  accentLabel: string;
   previewColors: {
     primary: string;
     secondary: string;
     light: string;
     dark: string;
     accent: string;
+    background: string;
   };
   variables: {
     '--theme-primary-50': string;
@@ -24,112 +34,235 @@ export interface ColorPaletteConfig {
     '--theme-primary-800': string;
     '--theme-primary-900': string;
     '--theme-primary-950': string;
+    '--theme-bg-page': string;
+    '--theme-bg-muted': string;
+    '--theme-accent': string;
   };
 }
 
 export const colorPalettes: Record<ColorPaletteId, ColorPaletteConfig> = {
-  'emerald-healing': {
-    id: 'emerald-healing',
-    name: 'Restorative Green',
-    category: 'Holistic & Clinical',
-    description: 'Clean forest & sage tones symbolizing recovery, spine alignment, and vital physical renewal.',
+  // 1. Soft Ivory + Deep Forest (Refined restorative green)
+  'soft-ivory-forest': {
+    id: 'soft-ivory-forest',
+    name: 'Soft Ivory + Deep Forest',
+    tagline: 'Refined Restorative Green',
+    category: 'Holistic & Vitality',
+    description: 'Off-white ivory canvas with deep botanical forest green and soft sage accents. Inspires restorative spinal renewal.',
+    backgroundLabel: 'Soft Ivory (#FAF8F5)',
+    accentLabel: 'Soft Sage (#A3BFAE)',
     previewColors: {
-      primary: '#047857', // emerald-700
-      secondary: '#065f46', // emerald-800
-      light: '#ecfdf5', // emerald-50
-      dark: '#022c22', // emerald-950
-      accent: '#fbbf24', // amber-400
+      primary: '#1b4332',
+      secondary: '#143527',
+      light: '#f1f6f3',
+      dark: '#07150f',
+      accent: '#8fae9b',
+      background: '#faf8f5',
     },
     variables: {
-      '--theme-primary-50': '#ecfdf5',
-      '--theme-primary-100': '#d1fae5',
-      '--theme-primary-200': '#a7f3d0',
-      '--theme-primary-300': '#6ee7b7',
-      '--theme-primary-400': '#34d399',
-      '--theme-primary-500': '#10b981',
-      '--theme-primary-600': '#059669',
-      '--theme-primary-700': '#047857',
-      '--theme-primary-800': '#065f46',
-      '--theme-primary-900': '#064e3b',
-      '--theme-primary-950': '#022c22',
-    }
+      '--theme-primary-50': '#f2f7f4',
+      '--theme-primary-100': '#e3ede6',
+      '--theme-primary-200': '#c6dacd',
+      '--theme-primary-300': '#a3bfae',
+      '--theme-primary-400': '#6e987c',
+      '--theme-primary-500': '#396d4b',
+      '--theme-primary-600': '#245337',
+      '--theme-primary-700': '#1b4332',
+      '--theme-primary-800': '#143527',
+      '--theme-primary-900': '#0d251b',
+      '--theme-primary-950': '#07150f',
+      '--theme-bg-page': '#faf8f5',
+      '--theme-bg-muted': '#f1ede6',
+      '--theme-accent': '#8fae9b',
+    },
   },
-  'modern-minimal': {
-    id: 'modern-minimal',
-    name: 'Modern Minimal',
+
+  // 2. Warm Bone + Charcoal (Modern high-end)
+  'warm-bone-charcoal': {
+    id: 'warm-bone-charcoal',
+    name: 'Warm Bone + Charcoal',
+    tagline: 'Modern High-End',
     category: 'Sleek & Contemporary',
-    description: 'High-contrast charcoal, deep obsidian and zinc slate with crisp platinum highlights for cutting-edge clinics.',
+    description: 'Off-white bone canvas with deep near-black charcoal and muted warm gold accents. Crisp, ultra-clean, and modern.',
+    backgroundLabel: 'Warm Bone (#F8F6F0)',
+    accentLabel: 'Muted Brass Gold (#C5A059)',
     previewColors: {
-      primary: '#27272a', // zinc-800
-      secondary: '#18181b', // zinc-900
-      light: '#f4f4f5', // zinc-100
-      dark: '#09090b', // zinc-950
-      accent: '#38bdf8', // sky-400
+      primary: '#26231f',
+      secondary: '#1a1816',
+      light: '#f5f3ee',
+      dark: '#0c0b0a',
+      accent: '#c5a059',
+      background: '#f8f6f0',
     },
     variables: {
-      '--theme-primary-50': '#f4f4f5',
-      '--theme-primary-100': '#e4e4e7',
-      '--theme-primary-200': '#d4d4d8',
-      '--theme-primary-300': '#a1a1aa',
-      '--theme-primary-400': '#71717a',
-      '--theme-primary-500': '#52525b',
-      '--theme-primary-600': '#3f3f46',
-      '--theme-primary-700': '#27272a',
-      '--theme-primary-800': '#18181b',
-      '--theme-primary-900': '#09090b',
-      '--theme-primary-950': '#040405',
-    }
+      '--theme-primary-50': '#f6f4f0',
+      '--theme-primary-100': '#eae6dc',
+      '--theme-primary-200': '#d5cfc1',
+      '--theme-primary-300': '#b4ab99',
+      '--theme-primary-400': '#7f7664',
+      '--theme-primary-500': '#524b3e',
+      '--theme-primary-600': '#383329',
+      '--theme-primary-700': '#26231f',
+      '--theme-primary-800': '#1a1816',
+      '--theme-primary-900': '#12100e',
+      '--theme-primary-950': '#0a0908',
+      '--theme-bg-page': '#f8f6f0',
+      '--theme-bg-muted': '#ede8dd',
+      '--theme-accent': '#c5a059',
+    },
   },
-  'warm-earth': {
-    id: 'warm-earth',
-    name: 'Warm Earth',
-    category: 'Organic & Welcoming',
-    description: 'Earthy terracotta, warm clay and amber cinnamon tones creating an inviting, comforting healing space.',
+
+  // 3. Cool Ivory + Navy (Classic premium medical)
+  'cool-ivory-navy': {
+    id: 'cool-ivory-navy',
+    name: 'Cool Ivory + Navy',
+    tagline: 'Classic Premium Medical',
+    category: 'Clinical Orthopedics',
+    description: 'Crisp cool alabaster off-white with deep prestigious navy and soft blue-gray accents. Instills trust and clinical excellence.',
+    backgroundLabel: 'Cool Ivory (#F7F9FA)',
+    accentLabel: 'Soft Blue-Gray (#8FAEC8)',
     previewColors: {
-      primary: '#c2410c', // orange-700 / terracotta
-      secondary: '#9a3412', // orange-800
-      light: '#fff7ed', // orange-50
-      dark: '#431407', // orange-950
-      accent: '#f59e0b', // amber-500
+      primary: '#133854',
+      secondary: '#0e2a40',
+      light: '#eff4f8',
+      dark: '#050f18',
+      accent: '#8faec8',
+      background: '#f7f9fa',
     },
     variables: {
-      '--theme-primary-50': '#fff7ed',
-      '--theme-primary-100': '#ffedd5',
-      '--theme-primary-200': '#fed7aa',
-      '--theme-primary-300': '#fdba74',
-      '--theme-primary-400': '#fb923c',
-      '--theme-primary-500': '#f97316',
-      '--theme-primary-600': '#ea580c',
-      '--theme-primary-700': '#c2410c',
-      '--theme-primary-800': '#9a3412',
-      '--theme-primary-900': '#7c2d12',
-      '--theme-primary-950': '#431407',
-    }
+      '--theme-primary-50': '#eff5f9',
+      '--theme-primary-100': '#dce8f1',
+      '--theme-primary-200': '#bcd3e3',
+      '--theme-primary-300': '#8faec8',
+      '--theme-primary-400': '#567f9f',
+      '--theme-primary-500': '#2e5a7b',
+      '--theme-primary-600': '#1b4465',
+      '--theme-primary-700': '#133854',
+      '--theme-primary-800': '#0e2a40',
+      '--theme-primary-900': '#091c2b',
+      '--theme-primary-950': '#050f18',
+      '--theme-bg-page': '#f7f9fa',
+      '--theme-bg-muted': '#ebf0f4',
+      '--theme-accent': '#8faec8',
+    },
   },
-  'professional-blue': {
-    id: 'professional-blue',
-    name: 'Professional Blue',
-    category: 'Clinical & Orthopedic',
-    description: 'Deep navy, medical cyan and trust-instilling cobalt for established sports medicine & orthopedics.',
+
+  // 4. Warm Sand + Terracotta / Clay (Organic luxury)
+  'warm-sand-terracotta': {
+    id: 'warm-sand-terracotta',
+    name: 'Warm Sand + Terracotta',
+    tagline: 'Organic Luxury',
+    category: 'Welcoming & Grounded',
+    description: 'Warm sandy off-white with earthy Tuscan terracotta clay and sun-warmed amber accents. Comforting, healing, and organic.',
+    backgroundLabel: 'Warm Sand (#FAF6F0)',
+    accentLabel: 'Earthy Clay (#E7B499)',
     previewColors: {
-      primary: '#0369a1', // sky-700 / ocean blue
-      secondary: '#075985', // sky-800
-      light: '#f0f9ff', // sky-50
-      dark: '#082f49', // sky-950
-      accent: '#38bdf8', // sky-400
+      primary: '#8a381d',
+      secondary: '#6e2b16',
+      light: '#fbf4ee',
+      dark: '#2d1007',
+      accent: '#e7b499',
+      background: '#faf6f0',
     },
     variables: {
-      '--theme-primary-50': '#f0f9ff',
-      '--theme-primary-100': '#e0f2fe',
-      '--theme-primary-200': '#bae6fd',
-      '--theme-primary-300': '#7dd3fc',
-      '--theme-primary-400': '#38bdf8',
-      '--theme-primary-500': '#0ea5e9',
-      '--theme-primary-600': '#0284c7',
-      '--theme-primary-700': '#0369a1',
-      '--theme-primary-800': '#075985',
-      '--theme-primary-900': '#0c4a6e',
-      '--theme-primary-950': '#082f49',
-    }
-  }
+      '--theme-primary-50': '#fdf7f3',
+      '--theme-primary-100': '#faebe0',
+      '--theme-primary-200': '#f4d3c0',
+      '--theme-primary-300': '#e7b499',
+      '--theme-primary-400': '#cf835f',
+      '--theme-primary-500': '#b35632',
+      '--theme-primary-600': '#9a4223',
+      '--theme-primary-700': '#8a381d',
+      '--theme-primary-800': '#6e2b16',
+      '--theme-primary-900': '#4e1e0f',
+      '--theme-primary-950': '#2d1007',
+      '--theme-bg-page': '#faf6f0',
+      '--theme-bg-muted': '#f0e8dc',
+      '--theme-accent': '#e7b499',
+    },
+  },
+
+  // 5. Pale Stone + Deep Teal (Calm & sophisticated)
+  'pale-stone-teal': {
+    id: 'pale-stone-teal',
+    name: 'Pale Stone + Deep Teal',
+    tagline: 'Calm & Sophisticated',
+    category: 'Balanced & Restorative',
+    description: 'Cool pale stone off-white with deep pacific teal and soft mineral seafoam accents. Conveys serenity and high-touch precision.',
+    backgroundLabel: 'Pale Stone (#F5F7F7)',
+    accentLabel: 'Soft Seafoam (#86BCBC)',
+    previewColors: {
+      primary: '#154c4e',
+      secondary: '#103c3e',
+      light: '#eff6f6',
+      dark: '#06191a',
+      accent: '#86bcbc',
+      background: '#f5f7f7',
+    },
+    variables: {
+      '--theme-primary-50': '#eff6f6',
+      '--theme-primary-100': '#dbeef0',
+      '--theme-primary-200': '#b9dedf',
+      '--theme-primary-300': '#86bcbc',
+      '--theme-primary-400': '#529799',
+      '--theme-primary-500': '#2e7577',
+      '--theme-primary-600': '#1d5a5c',
+      '--theme-primary-700': '#154c4e',
+      '--theme-primary-800': '#103c3e',
+      '--theme-primary-900': '#0c292b',
+      '--theme-primary-950': '#06191a',
+      '--theme-bg-page': '#f5f7f7',
+      '--theme-bg-muted': '#e6ecec',
+      '--theme-accent': '#86bcbc',
+    },
+  },
+
+  // 6. Soft Greige + Black (Minimal luxury)
+  'soft-greige-black': {
+    id: 'soft-greige-black',
+    name: 'Soft Greige + Black',
+    tagline: 'Minimal Luxury',
+    category: 'Architectural & Refined',
+    description: 'Warm gray-beige greige canvas with pure architectural black and soft platinum accents. High-contrast, editorial elegance.',
+    backgroundLabel: 'Soft Greige (#F4F3F0)',
+    accentLabel: 'Soft Platinum (#D8D5CD)',
+    previewColors: {
+      primary: '#141312',
+      secondary: '#0b0a0a',
+      light: '#f5f4f2',
+      dark: '#020202',
+      accent: '#d8d5cd',
+      background: '#f4f3f0',
+    },
+    variables: {
+      '--theme-primary-50': '#f7f6f5',
+      '--theme-primary-100': '#ecebe8',
+      '--theme-primary-200': '#d8d5cd',
+      '--theme-primary-300': '#b4af9e',
+      '--theme-primary-400': '#7d7767',
+      '--theme-primary-500': '#4d483e',
+      '--theme-primary-600': '#25221c',
+      '--theme-primary-700': '#141312',
+      '--theme-primary-800': '#0d0c0c',
+      '--theme-primary-900': '#070707',
+      '--theme-primary-950': '#020202',
+      '--theme-bg-page': '#f4f3f0',
+      '--theme-bg-muted': '#e7e5e0',
+      '--theme-accent': '#d8d5cd',
+    },
+  },
 };
+
+// Aliases for seamless backwards compatibility
+export const paletteAliases: Record<string, ColorPaletteId> = {
+  'emerald-healing': 'soft-ivory-forest',
+  'modern-minimal': 'warm-bone-charcoal',
+  'warm-earth': 'warm-sand-terracotta',
+  'professional-blue': 'cool-ivory-navy',
+};
+
+export function resolvePalette(id?: string): ColorPaletteConfig {
+  if (!id) return colorPalettes['soft-ivory-forest'];
+  if (id in colorPalettes) return colorPalettes[id as ColorPaletteId];
+  if (id in paletteAliases) return colorPalettes[paletteAliases[id]];
+  return colorPalettes['soft-ivory-forest'];
+}

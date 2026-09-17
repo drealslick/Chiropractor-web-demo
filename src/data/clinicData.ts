@@ -29,7 +29,12 @@ export const defaultClinic: ClinicInfo = {
   offerHeadline: "New Patients: $49 Initial Exam + Consultation",
   offerSubtext: "Limited slots each week.",
   offerCtaText: "CLAIM YOURS →",
-  colorPalette: "emerald-healing",
+  colorPalette: "soft-ivory-forest",
+  showStickyBanner: true,
+  bookingType: 'modal',
+  paymentModel: 'insurance_and_cash',
+  googleRating: 4.9,
+  googleReviewsCount: 127,
 };
 
 export const alternativeOffers = [

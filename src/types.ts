@@ -23,6 +23,12 @@ export interface ClinicInfo {
   offerSubtext: string;
   offerCtaText: string;
   colorPalette?: string;
+  externalBookingUrl?: string;
+  bookingType?: 'modal' | 'external';
+  showStickyBanner?: boolean;
+  paymentModel?: 'insurance_and_cash' | 'cash_only_concierge';
+  googleRating?: number;
+  googleReviewsCount?: number;
 }
 
 export interface ProblemCondition {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { defaultClinic, conditionsData } from './data/clinicData';
 import { agencyDemoPresets } from './data/presets';
-import { colorPalettes, ColorPaletteId } from './data/colorPalettes';
+import { colorPalettes, ColorPaletteId, resolvePalette } from './data/colorPalettes';
 import { ClinicInfo } from './types';
 import { Navbar } from './components/Navbar';
 import { StickyOfferBanner } from './components/StickyOfferBanner';
@@ -80,8 +80,7 @@ export default function App() {
 
   // Update root CSS variables whenever clinic.colorPalette changes
   useEffect(() => {
-    const paletteKey = (clinic.colorPalette as ColorPaletteId) || 'emerald-healing';
-    const config = colorPalettes[paletteKey] || colorPalettes['emerald-healing'];
+    const config = resolvePalette(clinic.colorPalette);
 
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
@@ -195,7 +194,10 @@ export default function App() {
       {/* 16. FOOTER */}
       <Footer
         clinic={clinic}
-        onOpenManager={isStaffMode ? () => setIsManagerOpen(true) : undefined}
+        onOpenManager={() => {
+          setIsStaffMode(true);
+          setIsManagerOpen(true);
+        }}
       />
 
       {/* 17. MOBILE STICKY BOTTOM BAR [CALL] [BOOK] */}

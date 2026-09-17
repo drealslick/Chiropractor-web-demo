@@ -1,18 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  /* Default: Emerald Healing */
-  --theme-primary-50: #ecfdf5;
-  --theme-primary-100: #d1fae5;
-  --theme-primary-200: #a7f3d0;
-  --theme-primary-300: #6ee7b7;
-  --theme-primary-400: #34d399;
-  --theme-primary-500: #10b981;
-  --theme-primary-600: #059669;
-  --theme-primary-700: #047857;
-  --theme-primary-800: #065f46;
-  --theme-primary-900: #064e3b;
-  --theme-primary-950: #022c22;
+  /* Default: Soft Ivory + Deep Forest */
+  --theme-primary-50: #f2f7f4;
+  --theme-primary-100: #e3ede6;
+  --theme-primary-200: #c6dacd;
+  --theme-primary-300: #a3bfae;
+  --theme-primary-400: #6e987c;
+  --theme-primary-500: #396d4b;
+  --theme-primary-600: #245337;
+  --theme-primary-700: #1b4332;
+  --theme-primary-800: #143527;
+  --theme-primary-900: #0d251b;
+  --theme-primary-950: #07150f;
+
+  --theme-bg-page: #faf8f5;
+  --theme-bg-muted: #f1ede6;
+  --theme-accent: #8fae9b;
 }
 
 @theme {
@@ -27,6 +31,9 @@
   --color-emerald-800: var(--theme-primary-800);
   --color-emerald-900: var(--theme-primary-900);
   --color-emerald-950: var(--theme-primary-950);
+
+  --color-stone-50: var(--theme-bg-page);
+  --color-stone-100: var(--theme-bg-muted);
 }
 
 @layer base {
