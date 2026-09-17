@@ -270,7 +270,7 @@ export default function App() {
         {(clinic.showTheClinic !== false) && <TheClinic clinic={clinic} />}
 
         {/* 11. YOUR FIRST VISIT */}
-        <FirstVisitSection />
+        <FirstVisitSection clinic={clinic} />
 
         {/* 12. INSURANCE & PAYMENT */}
         {(clinic.showInsurancePayment !== false) && <InsurancePayment clinic={clinic} />}

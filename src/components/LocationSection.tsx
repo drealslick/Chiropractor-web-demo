@@ -25,10 +25,10 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ clinic }) => {
           className="text-center max-w-xl mx-auto mb-14"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-2">
-            Find Us
+            {clinic.locationSectionSubtitle || "Find Us"}
           </span>
           <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
-            Location
+            {clinic.locationSectionTitle || "Location"}
           </h2>
         </motion.div>
 
@@ -71,7 +71,7 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ clinic }) => {
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-stone-900 text-base">Address</h3>
+                  <h3 className="font-bold text-stone-900 text-base">{clinic.locationAddressLabel || "Address"}</h3>
                   <p className="text-stone-700 text-sm mt-0.5">{clinic.address}</p>
                   <p className="text-stone-700 text-sm">{clinic.city}, {clinic.state} {clinic.zip}</p>
                 </div>
@@ -83,10 +83,10 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ clinic }) => {
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-stone-900 text-base">Hours</h3>
+                  <h3 className="font-bold text-stone-900 text-base">{clinic.locationHoursLabel || "Hours"}</h3>
                   <p className="text-stone-700 text-sm mt-0.5">{clinic.hoursWeekday}</p>
                   <p className="text-stone-700 text-sm">{clinic.hoursSaturday}</p>
-                  <p className="text-stone-400 text-xs mt-0.5">Sunday: Closed</p>
+                  <p className="text-stone-400 text-xs mt-0.5">{clinic.locationClosedLabel || "Sunday: Closed"}</p>
                 </div>
               </div>
 
@@ -96,7 +96,7 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ clinic }) => {
                   <Car className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-stone-900 text-base">Parking</h3>
+                  <h3 className="font-bold text-stone-900 text-base">{clinic.locationParkingLabel || "Parking"}</h3>
                   <p className="text-stone-700 text-sm mt-0.5">{clinic.parkingNote}</p>
                 </div>
               </div>
@@ -106,7 +106,7 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ clinic }) => {
             <div className="pt-6 border-t border-stone-100 space-y-3">
               <div>
                 <span className="text-xs uppercase tracking-wider font-semibold text-stone-500 block mb-2">
-                  Questions or immediate appointments:
+                  {clinic.locationQuestionsLabel || "Questions or immediate appointments:"}
                 </span>
                 <a
                   href={`tel:${clinic.phoneRaw}`}

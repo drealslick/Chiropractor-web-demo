@@ -8,7 +8,7 @@ interface InsurancePaymentProps {
 }
 
 export const InsurancePayment: React.FC<InsurancePaymentProps> = ({ clinic }) => {
-  const insurances = ["Anthem Blue Cross Blue Shield", "Aetna", "UnitedHealthcare", "Medical Mutual", "Medicare", "Cigna", "HSA / FSA Accepted"];
+  const insurances = clinic.customInsurances || ["Anthem Blue Cross Blue Shield", "Aetna", "UnitedHealthcare", "Medical Mutual", "Medicare", "Cigna", "HSA / FSA Accepted"];
 
   return (
     <section className="py-16 md:py-20 bg-white border-b border-stone-200 overflow-hidden">
@@ -31,7 +31,7 @@ export const InsurancePayment: React.FC<InsurancePaymentProps> = ({ clinic }) =>
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 mb-4"
         >
-          Insurance & Payment
+          {clinic.insuranceTitle || "Insurance & Payment"}
         </motion.h2>
 
         <motion.p
@@ -41,7 +41,7 @@ export const InsurancePayment: React.FC<InsurancePaymentProps> = ({ clinic }) =>
           transition={{ duration: 0.5, delay: 0.15 }}
           className="text-base sm:text-lg text-stone-700 max-w-2xl mx-auto leading-relaxed mb-6"
         >
-          We accept most major insurance. Cash-pay options available for patients without coverage.
+          {clinic.insuranceSubtitle || "We accept most major insurance. Cash-pay options available for patients without coverage."}
         </motion.p>
 
         {/* Insurance pills */}
@@ -71,13 +71,13 @@ export const InsurancePayment: React.FC<InsurancePaymentProps> = ({ clinic }) =>
           transition={{ duration: 0.5, delay: 0.3 }}
           className="inline-flex items-center gap-2"
         >
-          <span className="text-sm text-stone-600">Questions about your plan?</span>
+          <span className="text-sm text-stone-600">{clinic.insuranceQuestionLabel || "Questions about your plan?"}</span>
           <a
             href={`tel:${clinic.phoneRaw}`}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-800 hover:text-emerald-950 underline decoration-emerald-600/40 hover:decoration-emerald-950 transition-colors"
           >
             <PhoneCall className="w-4 h-4 text-emerald-700" />
-            <span>Call us →</span>
+            <span>{clinic.insuranceCallCta || "Call us →"}</span>
           </a>
         </motion.div>
 

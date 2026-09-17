@@ -34,6 +34,7 @@ export interface ClinicInfo {
   finalCtaHeadline?: string;
   finalCtaButtonText?: string;
   externalBookingUrl?: string;
+  bookingUrl?: string;
   bookingType?: 'modal' | 'external';
   showStickyBanner?: boolean;
   paymentModel?: 'insurance_and_cash' | 'cash_only_concierge';
@@ -106,6 +107,69 @@ export interface ClinicInfo {
   patientStorySummary?: string;
   patientStoryTimeline?: string;
   patientStoryOutcome?: string;
+
+  // Fully Editable Trust Bar
+  trustRatingLabel?: string;
+  trustRatingSub?: string;
+  trustExperienceLabel?: string;
+  trustExperienceSub?: string;
+  trustPatientsLabel?: string;
+  trustPatientsSub?: string;
+
+  // Fully Editable Header & Navbar Links
+  navLink1?: string;
+  navLink2?: string;
+  navLink3?: string;
+  navLink4?: string;
+  navButtonText?: string;
+
+  // Fully Editable Footer Details & Hours
+  footerDescription?: string;
+  hoursFriday?: string;
+  hoursDisclaimer?: string;
+
+  // Fully Editable Hero Subparts
+  heroAcceptingPillText?: string;
+  heroGuaranteeText?: string;
+  heroImageCaption?: string;
+
+  // Fully Editable FAQ Info
+  faqDescription?: string;
+
+  // Fully Editable Final CTA Info
+  finalCtaSubheadline?: string;
+  finalCtaCallPrefix?: string;
+
+  // Fully Editable Insurance Section
+  insuranceTitle?: string;
+  insuranceSubtitle?: string;
+  customInsurances?: string[];
+  insuranceQuestionLabel?: string;
+  insuranceCallCta?: string;
+
+  // Fully Editable Location Section
+  locationSectionSubtitle?: string;
+  locationSectionTitle?: string;
+  locationQuestionsLabel?: string;
+  locationAddressLabel?: string;
+  locationHoursLabel?: string;
+  locationParkingLabel?: string;
+  locationClosedLabel?: string;
+
+  // Fully Editable Clinic Showcase Section
+  clinicQuote?: string;
+  clinicQuoteDescription?: string;
+
+  // Fully Editable Doctor Section
+  doctorSubCredentials?: string;
+
+  // Fully Editable Patients Section
+  patientsSectionFeaturedTitle?: string;
+
+  // Fully Editable First Visit Section
+  firstVisitSubtitle?: string;
+  firstVisitTitle?: string;
+  customFirstVisitSteps?: ProcessStep[];
 }
 
 export interface ProblemCondition {

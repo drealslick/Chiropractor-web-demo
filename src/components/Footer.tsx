@@ -90,7 +90,7 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
             )}
 
             <p className="text-xs text-stone-500 max-w-sm pt-2">
-              {clinic.cityState} based chiropractic care focused on restorative biomechanics, personalized rehabilitation, and pain elimination.
+              {clinic.footerDescription || `${clinic.cityState} based chiropractic care focused on restorative biomechanics, personalized rehabilitation, and pain elimination.`}
             </p>
           </div>
 
@@ -100,9 +100,9 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
               Quick Links
             </span>
             <ul className="space-y-2 text-sm text-stone-400">
-              <li><a href="#about" className="hover:text-white transition-colors">About</a></li>
-              <li><a href="#care" className="hover:text-white transition-colors">Care & Conditions</a></li>
-              <li><a href="#results" className="hover:text-white transition-colors">Patient Results</a></li>
+              <li><a href="#about" className="hover:text-white transition-colors">{clinic.navLink1 || "About"}</a></li>
+              <li><a href="#care" className="hover:text-white transition-colors">{clinic.navLink2 || "Care"} & Conditions</a></li>
+              <li><a href="#results" className="hover:text-white transition-colors">Patient {clinic.navLink3 || "Results"}</a></li>
               <li><a href="#faq" className="hover:text-white transition-colors">Frequently Asked</a></li>
               <li><a href="#location" className="hover:text-white transition-colors">Location & Parking</a></li>
             </ul>
@@ -116,11 +116,11 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
             <div className="text-sm text-stone-400 space-y-1.5">
               <div className="flex items-center gap-2 text-stone-300">
                 <Clock className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Mon – Thu: 8:00 AM – 6:00 PM</span>
+                <span>{clinic.hoursWeekday || "Mon – Thu: 8:00 AM – 6:00 PM"}</span>
               </div>
-              <p className="text-xs text-stone-500 pl-6">Fri: 8:00 AM – 2:00 PM</p>
-              <p className="text-xs text-stone-500 pl-6">Sat: 9:00 AM – 1:00 PM</p>
-              <p className="text-xs text-emerald-400/90 pl-6 pt-1">Same-day appointments available</p>
+              <p className="text-xs text-stone-500 pl-6">{clinic.hoursFriday || "Fri: 8:00 AM – 2:00 PM"}</p>
+              <p className="text-xs text-stone-500 pl-6">{clinic.hoursSaturday || "Sat: 9:00 AM – 1:00 PM"}</p>
+              <p className="text-xs text-emerald-400/90 pl-6 pt-1">{clinic.hoursDisclaimer || "Same-day appointments available"}</p>
             </div>
           </div>
 

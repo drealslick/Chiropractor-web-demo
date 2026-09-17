@@ -78,7 +78,7 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
           <div className="max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-6">
               <Trophy className="w-3.5 h-3.5 text-emerald-700" />
-              Featured Patient Story
+              {clinic?.patientsSectionFeaturedTitle || "Featured Patient Story"}
             </span>
 
             <div className="grid sm:grid-cols-12 gap-8 items-center">

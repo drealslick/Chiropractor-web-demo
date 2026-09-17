@@ -33,8 +33,12 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
               ))}
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-stone-900 text-base leading-tight">4.9 Google</span>
-              <span className="text-xs text-stone-500">Verified Patient Reviews</span>
+              <span className="font-bold text-stone-900 text-base leading-tight">
+                {clinic.trustRatingLabel || "4.9 Google"}
+              </span>
+              <span className="text-xs text-stone-500">
+                {clinic.trustRatingSub || "Verified Patient Reviews"}
+              </span>
             </div>
           </motion.div>
 
@@ -52,8 +56,12 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
               <Clock className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-stone-900 text-base leading-tight">{clinic.doctorYears}+ Years</span>
-              <span className="text-xs text-stone-500">Clinical Excellence</span>
+              <span className="font-bold text-stone-900 text-base leading-tight">
+                {clinic.trustExperienceLabel || `${clinic.doctorYears || '15'}+ Years`}
+              </span>
+              <span className="text-xs text-stone-500">
+                {clinic.trustExperienceSub || "Clinical Excellence"}
+              </span>
             </div>
           </motion.div>
 
@@ -71,8 +79,12 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
               <Users className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-stone-900 text-base leading-tight">2,000+ Patients</span>
-              <span className="text-xs text-stone-500">Treated in {clinic.city}</span>
+              <span className="font-bold text-stone-900 text-base leading-tight">
+                {clinic.trustPatientsLabel || "2,000+ Patients"}
+              </span>
+              <span className="text-xs text-stone-500">
+                {clinic.trustPatientsSub || `Treated in ${clinic.city || 'Columbus'}`}
+              </span>
             </div>
           </motion.div>
 

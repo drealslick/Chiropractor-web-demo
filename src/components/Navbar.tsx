@@ -40,10 +40,10 @@ export const Navbar: React.FC<NavbarProps> = ({ clinic, onBookClick }) => {
 
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
-          <a href="#about" className="hover:text-stone-900 transition-colors">About</a>
-          <a href="#care" className="hover:text-stone-900 transition-colors">Care</a>
-          <a href="#results" className="hover:text-stone-900 transition-colors">Results</a>
-          <a href="#faq" className="hover:text-stone-900 transition-colors">FAQ</a>
+          <a href="#about" className="hover:text-stone-900 transition-colors">{clinic.navLink1 || "About"}</a>
+          <a href="#care" className="hover:text-stone-900 transition-colors">{clinic.navLink2 || "Care"}</a>
+          <a href="#results" className="hover:text-stone-900 transition-colors">{clinic.navLink3 || "Results"}</a>
+          <a href="#faq" className="hover:text-stone-900 transition-colors">{clinic.navLink4 || "FAQ"}</a>
         </nav>
 
         {/* Action Button */}
@@ -62,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({ clinic, onBookClick }) => {
             className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-sm font-semibold tracking-wide rounded-md shadow-sm transition-all active:scale-[0.98] cursor-pointer"
           >
             <Calendar className="w-4 h-4 text-emerald-400" />
-            <span>BOOK NOW</span>
+            <span>{clinic.navButtonText || "BOOK NOW"}</span>
           </button>
         </div>
 

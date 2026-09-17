@@ -50,10 +50,10 @@ export const TheClinic: React.FC<TheClinicProps> = ({ clinic }) => {
               className="p-6 sm:p-10 text-white max-w-xl"
             >
               <p className="text-2xl sm:text-3xl font-serif italic text-white font-medium">
-                "The experience matters."
+                "{clinic.clinicQuote || "The experience matters."}"
               </p>
               <p className="text-xs sm:text-sm text-stone-200/90 mt-2">
-                A calm, quiet clinic environment designed for focused assessment, unhurried care, and complete recovery.
+                {clinic.clinicQuoteDescription || "A calm, quiet clinic environment designed for focused assessment, unhurried care, and complete recovery."}
               </p>
             </motion.div>
           </div>

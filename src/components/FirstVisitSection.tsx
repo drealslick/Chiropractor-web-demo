@@ -2,7 +2,15 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { firstVisitSteps } from '../data/clinicData';
 
-export const FirstVisitSection: React.FC = () => {
+import { ClinicInfo } from '../types';
+
+interface FirstVisitSectionProps {
+  clinic?: ClinicInfo;
+}
+
+export const FirstVisitSection: React.FC<FirstVisitSectionProps> = ({ clinic }) => {
+  const steps = clinic?.customFirstVisitSteps || firstVisitSteps;
+
   return (
     <section className="py-20 md:py-28 bg-stone-50 border-b border-stone-200 overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -15,15 +23,15 @@ export const FirstVisitSection: React.FC = () => {
           className="text-center max-w-xl mx-auto mb-16"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full inline-block mb-3">
-            What to Expect
+            {clinic?.firstVisitSubtitle || "What to Expect"}
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight">
-            Your First Visit
+            {clinic?.firstVisitTitle || "Your First Visit"}
           </h2>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
-          {firstVisitSteps.map((step, index) => (
+          {steps.map((step, index) => (
             <motion.div
               key={step.number}
               initial={{ opacity: 0, y: 25 }}

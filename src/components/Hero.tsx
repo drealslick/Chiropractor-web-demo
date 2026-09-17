@@ -21,7 +21,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
           className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-200/80 text-stone-700 text-xs font-semibold tracking-wide uppercase mb-6"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-          <span>Accepting New Patients in {clinic.cityState}</span>
+          <span>{clinic.heroAcceptingPillText || `Accepting New Patients in ${clinic.cityState}`}</span>
         </motion.div>
 
         {/* HERO TITLE */}
@@ -70,7 +70,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
           className="flex items-center justify-center gap-2 text-xs text-stone-500 font-medium"
         >
           <ShieldCheck className="w-4 h-4 text-emerald-700" />
-          <span>No long contracts · Transparent pricing · Comprehensive exam included</span>
+          <span>{clinic.heroGuaranteeText || "No long contracts · Transparent pricing · Comprehensive exam included"}</span>
         </motion.div>
 
       </div>
@@ -98,7 +98,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-stone-900/85 backdrop-blur-md text-stone-100 px-4 py-2 rounded-lg text-xs font-medium border border-white/10 flex items-center gap-2 shadow-sm"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>Dr. {clinic.doctorName.replace('Dr. ', '')} in the {clinic.city} treatment suite</span>
+            <span>{clinic.heroImageCaption || `Dr. ${clinic.doctorName.replace('Dr. ', '')} in the ${clinic.city} treatment suite`}</span>
           </motion.div>
         </div>
       </motion.div>

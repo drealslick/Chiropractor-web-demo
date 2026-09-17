@@ -160,7 +160,7 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState<string>('');
   const [highContrast, setHighContrast] = useState<boolean>(false);
-  const [activeContentSection, setActiveContentSection] = useState<'hero' | 'about' | 'conditions' | 'testimonials' | 'process' | 'faqs' | 'cta'>('hero');
+  const [activeContentSection, setActiveContentSection] = useState<'hero' | 'trust-footer' | 'about' | 'conditions' | 'testimonials' | 'process' | 'faqs' | 'cta' | 'first-visit' | 'insurance' | 'location'>('hero');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Undo History State & Handlers
@@ -1311,6 +1311,67 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   })}
                 </div>
               </div>
+
+              {/* Header & Navbar Customizer */}
+              <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800 font-serif">Header & Navigation Links</h3>
+                  <p className="text-xs text-stone-500 mt-0.5">Customize the exact text of navigation links and the global booking button.</p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Link 1 (About)</label>
+                    <input
+                      type="text"
+                      value={clinic.navLink1 || ""}
+                      placeholder="About"
+                      onChange={(e) => handleFieldChange('navLink1', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Link 2 (Care)</label>
+                    <input
+                      type="text"
+                      value={clinic.navLink2 || ""}
+                      placeholder="Care"
+                      onChange={(e) => handleFieldChange('navLink2', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Link 3 (Results)</label>
+                    <input
+                      type="text"
+                      value={clinic.navLink3 || ""}
+                      placeholder="Results"
+                      onChange={(e) => handleFieldChange('navLink3', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Link 4 (FAQ)</label>
+                    <input
+                      type="text"
+                      value={clinic.navLink4 || ""}
+                      placeholder="FAQ"
+                      onChange={(e) => handleFieldChange('navLink4', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Navbar CTA Button</label>
+                    <input
+                      type="text"
+                      value={clinic.navButtonText || ""}
+                      placeholder="BOOK NOW"
+                      onChange={(e) => handleFieldChange('navButtonText', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1348,7 +1409,7 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">Doctor Name</label>
                     <input
@@ -1374,6 +1435,16 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                       value={clinic.phone}
                       onChange={(e) => handleFieldChange('phone', e.target.value)}
                       className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">Booking URL (Jane / Calendly)</label>
+                    <input
+                      type="text"
+                      value={clinic.bookingUrl || ""}
+                      placeholder="e.g. https://jane.app/... or https://calendly.com/..."
+                      onChange={(e) => handleFieldChange('bookingUrl', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-mono text-xs"
                     />
                   </div>
                 </div>
@@ -1416,25 +1487,48 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4 pt-2">
+                <div className="grid sm:grid-cols-2 gap-4 pt-2">
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Weekday Hours</label>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Weekday Hours (e.g. Mon–Thu)</label>
                     <input
                       type="text"
-                      value={clinic.hoursWeekday}
+                      value={clinic.hoursWeekday || ""}
                       onChange={(e) => handleFieldChange('hoursWeekday', e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Friday Hours</label>
+                    <input
+                      type="text"
+                      value={clinic.hoursFriday || ""}
+                      placeholder="Fri: 8:00 AM – 2:00 PM"
+                      onChange={(e) => handleFieldChange('hoursFriday', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">Saturday Hours</label>
                     <input
                       type="text"
-                      value={clinic.hoursSaturday}
+                      value={clinic.hoursSaturday || ""}
                       onChange={(e) => handleFieldChange('hoursSaturday', e.target.value)}
-                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
                     />
                   </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Hours Note / Disclaimer</label>
+                    <input
+                      type="text"
+                      value={clinic.hoursDisclaimer || ""}
+                      placeholder="Same-day appointments available"
+                      onChange={(e) => handleFieldChange('hoursDisclaimer', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4 pt-2">
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">Years in Practice</label>
                     <input
@@ -1527,10 +1621,14 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
               <div className="flex flex-wrap gap-2 border-b border-stone-200 pb-3">
                 {[
                   { id: 'hero', label: 'Hero & Offer' },
+                  { id: 'trust-footer', label: 'Trust Bar & Footer' },
                   { id: 'about', label: 'Doctor & Bio' },
                   { id: 'conditions', label: 'Conditions Treated' },
                   { id: 'testimonials', label: 'Testimonials' },
                   { id: 'process', label: 'Our Process' },
+                  { id: 'first-visit', label: 'First Visit' },
+                  { id: 'insurance', label: 'Insurance' },
+                  { id: 'location', label: 'Location' },
                   { id: 'faqs', label: 'FAQs List' },
                   { id: 'cta', label: 'Final CTA Banner' }
                 ].map((sec) => (
@@ -1577,15 +1675,49 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                         className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-stone-800"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-stone-700 mb-1">Primary Hero CTA Button Text</label>
-                      <input
-                        type="text"
-                        value={clinic.heroCtaText || ""}
-                        onChange={(e) => handleFieldChange('heroCtaText', e.target.value)}
-                        placeholder="BOOK YOUR FIRST VISIT"
-                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold uppercase"
-                      />
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Location Pill Text</label>
+                        <input
+                          type="text"
+                          value={clinic.heroAcceptingPillText || ""}
+                          placeholder={`Accepting New Patients in ${clinic.cityState}`}
+                          onChange={(e) => handleFieldChange('heroAcceptingPillText', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Primary Hero CTA Button Text</label>
+                        <input
+                          type="text"
+                          value={clinic.heroCtaText || ""}
+                          onChange={(e) => handleFieldChange('heroCtaText', e.target.value)}
+                          placeholder="BOOK YOUR FIRST VISIT"
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold uppercase"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Micro-Guarantees Label</label>
+                        <input
+                          type="text"
+                          value={clinic.heroGuaranteeText || ""}
+                          placeholder="No long contracts · Transparent pricing · Comprehensive exam included"
+                          onChange={(e) => handleFieldChange('heroGuaranteeText', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Real Clinic Photo Caption</label>
+                        <input
+                          type="text"
+                          value={clinic.heroImageCaption || ""}
+                          placeholder={`Dr. ${clinic.doctorName.replace('Dr. ', '')} in the ${clinic.city} treatment suite`}
+                          onChange={(e) => handleFieldChange('heroImageCaption', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1652,12 +1784,130 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                 </div>
               )}
 
+              {/* SECTION: TRUST BAR & FOOTER */}
+              {activeContentSection === 'trust-footer' && (
+                <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-5">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800 font-serif">Trust Bar Ratings & Stats</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">Customize the proof metrics displayed in the highlights section directly below the Hero.</p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Pillar 1: Google Rating Headline</label>
+                      <input
+                        type="text"
+                        value={clinic.trustRatingLabel || ""}
+                        placeholder="4.9 Google"
+                        onChange={(e) => handleFieldChange('trustRatingLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Pillar 1: Subtitle</label>
+                      <input
+                        type="text"
+                        value={clinic.trustRatingSub || ""}
+                        placeholder="Verified Patient Reviews"
+                        onChange={(e) => handleFieldChange('trustRatingSub', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Pillar 2: Experience Headline</label>
+                      <input
+                        type="text"
+                        value={clinic.trustExperienceLabel || ""}
+                        placeholder="15+ Years"
+                        onChange={(e) => handleFieldChange('trustExperienceLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Pillar 2: Subtitle</label>
+                      <input
+                        type="text"
+                        value={clinic.trustExperienceSub || ""}
+                        placeholder="Clinical Excellence"
+                        onChange={(e) => handleFieldChange('trustExperienceSub', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Pillar 3: Patient Count Headline</label>
+                      <input
+                        type="text"
+                        value={clinic.trustPatientsLabel || ""}
+                        placeholder="2,000+ Patients"
+                        onChange={(e) => handleFieldChange('trustPatientsLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Pillar 3: Subtitle</label>
+                      <input
+                        type="text"
+                        value={clinic.trustPatientsSub || ""}
+                        placeholder={`Treated in ${clinic.city}`}
+                        onChange={(e) => handleFieldChange('trustPatientsSub', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-stone-100 space-y-4">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 font-serif">Footer Short Bio Description</h4>
+                      <p className="text-xs text-stone-500 mt-0.5">Configure the footer overview paragraph printed at the bottom of the landing page.</p>
+                    </div>
+
+                    <div>
+                      <textarea
+                        rows={3}
+                        value={clinic.footerDescription || ""}
+                        placeholder={`${clinic.cityState} based chiropractic care focused on restorative biomechanics, personalized rehabilitation, and pain elimination.`}
+                        onChange={(e) => handleFieldChange('footerDescription', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-stone-800"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* SECTION: DOCTOR & BIO & WHY US */}
               {activeContentSection === 'about' && (
                 <div className="space-y-6">
                   {/* Doctor Info card */}
                   <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Lead Doctor Bio & Quote Philosophy</h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Doctor Eyebrow / Subtitle</label>
+                        <input
+                          type="text"
+                          value={clinic.doctorSectionSubtitle || ""}
+                          placeholder="Meet Your Chiropractor"
+                          onChange={(e) => handleFieldChange('doctorSectionSubtitle', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Doctor Board Certifications Sub-Credentials</label>
+                        <input
+                          type="text"
+                          value={clinic.doctorSubCredentials || ""}
+                          placeholder="Board Certified Chiropractic Physician"
+                          onChange={(e) => handleFieldChange('doctorSubCredentials', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                    </div>
                     <div>
                       <label className="block text-xs font-bold text-stone-700 mb-1">Doctor Philosophy Statement / Signature Quote</label>
                       <textarea
@@ -1665,6 +1915,53 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                         value={clinic.doctorQuote}
                         onChange={(e) => handleFieldChange('doctorQuote', e.target.value)}
                         className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif italic text-stone-900"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Clinic Space Showcase Card */}
+                  <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Clinic Showroom Space Content</h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Clinic Section Subtitle</label>
+                        <input
+                          type="text"
+                          value={clinic.clinicSectionSubtitle || ""}
+                          placeholder="Our Space"
+                          onChange={(e) => handleFieldChange('clinicSectionSubtitle', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-stone-700 mb-1">Clinic Section Title</label>
+                        <input
+                          type="text"
+                          value={clinic.clinicSectionTitle || ""}
+                          placeholder="The Clinic"
+                          onChange={(e) => handleFieldChange('clinicSectionTitle', e.target.value)}
+                          className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Interior Space Quote Statement</label>
+                      <input
+                        type="text"
+                        value={clinic.clinicQuote || ""}
+                        placeholder="The experience matters."
+                        onChange={(e) => handleFieldChange('clinicQuote', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif italic"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Interior Space Quote Explanation Description</label>
+                      <textarea
+                        rows={2}
+                        value={clinic.clinicQuoteDescription || ""}
+                        placeholder="A calm, quiet clinic environment designed for focused assessment, unhurried care, and complete recovery."
+                        onChange={(e) => handleFieldChange('clinicQuoteDescription', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-stone-800"
                       />
                     </div>
                   </div>
@@ -2152,6 +2449,262 @@ export const AgencyWorkspace: React.FC<AgencyWorkspaceProps> = ({
                         className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Final Subheadline / Copy</label>
+                      <input
+                        type="text"
+                        value={clinic.finalCtaSubheadline || ""}
+                        placeholder="Book online in under two minutes or call our front desk directly. We’re ready to help you recover."
+                        onChange={(e) => handleFieldChange('finalCtaSubheadline', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Phone Link Prefix Text</label>
+                      <input
+                        type="text"
+                        value={clinic.finalCtaCallPrefix || ""}
+                        placeholder="or call"
+                        onChange={(e) => handleFieldChange('finalCtaCallPrefix', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION: FIRST VISIT */}
+              {activeContentSection === 'first-visit' && (
+                <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-5">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">First Visit Segment</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">Customize the step-by-step expectations patients see for their initial appointment.</p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Section Subtitle / Eyebrow</label>
+                      <input
+                        type="text"
+                        value={clinic.firstVisitSubtitle || "What to Expect"}
+                        onChange={(e) => handleFieldChange('firstVisitSubtitle', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Section Main Title</label>
+                      <input
+                        type="text"
+                        value={clinic.firstVisitTitle || "Your First Visit"}
+                        onChange={(e) => handleFieldChange('firstVisitTitle', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif font-bold text-stone-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-2 border-t border-stone-100">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">Expectation Steps</h4>
+                    {(clinic.customFirstVisitSteps || [
+                      { number: "01", title: "Complete Assessment", description: "A detailed review of your medical history, orthopedic and neurological exams, and physical movement analysis." },
+                      { number: "02", title: "Report of Findings", description: "We explain exactly what is causing your symptoms, outline your custom treatment plan, and answer every question." },
+                      { number: "03", title: "Your First Treatment", description: "Gentle chiropractic care and soft tissue therapy designed to start your recovery on day one." }
+                    ]).map((step, idx) => {
+                      const handleUpdateFirstVisitStep = (field: 'number' | 'title' | 'description', val: string) => {
+                        const current = clinic.customFirstVisitSteps || [
+                          { number: "01", title: "Complete Assessment", description: "A detailed review of your medical history, orthopedic and neurological exams, and physical movement analysis." },
+                          { number: "02", title: "Report of Findings", description: "We explain exactly what is causing your symptoms, outline your custom treatment plan, and answer every question." },
+                          { number: "03", title: "Your First Treatment", description: "Gentle chiropractic care and soft tissue therapy designed to start your recovery on day one." }
+                        ];
+                        const updated = current.map((item, i) => i === idx ? { ...item, [field]: val } : item);
+                        handleFieldChange('customFirstVisitSteps', updated);
+                      };
+
+                      return (
+                        <div key={idx} className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-3">
+                          <div className="grid sm:grid-cols-12 gap-3 items-center">
+                            <div className="sm:col-span-2">
+                              <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Step #</label>
+                              <input
+                                type="text"
+                                value={step.number}
+                                onChange={(e) => handleUpdateFirstVisitStep('number', e.target.value)}
+                                className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg text-center font-bold text-emerald-800"
+                              />
+                            </div>
+                            <div className="sm:col-span-10">
+                              <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Step Title</label>
+                              <input
+                                type="text"
+                                value={step.title}
+                                onChange={(e) => handleUpdateFirstVisitStep('title', e.target.value)}
+                                className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg font-bold"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-stone-600 mb-0.5">Explanation</label>
+                            <input
+                              type="text"
+                              value={step.description}
+                              onChange={(e) => handleUpdateFirstVisitStep('description', e.target.value)}
+                              className="w-full text-xs px-2 py-1 bg-white border border-stone-300 rounded-lg"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION: INSURANCE */}
+              {activeContentSection === 'insurance' && (
+                <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-5">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Insurance & Payment Copy</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">Edit accepted insurances, title headlines, payment details, and helpline calls.</p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Insurance Headline Title</label>
+                      <input
+                        type="text"
+                        value={clinic.insuranceTitle || "Insurance & Payment"}
+                        onChange={(e) => handleFieldChange('insuranceTitle', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Insurance Subtitle / Policy description</label>
+                      <input
+                        type="text"
+                        value={clinic.insuranceSubtitle || "We accept most major insurance. Cash-pay options available for patients without coverage."}
+                        onChange={(e) => handleFieldChange('insuranceSubtitle', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Questions Segment Title</label>
+                      <input
+                        type="text"
+                        value={clinic.insuranceQuestionLabel || "Questions about your plan?"}
+                        onChange={(e) => handleFieldChange('insuranceQuestionLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Call CTA label text</label>
+                      <input
+                        type="text"
+                        value={clinic.insuranceCallCta || "Call us →"}
+                        onChange={(e) => handleFieldChange('insuranceCallCta', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Accepted Insurances list (Comma Separated)</label>
+                    <textarea
+                      rows={3}
+                      value={(clinic.customInsurances || ["Anthem Blue Cross Blue Shield", "Aetna", "UnitedHealthcare", "Medical Mutual", "Medicare", "Cigna", "HSA / FSA Accepted"]).join(', ')}
+                      onChange={(e) => {
+                        const list = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                        handleFieldChange('customInsurances', list);
+                      }}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-mono"
+                    />
+                    <span className="block text-[10px] text-stone-500 mt-1">Separate options with commas to display elegant visual check pills in the insurance segment.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION: LOCATION */}
+              {activeContentSection === 'location' && (
+                <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-5">
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-stone-800">Location Map Section Copy</h3>
+                    <p className="text-xs text-stone-500 mt-0.5">Configure find-us titles, directions guidelines, parking notes, and map labels.</p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Section Eyebrow Subtitle</label>
+                      <input
+                        type="text"
+                        value={clinic.locationSectionSubtitle || "Find Us"}
+                        onChange={(e) => handleFieldChange('locationSectionSubtitle', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Section Main Headline</label>
+                      <input
+                        type="text"
+                        value={clinic.locationSectionTitle || "Location"}
+                        onChange={(e) => handleFieldChange('locationSectionTitle', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-serif font-bold text-stone-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Address Label Title</label>
+                      <input
+                        type="text"
+                        value={clinic.locationAddressLabel || "Address"}
+                        onChange={(e) => handleFieldChange('locationAddressLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Hours Label Title</label>
+                      <input
+                        type="text"
+                        value={clinic.locationHoursLabel || "Hours"}
+                        onChange={(e) => handleFieldChange('locationHoursLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Parking Label Title</label>
+                      <input
+                        type="text"
+                        value={clinic.locationParkingLabel || "Parking"}
+                        onChange={(e) => handleFieldChange('locationParkingLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Sunday Closed Label</label>
+                      <input
+                        type="text"
+                        value={clinic.locationClosedLabel || "Sunday: Closed"}
+                        onChange={(e) => handleFieldChange('locationClosedLabel', e.target.value)}
+                        className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Immediate Questions / Phone Header Label</label>
+                    <input
+                      type="text"
+                      value={clinic.locationQuestionsLabel || "Questions or immediate appointments:"}
+                      onChange={(e) => handleFieldChange('locationQuestionsLabel', e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-medium"
+                    />
                   </div>
                 </div>
               )}

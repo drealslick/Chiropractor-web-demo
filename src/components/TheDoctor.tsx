@@ -43,7 +43,7 @@ export const TheDoctor: React.FC<TheDoctorProps> = ({ clinic }) => {
             className="md:col-span-7 flex flex-col justify-center space-y-6"
           >
             <span className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-              Meet Your Chiropractor
+              {clinic.doctorSectionSubtitle || "Meet Your Chiropractor"}
             </span>
 
             <div className="relative">
@@ -61,7 +61,7 @@ export const TheDoctor: React.FC<TheDoctorProps> = ({ clinic }) => {
                 {clinic.doctorCredentials} · {clinic.doctorYears} Years in Practice
               </p>
               <p className="text-stone-500 text-xs mt-0.5">
-                Board Certified Chiropractic Physician · {clinic.cityState}
+                {clinic.doctorSubCredentials || "Board Certified Chiropractic Physician"} · {clinic.cityState}
               </p>
             </div>
           </motion.div>

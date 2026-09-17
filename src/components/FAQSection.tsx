@@ -37,7 +37,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ clinic }) => {
             {clinic?.faqSectionTitle || "Frequently Asked Questions"}
           </h2>
           <p className="text-sm text-stone-600 mt-2">
-            Real questions patients actually ask before their first appointment.
+            {clinic?.faqDescription || "Real questions patients actually ask before their first appointment."}
           </p>
         </motion.div>
 
