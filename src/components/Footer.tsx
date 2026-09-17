@@ -137,8 +137,6 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
             <a href="#" className="hover:text-stone-400 transition-colors py-1">Terms of Service</a>
             <span className="text-stone-700">·</span>
             <a href="#" className="hover:text-stone-400 transition-colors py-1">HIPAA Compliance</a>
-              </>
-            )}
           </div>
         </div>
 
