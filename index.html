@@ -16,14 +16,31 @@
   <body class="bg-stone-50 text-stone-900 antialiased selection:bg-emerald-100 selection:text-emerald-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></  
-<!-- Google Translate Dropdown -->
+  <!-- Auto-Translating Google Script -->
   <div id="google_translate_element" style="position: fixed; bottom: 10px; left: 10px; z-index: 9999;"></div>
   <script type="text/javascript">
     function googleTranslateElementInit() {
-      new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+      new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        autoDisplay: false
+      }, 'google_translate_element');
+
+      // Auto-detect visitor's browser language and trigger translation
+      var userLang = navigator.language || navigator.userLanguage;
+      var langCode = userLang.split('-')[0];
+      if (langCode !== 'en') {
+        setTimeout(function() {
+          var select = document.querySelector('.goog-te-combo');
+          if (select) {
+            select.value = langCode;
+            select.dispatchEvent(new Event('change'));
+          }
+        }, 1000);
+      }
     }
   </script>
   <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 
   </body>
 </html>
