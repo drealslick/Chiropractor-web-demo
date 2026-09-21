@@ -354,6 +354,9 @@ export function AgencyWorkspace({
               </div>
             </div>
           )}
+          {activeTab === 'lists' && (
+            <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} />
+          )}
 
           {/* TAB 3: PRESETS */}
           {activeTab === 'presets' && (
