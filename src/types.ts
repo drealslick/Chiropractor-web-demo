@@ -30,6 +30,17 @@ export interface ClinicInfo {
   logoText?: string;
   logoImage?: string;
   logoWidth?: number;
+  customPrimaryColor?: string;
+  customAccentColor?: string;
+  customBgColor?: string;
+  customTextColor?: string;
+  heroBadge?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  offerPriceText?: string;
+  doctorName?: string;
+  doctorTitle?: string;
+  doctorBio?: string;
   logoPosition?: 'left' | 'center';
   finalCtaHeadline?: string;
   finalCtaButtonText?: string;
