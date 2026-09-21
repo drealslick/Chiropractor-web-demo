@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Phone, Menu, X } from 'lucide-react';
-import { ClinicInfo } from '../types';
+import { ClinicContext } from '../data/ClinicContext';
 
 interface NavbarProps {
-  clinic: ClinicInfo;
   onBookClick: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ clinic, onBookClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // 📻 Tuning into our central brain!
+  const context = useContext(ClinicContext);
+  
+  // Safety check in case the context hasn't loaded
+  if (!context) {
+    return null; 
+  }
+  
+  // We grab clinicData and call it 'clinic' so the rest of your code works perfectly
+  const { clinicData: clinic } = context; 
 
   return (
     <header className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
