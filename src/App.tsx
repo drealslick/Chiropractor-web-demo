@@ -38,10 +38,9 @@ export default function App() {
           </div>
 
           {/* Dynamic Header Navigation */}
-          <Navbar 
-            clinic={defaultClinic} 
-            onBookClick={() => setMobileMenuOpen(false)} 
-          />
+          <Navbar onBookClick="{()">
+setMobileMenuOpen(false)} />
+
 
           {/* Viewport */}
           <main className="flex-grow">
