@@ -14,28 +14,39 @@ export interface ProblemCondition {
   title: string;
   description: string;
   icon?: string;
+  symptoms?: string[];
+  [key: string]: any;
 }
 
 export interface ProcessStep {
-  step: number;
+  step?: number;
+  number?: number;
   title: string;
   description: string;
+  [key: string]: any;
 }
 
 export interface PatientTestimonial {
   id: string;
-  name: string;
+  name?: string;
+  author?: string;
   role?: string;
   quote: string;
   rating?: number;
   avatarUrl?: string;
+  [key: string]: any;
 }
 
 export interface FeaturedStory {
   id: string;
   title: string;
-  summary: string;
+  summary?: string;
   imageUrl?: string;
+  image?: string;
+  patientName?: string;
+  timeline?: string;
+  outcome?: string;
+  [key: string]: any;
 }
 
 export interface FAQItem {
