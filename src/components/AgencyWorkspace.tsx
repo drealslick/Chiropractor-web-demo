@@ -6,11 +6,8 @@ import {
   Layout, 
   Globe, 
   Sliders, 
-  ShieldCheck, 
-  ExternalLink,
-  Smartphone,
-  Eye,
-  Check
+  ShieldCheck,
+  Paintbrush
 } from 'lucide-react';
 import { ClinicInfo } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -31,9 +28,15 @@ export function AgencyWorkspace({
   onUpdateClinic,
   onResetDefault,
 }: AgencyWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'branding' | 'content' | 'seo' | 'pages'>('presets');
+  const [activeTab, setActiveTab] = useState<'presets' | 'branding' | 'content' | 'seo'>('branding');
 
   if (!isOpen) return null;
+
+  // Primary color helper
+  const primaryVal = clinic.customPrimaryColor || '#059669';
+  const accentVal = clinic.customAccentColor || '#10b981';
+  const bgVal = clinic.customBgColor || '#f5f5f4';
+  const textVal = clinic.customTextColor || '#1c1917';
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
@@ -66,6 +69,17 @@ export function AgencyWorkspace({
         {/* Tab Navigation */}
         <div className="flex border-b border-stone-800 bg-stone-900/50 text-xs font-semibold overflow-x-auto no-scrollbar">
           <button
+            onClick={() => setActiveTab('branding')}
+            className={`flex items-center gap-2 px-4 py-3 border-b-2 shrink-0 transition ${
+              activeTab === 'branding'
+                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
+                : 'border-transparent text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>Theme & Custom Colors</span>
+          </button>
+          <button
             onClick={() => setActiveTab('presets')}
             className={`flex items-center gap-2 px-4 py-3 border-b-2 shrink-0 transition ${
               activeTab === 'presets'
@@ -75,17 +89,6 @@ export function AgencyWorkspace({
           >
             <Globe className="w-3.5 h-3.5" />
             <span>Client Demos</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('branding')}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 shrink-0 transition ${
-              activeTab === 'branding'
-                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
-                : 'border-transparent text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Theme & Colors</span>
           </button>
           <button
             onClick={() => setActiveTab('content')}
@@ -114,7 +117,151 @@ export function AgencyWorkspace({
         {/* Workspace Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-sm">
           
-          {/* TAB 1: PRESETS */}
+          {/* TAB 1: BRANDING & CUSTOM PALETTE */}
+          {activeTab === 'branding' && (
+            <div className="space-y-6">
+              
+              {/* Preset Selection */}
+              <div>
+                <h3 className="font-bold text-stone-200 text-base mb-1">Preset Themes</h3>
+                <p className="text-xs text-stone-400 mb-3">Select a base palette or build your own custom combination below.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(colorPalettes).map(([paletteId, palette]) => (
+                    <button
+                      key={paletteId}
+                      onClick={() => {
+                        onUpdateClinic({
+                          ...clinic,
+                          colorPalette: paletteId,
+                          customPrimaryColor: palette.variables['--color-primary'],
+                          customAccentColor: palette.variables['--color-accent'],
+                          customBgColor: palette.variables['--color-bg'],
+                          customTextColor: palette.variables['--color-text'],
+                        });
+                      }}
+                      className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-2 ${
+                        clinic.colorPalette === paletteId 
+                          ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300' 
+                          : 'bg-stone-800/40 border-stone-700/80 text-stone-300 hover:border-stone-600'
+                      }`}
+                    >
+                      <span className="text-xs font-bold truncate">{palette.name}</span>
+                      <div className="flex gap-1.5">
+                        <div className="w-4 h-4 rounded-full border border-stone-600" style={{ backgroundColor: palette.preview.primary }} />
+                        <div className="w-4 h-4 rounded-full border border-stone-600" style={{ backgroundColor: palette.preview.accent }} />
+                        <div className="w-4 h-4 rounded-full border border-stone-600" style={{ backgroundColor: palette.preview.bg }} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Color Palette Pickers */}
+              <div className="pt-4 border-t border-stone-800 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Paintbrush className="w-4 h-4 text-emerald-400" />
+                  <h3 className="font-bold text-stone-200 text-base">Custom Palette Customizer</h3>
+                </div>
+                <p className="text-xs text-stone-400">Pick exact custom hex colors to match any brand identity instantly.</p>
+
+                <div className="grid grid-cols-2 gap-4 pt-1">
+                  {/* Primary Color */}
+                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
+                    <label className="block text-xs font-semibold text-stone-300">Primary Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={primaryVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
+                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        value={primaryVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Accent Color */}
+                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
+                    <label className="block text-xs font-semibold text-stone-300">Accent Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={accentVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
+                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        value={accentVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Page Background Color */}
+                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
+                    <label className="block text-xs font-semibold text-stone-300">Page Background</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={bgVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
+                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        value={bgVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Text Color */}
+                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
+                    <label className="block text-xs font-semibold text-stone-300">Text / Heading Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={textVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
+                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        value={textVal}
+                        onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
+                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Font Pairing */}
+              <div className="pt-4 border-t border-stone-800 space-y-3">
+                <h4 className="font-semibold text-stone-300 text-xs uppercase tracking-wider">Font Pairing</h4>
+                <select
+                  value={clinic.fontPairing || 'classic-editorial'}
+                  onChange={(e) => onUpdateClinic({ ...clinic, fontPairing: e.target.value })}
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2.5 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                >
+                  <option value="classic-editorial">Classic Editorial (Playfair + Plus Jakarta)</option>
+                  <option value="modern-avant-garde">Modern Avant-Garde (Syne + Space Grotesk)</option>
+                  <option value="serene-academic">Serene Academic (Lora + Inter)</option>
+                  <option value="timeless-luxury">Timeless Luxury (Cinzel + Montserrat)</option>
+                </select>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2: PRESETS */}
           {activeTab === 'presets' && (
             <div className="space-y-4">
               <div>
@@ -140,51 +287,6 @@ export function AgencyWorkspace({
                     </span>
                   </button>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: BRANDING */}
-          {activeTab === 'branding' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-bold text-stone-200 text-base">Color Systems</h3>
-                <p className="text-xs text-stone-400">Select standard agency palette configurations.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(colorPalettes).map(([paletteId, palette]) => (
-                  <button
-                    key={paletteId}
-                    onClick={() => onUpdateClinic({ ...clinic, colorPalette: paletteId })}
-                    className={`p-3 rounded-xl border text-left transition flex flex-col gap-2 ${
-                      clinic.colorPalette === paletteId 
-                        ? 'bg-emerald-950/30 border-emerald-500 text-emerald-300' 
-                        : 'bg-stone-800/40 border-stone-700/80 text-stone-300 hover:border-stone-600'
-                    }`}
-                  >
-                    <span className="text-xs font-bold">{palette.name}</span>
-                    <div className="flex gap-1">
-                      <div className="w-4 h-4 rounded-full border border-stone-600" style={{ backgroundColor: palette.preview.primary }} />
-                      <div className="w-4 h-4 rounded-full border border-stone-600" style={{ backgroundColor: palette.preview.accent }} />
-                      <div className="w-4 h-4 rounded-full border border-stone-600" style={{ backgroundColor: palette.preview.bg }} />
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              <div className="pt-4 border-t border-stone-800 space-y-4">
-                <h4 className="font-semibold text-stone-300 text-xs uppercase tracking-wider">Font Pairing</h4>
-                <select
-                  value={clinic.fontPairing || 'classic-editorial'}
-                  onChange={(e) => onUpdateClinic({ ...clinic, fontPairing: e.target.value })}
-                  className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2.5 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                >
-                  <option value="classic-editorial">Classic Editorial (Playfair + Plus Jakarta)</option>
-                  <option value="modern-avant-garde">Modern Avant-Garde (Syne + Space Grotesk)</option>
-                  <option value="serene-academic">Serene Academic (Lora + Inter)</option>
-                  <option value="timeless-luxury">Timeless Luxury (Cinzel + Montserrat)</option>
-                </select>
               </div>
             </div>
           )}
