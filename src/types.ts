@@ -22,47 +22,59 @@ export interface ClinicInfo {
   offerHeadline: string;
   offerSubtext: string;
   offerCtaText: string;
+
+  // Custom Colors & Dynamic Styling
   colorPalette?: string;
   customPrimaryColor?: string;
   customAccentColor?: string;
   customBgColor?: string;
   customTextColor?: string;
+  fontPairing?: string;
+
+  // Branding & Logo
   logoText?: string;
   logoImage?: string;
   logoWidth?: number;
-  customPrimaryColor?: string;
-  customAccentColor?: string;
-  customBgColor?: string;
-  customTextColor?: string;
+  logoPosition?: 'left' | 'center';
+
+  // Hero & Content Overrides
   heroBadge?: string;
   heroTitle?: string;
   heroSubtitle?: string;
+  heroHeadline?: string;
+  heroSubheadline?: string;
+  heroCtaText?: string;
+  heroAcceptingPillText?: string;
+  heroGuaranteeText?: string;
+  heroImageCaption?: string;
   offerPriceText?: string;
-  doctorName?: string;
+
+  // Doctor Info
   doctorTitle?: string;
   doctorBio?: string;
-  logoPosition?: 'left' | 'center';
+  doctorSubCredentials?: string;
+
+  // Booking & Conversion
   finalCtaHeadline?: string;
   finalCtaButtonText?: string;
+  finalCtaSubheadline?: string;
+  finalCtaCallPrefix?: string;
   externalBookingUrl?: string;
   bookingUrl?: string;
   bookingType?: 'modal' | 'external';
+  bookingMode?: 'modal' | 'external';
   showStickyBanner?: boolean;
   paymentModel?: 'insurance_and_cash' | 'cash_only_concierge';
   googleRating?: number;
   googleReviewsCount?: number;
+
+  // Custom Arrays
   customConditions?: ProblemCondition[];
   customProcessSteps?: ProcessStep[];
   customTestimonials?: { quote: string; author: string; rating: number; condition?: string }[];
   customFaqs?: { q: string; a: string }[];
-  
-  // Font pairing & Custom Styling
-  fontPairing?: string;
 
-  // Booking mode overrides
-  bookingMode?: 'modal' | 'external';
-
-  // Why Us Pillar details
+  // Why Us Pillars
   whyUsPillar1Title?: string;
   whyUsPillar1Desc?: string;
   whyUsPillar2Title?: string;
@@ -85,7 +97,7 @@ export interface ClinicInfo {
   seoTitle?: string;
   seoDescription?: string;
 
-  // Fully Editable Section Headings/Titles/Subtitles
+  // Section Headings & Titles
   whyUsTitle?: string;
   whyUsSubtitle?: string;
   conditionsTitle?: string;
@@ -101,25 +113,20 @@ export interface ClinicInfo {
   faqSectionTitle?: string;
   faqSectionSubtitle?: string;
 
-  // Hero custom text
-  heroHeadline?: string;
-  heroSubheadline?: string;
-  heroCtaText?: string;
-
-  // Email and Social Profiles
+  // Contact & Social
   email?: string;
   instagram?: string;
   facebook?: string;
   googleBusiness?: string;
 
-  // Editable Featured Patient Story Details
+  // Featured Patient Story
   patientStoryName?: string;
   patientStoryRole?: string;
   patientStorySummary?: string;
   patientStoryTimeline?: string;
   patientStoryOutcome?: string;
 
-  // Fully Editable Trust Bar
+  // Trust Bar Labels
   trustRatingLabel?: string;
   trustRatingSub?: string;
   trustExperienceLabel?: string;
@@ -127,38 +134,29 @@ export interface ClinicInfo {
   trustPatientsLabel?: string;
   trustPatientsSub?: string;
 
-  // Fully Editable Header & Navbar Links
+  // Navigation Links
   navLink1?: string;
   navLink2?: string;
   navLink3?: string;
   navLink4?: string;
   navButtonText?: string;
 
-  // Fully Editable Footer Details & Hours
+  // Footer Details
   footerDescription?: string;
   hoursFriday?: string;
   hoursDisclaimer?: string;
 
-  // Fully Editable Hero Subparts
-  heroAcceptingPillText?: string;
-  heroGuaranteeText?: string;
-  heroImageCaption?: string;
-
-  // Fully Editable FAQ Info
+  // FAQ Details
   faqDescription?: string;
 
-  // Fully Editable Final CTA Info
-  finalCtaSubheadline?: string;
-  finalCtaCallPrefix?: string;
-
-  // Fully Editable Insurance Section
+  // Insurance Section
   insuranceTitle?: string;
   insuranceSubtitle?: string;
   customInsurances?: string[];
   insuranceQuestionLabel?: string;
   insuranceCallCta?: string;
 
-  // Fully Editable Location Section
+  // Location Section
   locationSectionSubtitle?: string;
   locationSectionTitle?: string;
   locationQuestionsLabel?: string;
@@ -167,17 +165,14 @@ export interface ClinicInfo {
   locationParkingLabel?: string;
   locationClosedLabel?: string;
 
-  // Fully Editable Clinic Showcase Section
+  // Clinic Showcase Section
   clinicQuote?: string;
   clinicQuoteDescription?: string;
 
-  // Fully Editable Doctor Section
-  doctorSubCredentials?: string;
-
-  // Fully Editable Patients Section
+  // Patients Section
   patientsSectionFeaturedTitle?: string;
 
-  // Fully Editable First Visit Section
+  // First Visit Section
   firstVisitSubtitle?: string;
   firstVisitTitle?: string;
   customFirstVisitSteps?: ProcessStep[];
