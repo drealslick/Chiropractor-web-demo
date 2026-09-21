@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, Phone, Menu, X } from 'lucide-react';
 import { ClinicInfo } from '../types';
 
@@ -14,9 +15,9 @@ export const Navbar: React.FC<NavbarProps> = ({ clinic, onBookClick }) => {
     <header className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         
-        {/* LOGO & Location Badge */}
+        {/* LOGO & Home Link */}
         <div className="flex items-center gap-3">
-          <a href="#" className="flex items-center gap-2.5 group">
+          <Link to="/" className="flex items-center gap-2.5 group">
             {clinic.logoImage ? (
               <img
                 src={clinic.logoImage}
@@ -37,15 +38,16 @@ export const Navbar: React.FC<NavbarProps> = ({ clinic, onBookClick }) => {
                 {clinic.cityState}
               </span>
             </div>
-          </a>
+          </Link>
         </div>
 
-        {/* Desktop Navigation Links */}
+        {/* Desktop Navigation Links (Multi-Page Routes) */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
-          <a href="#about" className="hover:text-stone-900 transition-colors">{clinic.navLink1 || "About"}</a>
-          <a href="#care" className="hover:text-stone-900 transition-colors">{clinic.navLink2 || "Care"}</a>
-          <a href="#results" className="hover:text-stone-900 transition-colors">{clinic.navLink3 || "Results"}</a>
-          <a href="#faq" className="hover:text-stone-900 transition-colors">{clinic.navLink4 || "FAQ"}</a>
+          <Link to="/" className="hover:text-stone-900 transition-colors">Home</Link>
+          <Link to="/conditions" className="hover:text-stone-900 transition-colors">Conditions</Link>
+          <Link to="/first-visit" className="hover:text-stone-900 transition-colors">First Visit</Link>
+          <Link to="/about" className="hover:text-stone-900 transition-colors">About</Link>
+          <Link to="/contact" className="hover:text-stone-900 transition-colors">Contact</Link>
         </nav>
 
         {/* Action Buttons & Mobile Toggle */}
@@ -79,37 +81,44 @@ export const Navbar: React.FC<NavbarProps> = ({ clinic, onBookClick }) => {
 
       </div>
 
-      {/* Mobile Slide-down Dropdown Menu */}
+      {/* Mobile Slide-down Multi-Page Dropdown Menu */}
       {mobileMenuOpen && (
         <nav className="md:hidden bg-stone-50 border-t border-stone-200/80 px-4 pt-3 pb-5 space-y-2 shadow-lg">
-          <a
-            href="#about"
+          <Link
+            to="/"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
           >
-            {clinic.navLink1 || "About"}
-          </a>
-          <a
-            href="#care"
+            Home
+          </Link>
+          <Link
+            to="/conditions"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
           >
-            {clinic.navLink2 || "Care"}
-          </a>
-          <a
-            href="#results"
+            Conditions We Treat
+          </Link>
+          <Link
+            to="/first-visit"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
           >
-            {clinic.navLink3 || "Results"}
-          </a>
-          <a
-            href="#faq"
+            First Visit Guide
+          </Link>
+          <Link
+            to="/about"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
           >
-            {clinic.navLink4 || "FAQ"}
-          </a>
+            About
+          </Link>
+          <Link
+            to="/contact"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
+          >
+            Contact
+          </Link>
           <div className="pt-2 border-t border-stone-200">
             <a
               href={`tel:${clinic.phoneRaw}`}
