@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Phone, MapPin } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { defaultClinic } from './data/clinicData';
-import { ClinicProvider } from './context/ClinicContext'; // 👈 1. Added import
+import { ClinicProvider } from './data/ClinicContext'; // 👈 Updated path
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -16,7 +16,6 @@ export default function App() {
   const [, setMobileMenuOpen] = useState(false);
 
   return (
-    // 👇 2. Wrapped everything in ClinicProvider
     <ClinicProvider>
       <Router>
         <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
@@ -39,7 +38,6 @@ export default function App() {
           </div>
 
           {/* Dynamic Header Navigation */}
-          {/* Note: In a future step, we won't even need to pass defaultClinic here! */}
           <Navbar 
             clinic={defaultClinic} 
             onBookClick={() => setMobileMenuOpen(false)} 
