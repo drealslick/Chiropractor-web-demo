@@ -7,7 +7,8 @@ import {
   Globe, 
   Sliders, 
   ShieldCheck,
-  Paintbrush
+  Paintbrush,
+  FileText
 } from 'lucide-react';
 import { ClinicInfo } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -28,11 +29,10 @@ export function AgencyWorkspace({
   onUpdateClinic,
   onResetDefault,
 }: AgencyWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'branding' | 'content' | 'seo'>('branding');
+  const [activeTab, setActiveTab] = useState<'branding' | 'copy' | 'presets' | 'content' | 'seo'>('branding');
 
   if (!isOpen) return null;
 
-  // Primary color helper
   const primaryVal = clinic.customPrimaryColor || '#059669';
   const accentVal = clinic.customAccentColor || '#10b981';
   const bgVal = clinic.customBgColor || '#f5f5f4';
@@ -70,18 +70,29 @@ export function AgencyWorkspace({
         <div className="flex border-b border-stone-800 bg-stone-900/50 text-xs font-semibold overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('branding')}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 shrink-0 transition ${
+            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
               activeTab === 'branding'
                 ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>Theme & Custom Colors</span>
+            <span>Theme & Colors</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('copy')}
+            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
+              activeTab === 'copy'
+                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
+                : 'border-transparent text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Site Copy & Text</span>
           </button>
           <button
             onClick={() => setActiveTab('presets')}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 shrink-0 transition ${
+            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
               activeTab === 'presets'
                 ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
@@ -92,18 +103,18 @@ export function AgencyWorkspace({
           </button>
           <button
             onClick={() => setActiveTab('content')}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 shrink-0 transition ${
+            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
               activeTab === 'content'
                 ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
             }`}
           >
             <Layout className="w-3.5 h-3.5" />
-            <span>Home Sections</span>
+            <span>Sections</span>
           </button>
           <button
             onClick={() => setActiveTab('seo')}
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 shrink-0 transition ${
+            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
               activeTab === 'seo'
                 ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
                 : 'border-transparent text-stone-400 hover:text-stone-200'
@@ -120,11 +131,9 @@ export function AgencyWorkspace({
           {/* TAB 1: BRANDING & CUSTOM PALETTE */}
           {activeTab === 'branding' && (
             <div className="space-y-6">
-              
-              {/* Preset Selection */}
               <div>
                 <h3 className="font-bold text-stone-200 text-base mb-1">Preset Themes</h3>
-                <p className="text-xs text-stone-400 mb-3">Select a base palette or build your own custom combination below.</p>
+                <p className="text-xs text-stone-400 mb-3">Select a base palette or build your own custom combination.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(colorPalettes).map(([paletteId, palette]) => (
                     <button
@@ -156,16 +165,14 @@ export function AgencyWorkspace({
                 </div>
               </div>
 
-              {/* Custom Color Palette Pickers */}
+              {/* Custom Color Pickers */}
               <div className="pt-4 border-t border-stone-800 space-y-4">
                 <div className="flex items-center gap-2">
                   <Paintbrush className="w-4 h-4 text-emerald-400" />
-                  <h3 className="font-bold text-stone-200 text-base">Custom Palette Customizer</h3>
+                  <h3 className="font-bold text-stone-200 text-base">Custom Color Palette</h3>
                 </div>
-                <p className="text-xs text-stone-400">Pick exact custom hex colors to match any brand identity instantly.</p>
 
-                <div className="grid grid-cols-2 gap-4 pt-1">
-                  {/* Primary Color */}
+                <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
                     <label className="block text-xs font-semibold text-stone-300">Primary Color</label>
                     <div className="flex items-center gap-2">
@@ -184,7 +191,6 @@ export function AgencyWorkspace({
                     </div>
                   </div>
 
-                  {/* Accent Color */}
                   <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
                     <label className="block text-xs font-semibold text-stone-300">Accent Color</label>
                     <div className="flex items-center gap-2">
@@ -203,7 +209,6 @@ export function AgencyWorkspace({
                     </div>
                   </div>
 
-                  {/* Page Background Color */}
                   <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
                     <label className="block text-xs font-semibold text-stone-300">Page Background</label>
                     <div className="flex items-center gap-2">
@@ -222,9 +227,8 @@ export function AgencyWorkspace({
                     </div>
                   </div>
 
-                  {/* Text Color */}
                   <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
-                    <label className="block text-xs font-semibold text-stone-300">Text / Heading Color</label>
+                    <label className="block text-xs font-semibold text-stone-300">Text Color</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -261,7 +265,85 @@ export function AgencyWorkspace({
             </div>
           )}
 
-          {/* TAB 2: PRESETS */}
+          {/* TAB 2: SITE COPY & TEXT OVERRIDES */}
+          {activeTab === 'copy' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-bold text-stone-200 text-base">Live Content & Copy</h3>
+                <p className="text-xs text-stone-400">Override hero headlines, badges, offers, and doctor profiles instantly.</p>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Hero Badge Text</label>
+                  <input
+                    type="text"
+                    value={clinic.heroBadge || ''}
+                    placeholder="e.g. ⭐ Rated #1 Private Clinic in Europe"
+                    onChange={(e) => onUpdateClinic({ ...clinic, heroBadge: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Hero Title Heading</label>
+                  <textarea
+                    rows={2}
+                    value={clinic.heroTitle || ''}
+                    placeholder="Main headline on the homepage..."
+                    onChange={(e) => onUpdateClinic({ ...clinic, heroTitle: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Hero Subtitle</label>
+                  <textarea
+                    rows={2}
+                    value={clinic.heroSubtitle || ''}
+                    placeholder="Sub-headline description..."
+                    onChange={(e) => onUpdateClinic({ ...clinic, heroSubtitle: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Promo Offer Banner Text</label>
+                  <input
+                    type="text"
+                    value={clinic.offerPriceText || ''}
+                    placeholder="e.g. €49 New Patient Special"
+                    onChange={(e) => onUpdateClinic({ ...clinic, offerPriceText: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-stone-800">
+                  <label className="block text-xs text-stone-400 mb-1">Lead Specialist / Doctor Name</label>
+                  <input
+                    type="text"
+                    value={clinic.doctorName || ''}
+                    placeholder="e.g. Dr. Alistair Vance"
+                    onChange={(e) => onUpdateClinic({ ...clinic, doctorName: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Specialist Title / Role</label>
+                  <input
+                    type="text"
+                    value={clinic.doctorTitle || ''}
+                    placeholder="e.g. Chief Medical Director"
+                    onChange={(e) => onUpdateClinic({ ...clinic, doctorTitle: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: PRESETS */}
           {activeTab === 'presets' && (
             <div className="space-y-4">
               <div>
@@ -291,7 +373,7 @@ export function AgencyWorkspace({
             </div>
           )}
 
-          {/* TAB 3: CONTENT SECTIONS */}
+          {/* TAB 4: CONTENT SECTIONS */}
           {activeTab === 'content' && (
             <div className="space-y-4">
               <div>
@@ -331,7 +413,7 @@ export function AgencyWorkspace({
             </div>
           )}
 
-          {/* TAB 4: SEO & CLINIC DETAILS */}
+          {/* TAB 5: CLINIC DETAILS */}
           {activeTab === 'seo' && (
             <div className="space-y-4">
               <div>
@@ -369,16 +451,6 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs text-stone-400 mb-1">Promo Offer Heading</label>
-                  <input
-                    type="text"
-                    value={clinic.offerPriceText || '€49 New Patient Special'}
-                    onChange={(e) => onUpdateClinic({ ...clinic, offerPriceText: e.target.value })}
-                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
               </div>
             </div>
           )}
@@ -388,7 +460,7 @@ export function AgencyWorkspace({
         {/* Footer info bar */}
         <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between text-xs text-stone-500">
           <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Cmd+Shift+C Shortcut Active
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Total Control Active
           </span>
           <button
             onClick={onClose}
