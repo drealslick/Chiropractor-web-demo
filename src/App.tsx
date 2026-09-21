@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Activity, Phone, MapPin, Menu, X } from 'lucide-react';
+import { Navbar } from './components/Navbar';
+import { defaultClinic } from './data/clinicData';
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -34,19 +36,11 @@ export default function App() {
         </div>
 
         {/* Header Navigation */}
-        <header className="bg-white/90 backdrop-blur-md border-b border-stone-200 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between">
-            {/* Logo */}
-            <Link 
-              to="/" 
-              className="flex items-center gap-2 font-extrabold text-lg md:text-xl text-stone-900 tracking-tight"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-md">
-                <Activity className="w-5 h-5" />
-              </div>
-              <span>Vance<span className="text-emerald-600">Health</span></span>
-            </Link>
+    <Navbar 
+  clinic={defaultClinic} 
+  onBookClick={() => setMobileMenuOpen(false)} 
+/>
+
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex gap-8 text-sm font-semibold text-stone-600">
