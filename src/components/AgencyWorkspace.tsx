@@ -30,7 +30,7 @@ export function AgencyWorkspace({
   onUpdateClinic,
   onResetDefault,
 }: AgencyWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<'branding' | 'copy' | 'presets' | 'content' | 'seo'>('branding');
+  const [activeTab, setActiveTab] = useState<'branding' | 'copy' | 'lists' | 'presets' | 'content' | 'seo'>('branding');
 
   if (!isOpen) return null;
 
