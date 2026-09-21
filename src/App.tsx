@@ -36,11 +36,13 @@ export default function App() {
         </div>
 
         {/* Header Navigation */}
-    <Navbar 
+<Navbar 
   clinic={defaultClinic} 
   onBookClick={() => setMobileMenuOpen(false)} 
 />
 
+{/* Viewport */}
+<main className="flex-grow">
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex gap-8 text-sm font-semibold text-stone-600">
