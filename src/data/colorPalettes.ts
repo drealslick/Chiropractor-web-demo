@@ -21,6 +21,11 @@ export interface ColorPalette {
     accent: string;
     light: string;
   };
+  preview: {
+    primary: string;
+    accent: string;
+    bg: string;
+  };
   variables: Record<string, string>;
 }
 
@@ -39,6 +44,11 @@ export const colorPalettes: Record<ColorPaletteId, ColorPalette> = {
       background: '#fcfbf7',
       accent: '#829e8d',
       light: '#eaf0ec',
+    },
+    preview: {
+      primary: '#1e3a2b',
+      accent: '#829e8d',
+      bg: '#fcfbf7',
     },
     variables: {
       '--color-primary': '#1e3a2b',
@@ -63,6 +73,11 @@ export const colorPalettes: Record<ColorPaletteId, ColorPalette> = {
       accent: '#c5a059',
       light: '#f0ece1',
     },
+    preview: {
+      primary: '#262626',
+      accent: '#c5a059',
+      bg: '#f7f6f2',
+    },
     variables: {
       '--color-primary': '#262626',
       '--color-primary-hover': '#171717',
@@ -85,6 +100,11 @@ export const colorPalettes: Record<ColorPaletteId, ColorPalette> = {
       background: '#fbf8f3',
       accent: '#d97736',
       light: '#f7ebe3',
+    },
+    preview: {
+      primary: '#9e472a',
+      accent: '#d97736',
+      bg: '#fbf8f3',
     },
     variables: {
       '--color-primary': '#9e472a',
@@ -109,6 +129,11 @@ export const colorPalettes: Record<ColorPaletteId, ColorPalette> = {
       accent: '#14b8a6',
       light: '#ccfbf1',
     },
+    preview: {
+      primary: '#0f766e',
+      accent: '#14b8a6',
+      bg: '#f4f4f5',
+    },
     variables: {
       '--color-primary': '#0f766e',
       '--color-primary-hover': '#115e59',
@@ -132,6 +157,11 @@ export const colorPalettes: Record<ColorPaletteId, ColorPalette> = {
       accent: '#10b981',
       light: '#d1fae5',
     },
+    preview: {
+      primary: '#059669',
+      accent: '#10b981',
+      bg: '#f5f5f4',
+    },
     variables: {
       '--color-primary': '#059669',
       '--color-primary-hover': '#047857',
@@ -154,6 +184,11 @@ export const colorPalettes: Record<ColorPaletteId, ColorPalette> = {
       background: '#f8fafc',
       accent: '#d97706',
       light: '#e0e7ff',
+    },
+    preview: {
+      primary: '#1e3a8a',
+      accent: '#d97706',
+      bg: '#f8fafc',
     },
     variables: {
       '--color-primary': '#1e3a8a',
