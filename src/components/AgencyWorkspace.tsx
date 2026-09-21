@@ -80,8 +80,7 @@ export function AgencyWorkspace({
             <Palette className="w-3.5 h-3.5" />
             <span>Theme & Colors</span>
           </button>
-          <button
-          <button
+                    <button
             onClick={() => setActiveTab('lists')}
             className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
               activeTab === 'lists'
@@ -92,6 +91,7 @@ export function AgencyWorkspace({
             <FileText className="w-3.5 h-3.5" />
             <span>FAQs & Conditions</span>
           </button>
+          <button
             onClick={() => setActiveTab('copy')}
             className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
               activeTab === 'copy'
