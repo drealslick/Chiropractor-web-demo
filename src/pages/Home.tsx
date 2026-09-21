@@ -1,134 +1,375 @@
-import React from 'react';
-import { 
-  Sparkles, 
-  ShieldCheck, 
-  Calendar, 
-  Clock, 
-  Star, 
-  ArrowRight, 
-  CheckCircle2, 
-  Activity, 
-  Award 
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { defaultClinic, conditionsData } from './data/clinicData';
+import { agencyDemoPresets } from './data/presets';
+import { colorPalettes, ColorPaletteId, resolvePalette } from './data/colorPalettes';
+import { ClinicInfo } from './types';
+import { Navbar } from './components/Navbar';
+import { StickyOfferBanner } from './components/StickyOfferBanner';
+import { Hero } from './components/Hero';
+import { TrustBar } from './components/TrustBar';
+import { TheProblem } from './components/TheProblem';
+import { WhyUs } from './components/WhyUs';
+import { TheProcess } from './components/TheProcess';
+import { TheDoctor } from './components/TheDoctor';
+import { PatientsSection } from './components/PatientsSection';
+import { TheClinic } from './components/TheClinic';
+import { FirstVisitSection } from './components/FirstVisitSection';
+import { InsurancePayment } from './components/InsurancePayment';
+import { LocationSection } from './components/LocationSection';
+import { FAQSection } from './components/FAQSection';
+import { FinalCTA } from './components/FinalCTA';
+import { Footer } from './components/Footer';
+import { MobileStickyBar } from './components/MobileStickyBar';
+import { BookingModal } from './components/BookingModal';
+import { AgencyWorkspace } from './components/AgencyWorkspace';
 
-export default function Home() {
+const STORAGE_KEY = 'agency_clinic_config_v1';
+
+export default function App() {
+  const [clinic, setClinic] = useState<ClinicInfo>(() => {
+    try {
+      // 1. Check if URL contains a demo preset e.g. ?demo=austin or ?demo=denver
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const demoKey = urlParams.get('demo') || urlParams.get('preset') || urlParams.get('client');
+        if (demoKey && agencyDemoPresets[demoKey.toLowerCase()]) {
+          return { ...defaultClinic, ...agencyDemoPresets[demoKey.toLowerCase()] };
+        }
+      }
+
+      // 2. Check localStorage saved changes
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return { ...defaultClinic, ...JSON.parse(saved) };
+      }
+    } catch {
+      // Fallback to default
+    }
+    return defaultClinic;
+  });
+
+  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
+  const [isManagerOpen, setIsManagerOpen] = useState<boolean>(false);
+  const [passcode, setPasscode] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [error, setError] = useState('');
+  const [isStaffMode, setIsStaffMode] = useState<boolean>(false);
+  const [selectedConditionForBooking, setSelectedConditionForBooking] = useState<string>('Back pain');
+
+  // Check URL query params on mount
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasAdminParam = urlParams.get('admin') === 'true' || urlParams.get('agency') === 'true' || urlParams.get('staff') === 'true' || urlParams.get('edit') === 'true';
+      if (hasAdminParam) {
+        setIsStaffMode(true);
+        setIsManagerOpen(true);
+      }
+    } catch {
+      // Ignore if iframe restricts search params
+    }
+
+    // Agency internal shortcut: Cmd/Ctrl + Shift + C
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        setIsStaffMode(true);
+        setIsManagerOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Update root CSS variables whenever clinic.colorPalette or custom color overrides change
+  useEffect(() => {
+    const config = resolvePalette(clinic.colorPalette);
+
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      Object.entries(config.variables).forEach(([cssVar, colorVal]) => {
+        root.style.setProperty(cssVar, colorVal);
+      });
+
+      // Apply overrides if they exist
+      if (clinic.customPrimaryColor) {
+        root.style.setProperty('--theme-primary-500', clinic.customPrimaryColor);
+        root.style.setProperty('--theme-primary-600', clinic.customPrimaryColor);
+        root.style.setProperty('--theme-primary-700', clinic.customPrimaryColor);
+        root.style.setProperty('--theme-primary-800', clinic.customPrimaryColor);
+      }
+      if (clinic.customAccentColor) {
+        root.style.setProperty('--theme-accent', clinic.customAccentColor);
+      }
+      if (clinic.customBgColor) {
+        root.style.setProperty('--theme-bg-page', clinic.customBgColor);
+      }
+      if (clinic.customTextColor) {
+        root.style.setProperty('--theme-primary-950', clinic.customTextColor);
+      }
+    }
+  }, [clinic.colorPalette, clinic.customPrimaryColor, clinic.customAccentColor, clinic.customBgColor, clinic.customTextColor]);
+
+  // Dynamic Fonts Injection
+  useEffect(() => {
+    const fontPair = clinic.fontPairing || 'classic-editorial';
+    let url = '';
+    let headingVal = "'Playfair Display', serif";
+    let bodyVal = "'Plus Jakarta Sans', sans-serif";
+
+    if (fontPair === 'modern-avant-garde') {
+      url = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Syne:wght@400..800&display=swap';
+      headingVal = "'Syne', sans-serif";
+      bodyVal = "'Space Grotesk', sans-serif";
+    } else if (fontPair === 'serene-academic') {
+      url = 'https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap';
+      headingVal = "'Lora', serif";
+      bodyVal = "'Inter', sans-serif";
+    } else if (fontPair === 'timeless-luxury') {
+      url = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Montserrat:wght@100..900&display=swap';
+      headingVal = "'Cinzel', serif";
+      bodyVal = "'Montserrat', sans-serif";
+    } else {
+      // default: classic-editorial
+      url = 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap';
+      headingVal = "'Playfair Display', serif";
+      bodyVal = "'Plus Jakarta Sans', sans-serif";
+    }
+
+    // Link loading
+    const linkId = 'dynamic-google-fonts';
+    let link = document.getElementById(linkId) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    link.href = url;
+
+    // Apply inline root styles
+    const styleId = 'dynamic-font-styles';
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      document.head.appendChild(style);
+    }
+    style.innerHTML = `
+      :root {
+        --font-heading: ${headingVal};
+        --font-body: ${bodyVal};
+      }
+      h1, h2, h3, h4, .font-serif {
+        font-family: var(--font-heading), Georgia, Cambria, "Times New Roman", Times, serif !important;
+      }
+      body, p, span, div, button, input, textarea, select, .font-sans {
+        font-family: var(--font-body), system-ui, -apple-system, sans-serif !important;
+      }
+    `;
+  }, [clinic.fontPairing]);
+
+  // Dynamic SEO Title and Meta Update
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = clinic.seoTitle || `${clinic.name} | Professional Chiropractic Care`;
+      
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', clinic.seoDescription || clinic.tagline || 'Chiropractic Care Specialist');
+    }
+  }, [clinic.seoTitle, clinic.seoDescription, clinic.name, clinic.tagline]);
+
+  const handleUpdateClinic = (updated: ClinicInfo) => {
+    setClinic(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  const handleResetDefault = () => {
+    setClinic(defaultClinic);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
+  };
+
+  const handleOpenBooking = (conditionTitle?: string) => {
+    if (clinic.bookingMode === 'external' && clinic.externalBookingUrl) {
+      window.open(clinic.externalBookingUrl, '_blank');
+      return;
+    }
+    if (conditionTitle) {
+      // Map to standard form condition
+      if (conditionTitle.includes('Back')) {
+        setSelectedConditionForBooking('Back pain');
+      } else if (conditionTitle.includes('Neck') || conditionTitle.includes('Shoulder')) {
+        setSelectedConditionForBooking('Neck pain');
+      } else if (conditionTitle.includes('Sports')) {
+        setSelectedConditionForBooking('Sports injury');
+      } else if (conditionTitle.includes('Headache')) {
+        setSelectedConditionForBooking('Headaches');
+      } else {
+        setSelectedConditionForBooking(conditionTitle);
+      }
+    }
+    setIsBookingOpen(true);
+  };
+
   return (
-    <div className="space-y-16 py-8 px-4 max-w-7xl mx-auto">
-      {/* Premium Hero Banner */}
-      <section className="relative overflow-hidden bg-stone-900 text-white rounded-3xl p-8 md:p-14 shadow-2xl border border-stone-800">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-        
-        <div className="relative z-10 max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-full backdrop-blur-md">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>€49 New Patient Consultation & Evaluation Special</span>
-          </div>
+    <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col font-sans relative pb-16 md:pb-0 overflow-x-hidden">
+      
+      {/* 1. STICKY OFFER BANNER */}
+      <StickyOfferBanner
+        clinic={clinic}
+        onClaim={() => handleOpenBooking('Back pain')}
+      />
 
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-stone-100">
-            Precision Chiropractic & Functional Movement Relief
-          </h1>
+      {/* 2. NAV */}
+      <Navbar
+        clinic={clinic}
+        onBookClick={() => handleOpenBooking()}
+      />
 
-          <p className="text-stone-300 text-base md:text-lg leading-relaxed max-w-2xl">
-            Evidence-based spinal adjustments, soft tissue therapy, and long-term postural restoration designed for lasting pain elimination.
-          </p>
+      <main className="flex-1">
+        {/* 3. HERO */}
+        <Hero
+          clinic={clinic}
+          onBookClick={() => handleOpenBooking()}
+        />
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-2">
-            <a
-              href="/first-visit"
-              className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
+        {/* 4. TRUST BAR */}
+        {(clinic.showTrustBar !== false) && <TrustBar clinic={clinic} />}
+
+        {/* 5. THE PROBLEM */}
+        {(clinic.showConditions !== false) && (
+          <TheProblem
+            conditions={clinic.customConditions || conditionsData}
+            onSelectCondition={(cond) => handleOpenBooking(cond)}
+          />
+        )}
+
+        {/* 6. WHY US */}
+        {(clinic.showWhyUs !== false) && <WhyUs clinic={clinic} />}
+
+        {/* 7. THE PROCESS */}
+        {(clinic.showTheProcess !== false) && <TheProcess clinic={clinic} />}
+
+        {/* 8. THE DOCTOR */}
+        {(clinic.showTheDoctor !== false) && <TheDoctor clinic={clinic} />}
+
+        {/* 9. PATIENTS */}
+        {(clinic.showPatients !== false) && <PatientsSection clinic={clinic} />}
+
+        {/* 10. THE CLINIC */}
+        {(clinic.showTheClinic !== false) && <TheClinic clinic={clinic} />}
+
+        {/* 11. YOUR FIRST VISIT */}
+        <FirstVisitSection clinic={clinic} />
+
+        {/* 12. INSURANCE & PAYMENT */}
+        {(clinic.showInsurancePayment !== false) && <InsurancePayment clinic={clinic} />}
+
+        {/* 13. LOCATION */}
+        <LocationSection clinic={clinic} />
+
+        {/* 14. FAQ */}
+        {(clinic.showFAQ !== false) && <FAQSection clinic={clinic} />}
+
+        {/* 15. FINAL CTA */}
+        <FinalCTA
+          clinic={clinic}
+          onBookClick={() => handleOpenBooking()}
+        />
+      </main>
+
+      {/* 16. FOOTER */}
+      <Footer
+        clinic={clinic}
+        onOpenManager={() => {
+          setIsStaffMode(true);
+          setIsManagerOpen(true);
+        }}
+      />
+
+      {/* 17. MOBILE STICKY BOTTOM BAR [CALL] [BOOK] */}
+      <MobileStickyBar
+        clinic={clinic}
+        onBookClick={() => handleOpenBooking()}
+      />
+
+      {/* 18. BOOKING FLOW MODAL */}
+      <BookingModal
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        clinic={clinic}
+        initialCondition={selectedConditionForBooking}
+      />
+
+      {/* 19. AGENCY WORKSPACE COMMAND SUITE */}
+      {isManagerOpen && (
+  !isUnlocked ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <div className="w-full max-w-xs rounded-xl border border-stone-800 bg-stone-900 p-6 text-white shadow-2xl">
+        <h3 className="mb-1 text-base font-semibold">Admin Verification</h3>
+        <p className="mb-4 text-xs text-stone-400">Enter passcode to open Agency Manager.</p>
+
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (passcode === 'Slick2026!') {
+            setIsUnlocked(true);
+            setError('');
+          } else {
+            setError('Incorrect passcode');
+          }
+        }}>
+          <input
+            type="password"
+            placeholder="Enter secret passcode"
+            value={passcode}
+            onChange={(e) => setPasscode(e.target.value)}
+            className="mb-2 w-full rounded-lg border border-stone-700 bg-stone-800 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+          />
+          {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
+
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              type="button"
+              onClick={() => setIsManagerOpen(false)}
+              className="px-3 py-1.5 text-xs text-stone-400 hover:text-white"
             >
-              <Calendar className="w-4 h-4" />
-              <span>Claim €49 Special</span>
-            </a>
-            <a
-              href="/conditions"
-              className="inline-flex items-center justify-center gap-2 bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold px-6 py-3.5 rounded-xl border border-stone-700 transition"
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
             >
-              <span>View Conditions We Treat</span>
-              <ArrowRight className="w-4 h-4" />
-            </a>
+              Unlock
+            </button>
           </div>
+        </form>
+      </div>
+    </div>
+  ) : (
+    <AgencyWorkspace
+      isOpen={isManagerOpen}
+      onClose={() => setIsManagerOpen(false)}
+      clinic={clinic}
+      onUpdateClinic={handleUpdateClinic}
+      onResetDefault={handleResetDefault}
+    />
+  )
+)}
 
-          {/* Trust Badges */}
-          <div className="pt-6 border-t border-stone-800/80 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs text-stone-400">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Certified Specialists</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
-              <span>4.9 Star Patient Reviews</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>GDPR Compliant Intake</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Interactive Condition Router Grid */}
-      <section className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stone-200 pb-4">
-          <div>
-            <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Targeted Care</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-stone-900 mt-1">What is causing your discomfort?</h2>
-          </div>
-          <a href="/conditions" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-            See all conditions <ArrowRight className="w-4 h-4" />
-          </a>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <a
-            href="/conditions/back-lower-back-pain"
-            className="group p-6 bg-white border border-stone-200 rounded-2xl hover:border-emerald-500 hover:shadow-xl transition-all duration-200 relative overflow-hidden"
-          >
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <Activity className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-600 transition flex items-center justify-between">
-              Lower Back & Lumbar
-              <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </h3>
-            <p className="text-stone-500 text-sm mt-2 leading-relaxed">
-              Targeted adjustments to realign lumbar vertebrae, relieve sciatica, and stabilize core posture.
-            </p>
-          </a>
-
-          <a
-            href="/conditions/neck-shoulder-pain"
-            className="group p-6 bg-white border border-stone-200 rounded-2xl hover:border-emerald-500 hover:shadow-xl transition-all duration-200 relative overflow-hidden"
-          >
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <Award className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-600 transition flex items-center justify-between">
-              Neck & Shoulder Care
-              <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </h3>
-            <p className="text-stone-500 text-sm mt-2 leading-relaxed">
-              Alleviate desk-work strain, pinched cervical nerves, upper back stiffness, and tension headaches.
-            </p>
-          </a>
-
-          <a
-            href="/conditions/sports-injury"
-            className="group p-6 bg-white border border-stone-200 rounded-2xl hover:border-emerald-500 hover:shadow-xl transition-all duration-200 relative overflow-hidden"
-          >
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <Clock className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-lg text-stone-900 group-hover:text-emerald-600 transition flex items-center justify-between">
-              Sports Rehab & Joints
-              <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </h3>
-            <p className="text-stone-500 text-sm mt-2 leading-relaxed">
-              Accelerate joint recovery, reduce inflammation, and restore full range of athletic movement.
-            </p>
-          </a>
-        </div>
-      </section>
     </div>
   );
 }
