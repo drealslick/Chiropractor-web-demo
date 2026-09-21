@@ -13,6 +13,7 @@ import {
 import { ClinicInfo } from '../types';
 import { agencyDemoPresets } from '../data/presets';
 import { colorPalettes } from '../data/colorPalettes';
+import { ListsEditor } from './ListsEditor';
 
 interface AgencyWorkspaceProps {
   isOpen: boolean;
