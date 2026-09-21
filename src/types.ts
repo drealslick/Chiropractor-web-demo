@@ -10,36 +10,36 @@ export interface BookingFormData {
 }
 
 export interface ProblemCondition {
-  id: string;
-  title: string;
-  description: string;
+  id?: string;
+  title?: string;
+  description?: string;
   icon?: string;
   symptoms?: string[];
   [key: string]: any;
 }
 
 export interface ProcessStep {
-  step?: number;
-  number?: number;
-  title: string;
-  description: string;
+  step?: number | string;
+  number?: number | string;
+  title?: string;
+  description?: string;
   [key: string]: any;
 }
 
 export interface PatientTestimonial {
-  id: string;
+  id?: string;
   name?: string;
   author?: string;
   role?: string;
-  quote: string;
+  quote?: string;
   rating?: number;
   avatarUrl?: string;
   [key: string]: any;
 }
 
 export interface FeaturedStory {
-  id: string;
-  title: string;
+  id?: string;
+  title?: string;
   summary?: string;
   imageUrl?: string;
   image?: string;
@@ -50,8 +50,9 @@ export interface FeaturedStory {
 }
 
 export interface FAQItem {
-  question: string;
-  answer: string;
+  question?: string;
+  answer?: string;
+  [key: string]: any;
 }
 
 export interface ClinicInfo {
