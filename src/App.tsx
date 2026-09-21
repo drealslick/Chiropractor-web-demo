@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Phone, MapPin } from 'lucide-react';
 import { Navbar } from './components/Navbar';
-import { defaultClinic } from './data/clinicData';
-import { ClinicProvider } from './data/ClinicContext'; // 👈 Updated path
+import { ClinicProvider } from './data/ClinicContext'; 
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -38,9 +37,7 @@ export default function App() {
           </div>
 
           {/* Dynamic Header Navigation */}
-          <Navbar onBookClick="{()">
-setMobileMenuOpen(false)} />
-
+          <Navbar onBookClick={() => setMobileMenuOpen(false)} />
 
           {/* Viewport */}
           <main className="flex-grow">
