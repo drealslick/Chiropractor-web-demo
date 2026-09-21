@@ -4,6 +4,7 @@ export interface ClinicInfo {
   city: string;
   state: string;
   cityState: string;
+  country?: string;
   address: string;
   zip: string;
   phone: string;
