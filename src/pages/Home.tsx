@@ -23,6 +23,7 @@ import { AgencyWorkspace } from '../components/AgencyWorkspace';
 
 export default function Home() {
   const { clinicData: clinic, updateClinic, resetClinic } = useClinic();
+  usePageMeta('Home', clinic.seoDescription || clinic.tagline);
 
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
   const [isManagerOpen, setIsManagerOpen] = useState<boolean>(false);
