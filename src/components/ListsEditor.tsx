@@ -500,6 +500,80 @@ export function ListsEditor({
           + Add condition
         </button>
       </div>
+      <div>
+        <h3 className="font-bold text-stone-200 text-base">Blog posts</h3>
+        <p className="text-xs text-stone-400 mb-3">These show on /blog. Slug is the URL ending.</p>
+        {(((clinic as ClinicInfo & { customPosts?: { slug: string; title: string; date?: string; excerpt?: string; body?: string }[] }).customPosts) || []).map((p, i) => {
+          const posts = ((clinic as ClinicInfo & { customPosts?: typeof p[] }).customPosts) || [];
+          return (
+            <div key={p.slug || i} className="mb-3 p-3 bg-stone-800/40 border border-stone-800 rounded-xl space-y-2">
+              <input
+                className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+                placeholder="Title"
+                value={p.title}
+                onChange={(e) => {
+                  const next = [...posts];
+                  const title = e.target.value;
+                  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || p.slug;
+                  next[i] = { ...p, title, slug };
+                  onUpdateClinic({ ...clinic, customPosts: next } as ClinicInfo);
+                }}
+              />
+              <input
+                className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+                placeholder="Short excerpt"
+                value={p.excerpt || ''}
+                onChange={(e) => {
+                  const next = [...posts];
+                  next[i] = { ...p, excerpt: e.target.value };
+                  onUpdateClinic({ ...clinic, customPosts: next } as ClinicInfo);
+                }}
+              />
+              <textarea
+                rows={4}
+                className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+                placeholder="Body — new line = new paragraph"
+                value={p.body || ''}
+                onChange={(e) => {
+                  const next = [...posts];
+                  next[i] = { ...p, body: e.target.value };
+                  onUpdateClinic({ ...clinic, customPosts: next } as ClinicInfo);
+                }}
+              />
+              <button
+                type="button"
+                className="text-[11px] text-red-400"
+                onClick={() =>
+                  onUpdateClinic({
+                    ...clinic,
+                    customPosts: posts.filter((_, idx) => idx !== i),
+                  } as ClinicInfo)
+                }
+              >
+                Remove
+              </button>
+            </div>
+          );
+        })}
+        <button
+          type="button"
+          className="text-xs text-emerald-400"
+          onClick={() => {
+            const posts =
+              ((clinic as ClinicInfo & { customPosts?: { slug: string; title: string; body?: string }[] }).customPosts) ||
+              [];
+            onUpdateClinic({
+              ...clinic,
+              customPosts: [
+                ...posts,
+                { slug: `post-${Date.now()}`, title: 'New post', excerpt: '', body: 'Write the post here.' },
+              ],
+            } as ClinicInfo);
+          }}
+        >
+          + Add post
+        </button>
+      </div>
     </div>
   );
 }
