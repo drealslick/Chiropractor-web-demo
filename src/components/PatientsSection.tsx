@@ -54,7 +54,7 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
               </div>
               
               <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
-                <span className="font-semibold text-stone-900 text-sm">
+                <span className="font-semibold text-white text-sm">
                   — {item.author}
                 </span>
                 {item.condition && (
