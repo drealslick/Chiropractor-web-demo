@@ -175,6 +175,29 @@ export function ListsEditor({
       </div>
 
       <div>
+        <h3 className="font-bold text-stone-200 text-base">Pricing page</h3>
+        <input
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="New patient fee label"
+          value={(clinic as ClinicInfo & { examFee?: string }).examFee || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, examFee: e.target.value } as ClinicInfo)}
+        />
+        <input
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="Follow-up fee label"
+          value={(clinic as ClinicInfo & { followUpFee?: string }).followUpFee || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, followUpFee: e.target.value } as ClinicInfo)}
+        />
+        <textarea
+          rows={2}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+          placeholder="Insurance note"
+          value={clinic.insuranceSubtitle || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, insuranceSubtitle: e.target.value })}
+        />
+      </div>
+
+      <div>
         <h3 className="font-bold text-stone-200 text-base">FAQs</h3>
         <p className="text-xs text-stone-400 mb-3">Paste image URLs. Local uploads can wait.</p>
         <Field
