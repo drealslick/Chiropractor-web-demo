@@ -94,10 +94,63 @@ export function ListsEditor({
   const firstVisitList = seedFirstVisit(clinic);
   const insuranceList = seedInsurances(clinic);
 
+    const extra = clinic as ClinicInfo & {
+    firstVisitDuration?: string;
+    firstVisitBring?: string;
+    firstVisitWear?: string;
+    firstVisitAfter?: string;
+    firstVisitForms?: string;
+  };
+
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="font-bold text-stone-200 text-base">Photos</h3>
+        <h3 className="font-bold text-stone-200 text-base">First visit page</h3>
+        <p className="text-xs text-stone-400 mb-3">Copy on /first-visit besides the step cards.</p>
+        <input
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="Page title"
+          value={clinic.firstVisitTitle || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, firstVisitTitle: e.target.value })}
+        />
+        <input
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="How long the visit takes"
+          value={extra.firstVisitDuration || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, firstVisitDuration: e.target.value } as ClinicInfo)}
+        />
+        <textarea
+          rows={2}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="What to bring"
+          value={extra.firstVisitBring || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, firstVisitBring: e.target.value } as ClinicInfo)}
+        />
+        <textarea
+          rows={2}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="What to wear"
+          value={extra.firstVisitWear || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, firstVisitWear: e.target.value } as ClinicInfo)}
+        />
+        <textarea
+          rows={2}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="Forms / intake"
+          value={extra.firstVisitForms || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, firstVisitForms: e.target.value } as ClinicInfo)}
+        />
+        <textarea
+          rows={2}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+          placeholder="What happens after"
+          value={extra.firstVisitAfter || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, firstVisitAfter: e.target.value } as ClinicInfo)}
+        />
+      </div>
+
+      <div>
+        <h3 className="font-bold text-stone-200 text-base">FAQs</h3>
         <p className="text-xs text-stone-400 mb-3">Paste image URLs. Local uploads can wait.</p>
         <Field
           label="Hero image URL"
