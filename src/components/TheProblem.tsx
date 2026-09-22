@@ -29,7 +29,7 @@ export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCond
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-2xl mx-auto mb-14"
+          className="text-left max-w-2xl mb-8"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full inline-block mb-3">
             {sectionSubtitle}
