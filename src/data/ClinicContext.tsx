@@ -36,12 +36,21 @@ function persist(clinic: ClinicInfo) {
   } catch {
     // ignore
   }
-  if (!supabase) return;
-  supabase.from('clinic_configs').upsert({
-    id: clinicRowId(),
-    data: payload,
-    updated_at: new Date().toISOString(),
-  });
+  if (!supabase) {
+    alert('Supabase client is missing');
+    return;
+  }
+  supabase
+    .from('clinic_configs')
+    .upsert({
+      id: clinicRowId(),
+      data: payload,
+      updated_at: new Date().toISOString(),
+    })
+    .then(({ error }) => {
+      if (error) alert('Save failed: ' + error.message);
+      else alert('Saved to database');
+    });
 }
 
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
