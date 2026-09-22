@@ -480,6 +480,18 @@ export function ListsEditor({
                   onUpdateClinic({ ...clinic, customConditions: next });
                 }}
               />
+              <Field
+                label="Symptoms (comma separated)"
+                value={(c.symptoms || []).join(', ')}
+                onChange={(v) => {
+                  const next = [...condList];
+                  next[i] = {
+                    ...c,
+                    symptoms: v.split(',').map((s) => s.trim()).filter(Boolean),
+                  };
+                  onUpdateClinic({ ...clinic, customConditions: next });
+                }}
+              />
             <button
               type="button"
               className="text-[11px] text-red-400"
