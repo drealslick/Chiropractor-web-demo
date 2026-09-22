@@ -137,6 +137,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             First Visit Guide
           </Link>
+                    {clinic.showNavPricing !== false && (
           <Link
             to="/pricing"
             onClick={() => setMobileMenuOpen(false)}
@@ -144,6 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             Pricing
           </Link>
+          )}
           <Link
             to="/about"
             onClick={() => setMobileMenuOpen(false)}
