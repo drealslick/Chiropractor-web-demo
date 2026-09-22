@@ -40,7 +40,7 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-30px' }}
               transition={{ duration: 0.5, delay: idx * 0.12 }}
-              className="p-8 rounded-2xl bg-white border border-stone-200 shadow-xs flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+              className="p-8 rounded-2xl bg-stone-800 border border-stone-700 shadow-xs flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300"
             >
               <div>
                 <div className="flex text-amber-400 mb-4">
