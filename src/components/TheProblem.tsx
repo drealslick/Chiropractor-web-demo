@@ -20,7 +20,7 @@ export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCond
   const sectionSubtitle = clinic?.conditionsSubtitle || "Targeted Relief";
 
   return (
-    <section id="care" className="py-20 md:py-28 bg-stone-50 border-b border-stone-200 overflow-hidden">
+    <section id="care" className="py-12 md:py-16 bg-stone-50 border-b border-stone-200 overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
