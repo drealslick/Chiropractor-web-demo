@@ -16,7 +16,7 @@ export const TheClinic: React.FC<TheClinicProps> = ({ clinic }) => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-xl mx-auto mb-10"
+          className="sr-only"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-2">
             {clinic.clinicSectionSubtitle || "Our Space"}
