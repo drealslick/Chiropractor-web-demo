@@ -354,68 +354,7 @@ export function AgencyWorkspace({
             <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} />
           )}
 
-          {activeTab === 'presets' && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-bold text-stone-200 text-base">Instant Prospect Presets</h3>
-                <p className="text-xs text-stone-400">Switch entire practice branding dynamically during sales calls.</p>
-                <button
-                  type="button"
-                  className="mt-3 text-xs bg-emerald-700 text-white px-3 py-2 rounded-lg"
-                  onClick={() => {
-                    const name = window.prompt('Preset name', clinic.name || 'Client');
-                    if (!name) return;
-                    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                    const raw = localStorage.getItem('agency_saved_presets') || '{}';
-                    const saved = JSON.parse(raw);
-                    saved[key] = { ...clinic, name };
-                    localStorage.setItem('agency_saved_presets', JSON.stringify(saved));
-                    window.alert('Saved. Reload admin to see it in the list.');
-                  }}
-                >
-                  Save current as preset
-                </button>
-              </div>
-                <p className="text-xs text-stone-400">Switch entire practice branding dynamically during sales calls.</p>
-              </div>
-              <div className="grid grid-cols-1 gap-3 pt-2">
-                {Object.entries(JSON.parse(localStorage.getItem('agency_saved_presets') || '{}')).map(([key, preset]: [string, ClinicInfo]) => (
-                  <button
-                    key={key}
-                    onClick={() => onUpdateClinic({ ...clinic, ...preset })}
-                    className="p-4 bg-stone-800/60 hover:bg-stone-800 border border-emerald-700/50 rounded-xl text-left transition flex justify-between items-center"
-                  >
-                    <div>
-                      <div className="font-bold text-stone-100">{preset.name}</div>
-                      <div className="text-xs text-stone-400 mt-0.5">Saved on this phone</div>
-                    </div>
-                    <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-900/50 text-emerald-200 rounded-md">
-                      Load saved
-                    </span>
-                  </button>
-                ))}
-                {Object.entries(agencyDemoPresets).map(([key, preset]) => (
-                  <button
-                    key={key}
-                    onClick={() => onUpdateClinic({ ...clinic, ...preset })}
-                    className="p-4 bg-stone-800/60 hover:bg-stone-800 border border-stone-700/80 hover:border-emerald-500/50 rounded-xl text-left transition flex justify-between items-center group"
-                  >
-                    <div>
-                      <div className="font-bold text-stone-100 group-hover:text-emerald-400 transition">
-                        {preset.name}
-                      </div>
-                      <div className="text-xs text-stone-400 mt-0.5">
-                        {preset.city}, {preset.state || preset.country || ''}
-                      </div>
-                    </div>
-                    <span className="text-xs font-semibold px-2.5 py-1 bg-stone-700/50 text-stone-300 rounded-md border border-stone-600 group-hover:border-emerald-500/30">
-                      Load Preset
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+{activeTab === 'presets' &&
 
           {activeTab === 'content' && (
             <div className="space-y-4">
