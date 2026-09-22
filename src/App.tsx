@@ -56,7 +56,7 @@ function AppShell() {
           </Routes>
         </main>
 
-        <footer className="bg-stone-950 text-stone-400 py-10 border-t border-stone-800 text-sm">
+        <footer className="bg-stone-950 text-stone-400 py-10 pb-28 border-t border-stone-800 text-sm">
           <div className="max-w-7xl mx-auto px-4 text-center space-y-3">
             <p className="font-bold text-stone-200">{clinic.name}</p>
             <p className="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">
