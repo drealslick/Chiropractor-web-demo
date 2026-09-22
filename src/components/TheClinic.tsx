@@ -8,7 +8,7 @@ interface TheClinicProps {
 
 export const TheClinic: React.FC<TheClinicProps> = ({ clinic }) => {
   return (
-    <section className="py-20 md:py-28 bg-white border-b border-stone-200 overflow-hidden">
+    <section className="py-0 bg-stone-950 overflow-hidden">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <motion.div
