@@ -4,13 +4,44 @@ import { useClinic } from '../data/ClinicContext';
 
 export default function Pricing() {
   const { clinicData: clinic } = useClinic();
-  const extra = clinic as ClinicInfoLoose;
+  const extra = clinic as typeof clinic & {
+    customInsurances?: string[];
+    pricingTitle?: string;
+    pricingSubtitle?: string;
+    examFee?: string;
+    examFeeNote?: string;
+    followUpFee?: string;
+    followUpFeeNote?: string;
+    pricingFaq1q?: string;
+    pricingFaq1a?: string;
+    pricingFaq2q?: string;
+    pricingFaq2a?: string;
+    pricingFaq3q?: string;
+    pricingFaq3a?: string;
+  };
+
   const insurers = extra.customInsurances?.length
     ? extra.customInsurances
-    : ['Most major insurers', 'HSA / FSA', 'Cash-pay options'];
+    : ['Most major insurers', 'HSA / FSA', 'Cash-pay'];
+
+  const faqs = [
+    {
+      q: extra.pricingFaq1q || 'Do I need a referral?',
+      a: extra.pricingFaq1a || 'Usually no. Call if your insurer requires one.',
+    },
+    {
+      q: extra.pricingFaq2q || 'Will you surprise me with extras?',
+      a: extra.pricingFaq2a || 'No. You get the plan and the cost before you continue.',
+    },
+    {
+      q: extra.pricingFaq3q || 'Can I use insurance?',
+      a: extra.pricingFaq3a ||
+        (clinic.insuranceSubtitle || 'We can check benefits when you book. Cash-pay is always available.'),
+    },
+  ];
 
   return (
-    <div className="space-y-12 py-8 px-4 max-w-5xl mx-auto">
+    <div className="space-y-12 py-10 px-4 max-w-5xl mx-auto">
       <section className="text-center space-y-3">
         <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Fees & cover</span>
         <h1 className="text-3xl md:text-4xl font-bold text-stone-900">
@@ -30,24 +61,22 @@ export default function Pricing() {
             {extra.examFee || clinic.offerHeadline || 'Initial exam'}
           </h2>
           <p className="text-sm text-stone-600 mt-2">
-            {extra.examFeeNote || clinic.offerSubtext || 'Assessment and plan on the first visit.'}
+            {extra.examFeeNote || clinic.offerSubtext || 'Assessment and a written plan on visit one.'}
           </p>
         </div>
         <div className="p-6 bg-white border border-stone-200 rounded-2xl">
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Follow-up</p>
           <h2 className="text-2xl font-serif font-bold text-stone-900 mt-2">
-            {extra.followUpFee || 'Quoted after exam'}
+            {extra.followUpFee || 'Quoted after the exam'}
           </h2>
           <p className="text-sm text-stone-600 mt-2">
-            {extra.followUpFeeNote || 'No long contracts. Plan and cost before you continue.'}
+            {extra.followUpFeeNote || 'No packages you have to buy today. Frequency is based on the exam.'}
           </p>
         </div>
       </section>
 
       <section className="p-6 bg-white border border-stone-200 rounded-2xl space-y-4">
-        <h2 className="text-xl font-bold text-stone-900">
-          {clinic.insuranceTitle || 'Insurance & payment'}
-        </h2>
+        <h2 className="text-xl font-bold text-stone-900">{clinic.insuranceTitle || 'Insurance & payment'}</h2>
         <p className="text-sm text-stone-600">
           {clinic.insuranceSubtitle || 'We can check benefits when you call.'}
         </p>
@@ -58,6 +87,16 @@ export default function Pricing() {
             </span>
           ))}
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold text-stone-900">Cost questions</h2>
+        {faqs.map((f) => (
+          <div key={f.q} className="p-4 bg-white border border-stone-200 rounded-xl">
+            <p className="font-semibold text-stone-900 text-sm">{f.q}</p>
+            <p className="text-sm text-stone-600 mt-1">{f.a}</p>
+          </div>
+        ))}
       </section>
 
       <section className="p-8 bg-stone-900 text-white rounded-2xl text-center space-y-4">
@@ -78,15 +117,3 @@ export default function Pricing() {
     </div>
   );
 }
-
-type ClinicInfoLoose = {
-  customInsurances?: string[];
-  pricingTitle?: string;
-  pricingSubtitle?: string;
-  examFee?: string;
-  examFeeNote?: string;
-  followUpFee?: string;
-  followUpFeeNote?: string;
-  insuranceTitle?: string;
-  insuranceSubtitle?: string;
-};
