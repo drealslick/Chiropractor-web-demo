@@ -18,6 +18,7 @@ import { FAQSection } from '../components/FAQSection';
 import { FinalCTA } from '../components/FinalCTA';
 import { MobileStickyBar } from '../components/MobileStickyBar';
 import { BookingModal } from '../components/BookingModal';
+import { usePageMeta } from '../data/usePageMeta';
 import { AgencyWorkspace } from '../components/AgencyWorkspace';
 
 export default function Home() {
