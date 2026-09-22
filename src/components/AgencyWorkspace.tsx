@@ -423,7 +423,6 @@ export function AgencyWorkspace({
                   );
                 })}
               </div>
-              </div>
 
               <div className="space-y-2 pt-4 border-t border-stone-800">
                 <h3 className="font-bold text-stone-200 text-sm">Trust bar text</h3>
