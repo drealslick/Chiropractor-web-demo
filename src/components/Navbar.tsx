@@ -123,6 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             Home
           </Link>
+          {clinic.showNavConditions !== false && (
           <Link
             to="/conditions"
             onClick={() => setMobileMenuOpen(false)}
@@ -130,6 +131,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             Conditions We Treat
           </Link>
+          )}
+          {clinic.showNavFirstVisit !== false && (
           <Link
             to="/first-visit"
             onClick={() => setMobileMenuOpen(false)}
@@ -137,6 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             First Visit Guide
           </Link>
+          )}
                     {clinic.showNavPricing !== false && (
           <Link
             to="/pricing"
@@ -146,6 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             Pricing
           </Link>
           )}
+          {clinic.showNavAbout !== false && (
           <Link
             to="/about"
             onClick={() => setMobileMenuOpen(false)}
@@ -153,6 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             About
           </Link>
+          )}
           <Link
             to="/contact"
             onClick={() => setMobileMenuOpen(false)}
