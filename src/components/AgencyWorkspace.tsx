@@ -557,6 +557,25 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Offer headline</label>
+                  <input
+                    type="text"
+                    value={clinic.offerHeadline || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, offerHeadline: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Offer button text</label>
+                  <input
+                    type="text"
+                    value={clinic.offerCtaText || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, offerCtaText: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
           )}
