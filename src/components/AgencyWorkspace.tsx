@@ -530,6 +530,17 @@ export function AgencyWorkspace({
                 </div>
 
                 <div>
+                  <label className="block text-xs text-stone-400 mb-1">Google reviews URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://g.page/..."
+                    value={(clinic as ClinicInfo & { reviewsUrl?: string }).reviewsUrl || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, reviewsUrl: e.target.value } as ClinicInfo)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-xs text-stone-400 mb-1">Address</label>
                   <input
                     type="text"
