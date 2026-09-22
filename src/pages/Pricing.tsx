@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
+import { ClinicInfo } from '../types';
 
 export default function Pricing() {
   const { clinicData: clinic } = useClinic();
