@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ClinicInfo } from '../types';
 import { defaultClinic } from './clinicData';
 import { agencyDemoPresets } from './presets';
@@ -16,40 +16,48 @@ interface ClinicContextType {
 
 export const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
 
-function readLocalClinic(): ClinicInfo {
-  try {
-    if (typeof window === 'undefined') return defaultClinic;
-    const urlParams = new URLSearchParams(window.location.search);
-    const demoKey = urlParams.get('demo') || urlParams.get('preset') || urlParams.get('client');
-    if (demoKey && agencyDemoPresets[demoKey.toLowerCase()]) {
-      return { ...defaultClinic, ...agencyDemoPresets[demoKey.toLowerCase()] };
+function sanitize(clinic: ClinicInfo) {
+  const out: Record<string, unknown> = {};
+  Object.entries(clinic).forEach(([key, value]) => {
+    try {
+      JSON.stringify(value);
+      out[key] = value;
+    } catch {
+      // skip file/blob/circular values
     }
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return { ...defaultClinic, ...JSON.parse(saved) };
+  });
+  return out;
+}
+
+function persist(clinic: ClinicInfo) {
+  const payload = sanitize(clinic);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
     // ignore
   }
-  return defaultClinic;
+  if (!supabase) return;
+  supabase.from('clinic_configs').upsert({
+    id: clinicRowId(),
+    data: payload,
+    updated_at: new Date().toISOString(),
+  });
 }
 
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [clinicData, setClinicData] = useState<ClinicInfo>(readLocalClinic);
-  const skipFirstSave = useRef(true);
+  const [clinicData, setClinicData] = useState<ClinicInfo>(defaultClinic);
 
   useEffect(() => {
     let cancelled = false;
     async function loadRemote() {
       if (!supabase) return;
-      const id = clinicRowId();
       const { data, error } = await supabase
         .from('clinic_configs')
         .select('data')
-        .eq('id', id)
+        .eq('id', clinicRowId())
         .maybeSingle();
-      if (cancelled || error) return;
-      if (data?.data && typeof data.data === 'object') {
-        setClinicData({ ...defaultClinic, ...(data.data as ClinicInfo) });
-      }
+      if (cancelled || error || !data?.data) return;
+      setClinicData({ ...defaultClinic, ...(data.data as ClinicInfo) });
     }
     loadRemote();
     return () => {
@@ -57,46 +65,24 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, []);
 
-    useEffect(() => {
-    let payload: ClinicInfo;
-    try {
-      payload = JSON.parse(JSON.stringify(clinicData));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    } catch {
-      return;
-    }
-
-    if (skipFirstSave.current) {
-      skipFirstSave.current = false;
-      return;
-    }
-
-    if (!supabase) return;
-    const id = clinicRowId();
-    supabase.from('clinic_configs').upsert({
-      id,
-      data: payload,
-      updated_at: new Date().toISOString(),
-    });
-  }, [clinicData]);
-
   const value = useMemo<ClinicContextType>(
     () => ({
       clinicData,
       setClinicData,
-      updateClinic: (updated) => setClinicData(updated),
+      updateClinic: (updated) => {
+        setClinicData(updated);
+        persist(updated);
+      },
       resetClinic: () => {
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          // ignore
-        }
         setClinicData(defaultClinic);
+        persist(defaultClinic);
       },
       loadPreset: (id) => {
         const preset = agencyDemoPresets[id.toLowerCase()];
         if (!preset) return;
-        setClinicData({ ...defaultClinic, ...preset });
+        const next = { ...defaultClinic, ...preset };
+        setClinicData(next);
+        persist(next);
       },
     }),
     [clinicData]
