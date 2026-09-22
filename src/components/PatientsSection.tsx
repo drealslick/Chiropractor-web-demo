@@ -26,7 +26,7 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
           <span className="text-xs font-semibold uppercase tracking-widest text-stone-400 block mb-3">
             {clinic?.patientsSectionSubtitle || "Real Outcomes"}
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight">
             {clinic?.patientsSectionTitle || "Patients"}
           </h2>
         </motion.div>
