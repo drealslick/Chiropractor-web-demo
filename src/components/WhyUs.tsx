@@ -43,7 +43,7 @@ export const WhyUs: React.FC<WhyUsProps> = ({ clinic }) => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-2xl mx-auto mb-16"
+          className="text-left max-w-2xl mb-8"
         >
           <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-3">
             {sectionSubtitle}
