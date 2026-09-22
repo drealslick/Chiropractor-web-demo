@@ -57,11 +57,13 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, []);
 
-  useEffect(() => {
+    useEffect(() => {
+    let payload: ClinicInfo;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(clinicData));
+      payload = JSON.parse(JSON.stringify(clinicData));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
-      // ignore
+      return;
     }
 
     if (skipFirstSave.current) {
@@ -73,7 +75,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const id = clinicRowId();
     supabase.from('clinic_configs').upsert({
       id,
-      data: clinicData,
+      data: payload,
       updated_at: new Date().toISOString(),
     });
   }, [clinicData]);
