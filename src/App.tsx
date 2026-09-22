@@ -14,6 +14,7 @@ import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Pricing from './pages/Pricing';
+import NotFound from './pages/NotFound';
 
 function AppShell() {
   const [, setMobileMenuOpen] = useState(false);
@@ -52,6 +53,7 @@ function AppShell() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="*" element={<NotFound />} />
             <Route path="/pricing" element={<Pricing />} />
           </Routes>
         </main>
