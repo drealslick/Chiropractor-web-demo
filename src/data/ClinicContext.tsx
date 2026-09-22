@@ -6,6 +6,10 @@ import { clinicRowId, supabase } from './supabaseClient';
 
 export const STORAGE_KEY = 'agency_clinic_config_v1';
 
+function storageKey() {
+  return `${STORAGE_KEY}_${clinicRowId()}`;
+}
+
 interface ClinicContextType {
   clinicData: ClinicInfo;
   setClinicData: React.Dispatch<React.SetStateAction<ClinicInfo>>;
