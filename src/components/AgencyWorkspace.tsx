@@ -405,6 +405,7 @@ export function AgencyWorkspace({
                   { key: 'showNavFirstVisit', label: 'Page: First Visit' },
                   { key: 'showNavAbout', label: 'Page: About' },
                   { key: 'showNavPricing', label: 'Page: Pricing' },
+                  { key: 'showNavBlog', label: 'Page: Blog' },
                 ].map(({ key, label }) => {
                   const isVisible = clinic[key as keyof ClinicInfo] !== false;
                   return (
