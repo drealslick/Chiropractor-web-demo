@@ -470,6 +470,16 @@ export function ListsEditor({
                 onUpdateClinic({ ...clinic, customConditions: next });
               }}
             />
+              <Field
+                label="How we help"
+                textarea
+                value={c.howWeHelp || ''}
+                onChange={(v) => {
+                  const next = [...condList];
+                  next[i] = { ...c, howWeHelp: v };
+                  onUpdateClinic({ ...clinic, customConditions: next });
+                }}
+              />
             <button
               type="button"
               className="text-[11px] text-red-400"
