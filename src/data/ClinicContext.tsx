@@ -53,8 +53,18 @@ function persist(clinic: ClinicInfo) {
     });
 }
 
+function readCachedClinic(): ClinicInfo {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return { ...defaultClinic, ...JSON.parse(saved) };
+  } catch {
+    // ignore
+  }
+  return defaultClinic;
+}
+
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [clinicData, setClinicData] = useState<ClinicInfo>(defaultClinic);
+  const [clinicData, setClinicData] = useState<ClinicInfo>(readCachedClinic);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,8 +75,16 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         .select('data')
         .eq('id', clinicRowId())
         .maybeSingle();
-      if (cancelled || error || !data?.data) return;
-      setClinicData({ ...defaultClinic, ...(data.data as ClinicInfo) });
+      if (cancelled || error || !data?.data || typeof data.data !== 'object') return;
+      const remote = data.data as ClinicInfo;
+      if (!remote.name) return;
+      const next = { ...defaultClinic, ...remote };
+      setClinicData(next);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
     }
     loadRemote();
     return () => {
