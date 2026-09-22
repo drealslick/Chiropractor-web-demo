@@ -354,26 +354,45 @@ export function AgencyWorkspace({
             <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} />
           )}
 
-          {activeTab === 'presets' && (
+          {activeTab === 'content' && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-bold text-stone-200 text-base">Instant Prospect Presets</h3>
-                <p className="text-xs text-stone-400">Switch branding on a sales call.</p>
+                <h3 className="font-bold text-stone-200 text-base">Homepage Section Visibility</h3>
+                <p className="text-xs text-stone-400">Toggle sections and pages.</p>
               </div>
-              <div className="grid grid-cols-1 gap-3 pt-2">
-                {Object.entries(agencyDemoPresets).map(([key, preset]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => onUpdateClinic({ ...clinic, ...preset })}
-                    className="p-4 bg-stone-800/60 border border-stone-700/80 rounded-xl text-left"
-                  >
-                    <div className="font-bold text-stone-100">{preset.name}</div>
-                    <div className="text-xs text-stone-400">
-                      {preset.city}, {preset.state || ''}
-                    </div>
-                  </button>
-                ))}
+              <div className="space-y-2 pt-2">
+                {[
+                  { key: 'showTrustBar', label: 'Trust Bar & Ratings' },
+                  { key: 'showConditions', label: 'Conditions & Symptom Selector' },
+                  { key: 'showWhyUs', label: 'Why Us / Value Proposition' },
+                  { key: 'showTheProcess', label: '3-Step Patient Process' },
+                  { key: 'showTheDoctor', label: 'Doctor / Specialist Profile' },
+                  { key: 'showPatients', label: 'Patient Reviews & Social Proof' },
+                  { key: 'showTheClinic', label: 'Clinic Facility Gallery' },
+                  { key: 'showInsurancePayment', label: 'Insurance & Payment Options' },
+                  { key: 'showFAQ', label: 'Frequently Asked Questions' },
+                  { key: 'showNavConditions', label: 'Page: Conditions' },
+                  { key: 'showNavFirstVisit', label: 'Page: First Visit' },
+                  { key: 'showNavAbout', label: 'Page: About' },
+                  { key: 'showNavPricing', label: 'Page: Pricing' },
+                  { key: 'showNavBlog', label: 'Page: Blog' },
+                ].map(({ key, label }) => {
+                  const isVisible = clinic[key as keyof ClinicInfo] !== false;
+                  return (
+                    <label
+                      key={key}
+                      className="flex items-center justify-between p-3 bg-stone-800/40 border border-stone-800 rounded-xl cursor-pointer"
+                    >
+                      <span className="text-xs font-medium text-stone-300">{label}</span>
+                      <input
+                        type="checkbox"
+                        checked={isVisible}
+                        onChange={(e) => onUpdateClinic({ ...clinic, [key]: e.target.checked })}
+                        className="w-4 h-4 accent-emerald-500 rounded"
+                      />
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}
