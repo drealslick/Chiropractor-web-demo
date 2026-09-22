@@ -20,6 +20,7 @@ function AppShell() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
+       <ClinicSchema />
         <div className="bg-stone-900 text-stone-400 text-[11px] py-1.5 px-3 border-b border-stone-800">
           <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 truncate">
