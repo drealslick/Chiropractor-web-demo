@@ -423,6 +423,35 @@ export function AgencyWorkspace({
                   );
                 })}
               </div>
+              </div>
+
+              <div className="space-y-2 pt-4 border-t border-stone-800">
+                <h3 className="font-bold text-stone-200 text-sm">Trust bar text</h3>
+                <input
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+                  placeholder="4.9 Google"
+                  value={clinic.trustRatingLabel || ''}
+                  onChange={(e) => onUpdateClinic({ ...clinic, trustRatingLabel: e.target.value })}
+                />
+                <input
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+                  placeholder="Verified reviews"
+                  value={clinic.trustRatingSub || ''}
+                  onChange={(e) => onUpdateClinic({ ...clinic, trustRatingSub: e.target.value })}
+                />
+                <input
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+                  placeholder="15+ Years"
+                  value={clinic.trustExperienceLabel || ''}
+                  onChange={(e) => onUpdateClinic({ ...clinic, trustExperienceLabel: e.target.value })}
+                />
+                <input
+                  className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+                  placeholder="2,000+ Patients"
+                  value={clinic.trustPatientsLabel || ''}
+                  onChange={(e) => onUpdateClinic({ ...clinic, trustPatientsLabel: e.target.value })}
+                />
+              </div>
             </div>
           )}
 
