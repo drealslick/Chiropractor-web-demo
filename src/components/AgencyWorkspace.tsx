@@ -400,7 +400,7 @@ export function AgencyWorkspace({
                   { key: 'showPatients', label: 'Patient Reviews & Social Proof' },
                   { key: 'showTheClinic', label: 'Clinic Facility Gallery' },
                   { key: 'showInsurancePayment', label: 'Insurance & Payment Options' },
-                                    { key: 'showFAQ', label: 'Frequently Asked Questions' },
+                  { key: 'showFAQ', label: 'Frequently Asked Questions' },
                   { key: 'showNavConditions', label: 'Page: Conditions' },
                   { key: 'showNavFirstVisit', label: 'Page: First Visit' },
                   { key: 'showNavAbout', label: 'Page: About' },
