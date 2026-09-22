@@ -33,9 +33,20 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
               ))}
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-stone-900 text-base leading-tight">
-                {clinic.trustRatingLabel || "4.9 Google"}
-              </span>
+              {clinic.reviewsUrl ? (
+                <a
+                  href={clinic.reviewsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-stone-900 text-base leading-tight underline"
+                >
+                  {clinic.trustRatingLabel || "4.9 Google"}
+                </a>
+              ) : (
+                <span className="font-bold text-stone-900 text-base leading-tight">
+                  {clinic.trustRatingLabel || "4.9 Google"}
+                </span>
+              )}
               <span className="text-xs text-stone-500">
                 {clinic.trustRatingSub || "Verified Patient Reviews"}
               </span>
