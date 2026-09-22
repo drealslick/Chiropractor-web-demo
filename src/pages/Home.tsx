@@ -156,7 +156,7 @@ export default function Home() {
   const handleResetDefault = resetClinic;
 
   const handleOpenBooking = (conditionTitle?: string) => {
-    if (clinic.bookingMode === 'external' && clinic.externalBookingUrl) {
+    if (clinic.externalBookingUrl) {
       window.open(clinic.externalBookingUrl, '_blank');
       return;
     }
