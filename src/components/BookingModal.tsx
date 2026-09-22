@@ -150,6 +150,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               {step === 3 && 'Your details'}
               {step === 4 && 'Request Confirmed'}
             </h2>
+          <p className="text-xs text-stone-500">
+            {clinic.externalBookingUrl
+              ? 'This demo form is off. Use Book on the site to open the clinic calendar.'
+              : 'Demo request only. Live clinics replace this with Jane or Calendly.'}
+          </p>
           </div>
           <button
             onClick={resetAndClose}
