@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData } from '../types';
 
 interface BookingModalProps {
-  isOpen: boolean;
+  isOpen: boolean;.
   onClose: () => void;
   clinic: ClinicInfo;
   initialCondition?: string;
