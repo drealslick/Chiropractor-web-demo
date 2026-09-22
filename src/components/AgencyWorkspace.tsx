@@ -598,6 +598,27 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Exam price label</label>
+                  <input
+                    type="text"
+                    placeholder="£65 exam"
+                    value={(clinic as ClinicInfo & { examFee?: string }).examFee || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, examFee: e.target.value } as ClinicInfo)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Follow-up price label</label>
+                  <input
+                    type="text"
+                    placeholder="£45 visit"
+                    value={(clinic as ClinicInfo & { followUpFee?: string }).followUpFee || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, followUpFee: e.target.value } as ClinicInfo)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
           )}
