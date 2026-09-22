@@ -56,6 +56,18 @@ export const TheClinic: React.FC<TheClinicProps> = ({ clinic }) => {
                 {clinic.clinicQuoteDescription || "A calm, quiet clinic environment designed for focused assessment, unhurried care, and complete recovery."}
               </p>
             </motion.div>
+        {((clinic as ClinicInfo & { clinicGallery?: string[] }).clinicGallery || []).length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mt-4 px-4 sm:px-0 max-w-5xl mx-auto pb-10">
+            {((clinic as ClinicInfo & { clinicGallery?: string[] }).clinicGallery || []).map((src) => (
+              <img
+                key={src}
+                src={src}
+                alt={`${clinic.name} clinic`}
+                className="w-full h-40 sm:h-56 object-cover rounded-xl"
+              />
+            ))}
+          </div>
+        )}
           </div>
         </motion.div>
 
