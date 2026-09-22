@@ -501,6 +501,34 @@ export function AgencyWorkspace({
                 </div>
 
                 <div>
+                  <label className="block text-xs text-stone-400 mb-1">Trust: rating line</label>
+                  <input
+                    type="text"
+                    value={clinic.trustRatingLabel || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, trustRatingLabel: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Trust: years line</label>
+                  <input
+                    type="text"
+                    value={clinic.trustExperienceLabel || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, trustExperienceLabel: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Trust: patients line</label>
+                  <input
+                    type="text"
+                    value={clinic.trustPatientsLabel || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, trustPatientsLabel: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-xs text-stone-400 mb-1">Address</label>
                   <input
                     type="text"
