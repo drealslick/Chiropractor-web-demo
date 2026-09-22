@@ -458,12 +458,88 @@ export function AgencyWorkspace({
                   />
                 </div>
 
-                <div>
+                                <div>
                   <label className="block text-xs text-stone-400 mb-1">City / Region</label>
                   <input
                     type="text"
                     value={clinic.city}
                     onChange={(e) => onUpdateClinic({ ...clinic, city: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={clinic.address || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, address: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Postcode</label>
+                  <input
+                    type="text"
+                    value={clinic.zip || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, zip: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={(clinic as typeof clinic & { email?: string }).email || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, email: e.target.value } as typeof clinic)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Weekday hours</label>
+                  <input
+                    type="text"
+                    value={clinic.hoursWeekday || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, hoursWeekday: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Saturday hours</label>
+                  <input
+                    type="text"
+                    value={clinic.hoursSaturday || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, hoursSaturday: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Logo image URL</label>
+                  <input
+                    type="url"
+                    value={clinic.logoImage || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, logoImage: e.target.value })}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Booking link (Jane / Calendly)</label>
+                  <input
+                    type="url"
+                    value={clinic.externalBookingUrl || ''}
+                    onChange={(e) =>
+                      onUpdateClinic({
+                        ...clinic,
+                        externalBookingUrl: e.target.value,
+                        bookingMode: e.target.value ? 'external' : clinic.bookingMode,
+                      })
+                    }
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
