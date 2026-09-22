@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Phone, MapPin } from 'lucide-react';
+import { ClinicSchema } from './components/ClinicSchema';
 import { Navbar } from './components/Navbar';
 import { ClinicProvider, useClinic } from './data/ClinicContext';
 
