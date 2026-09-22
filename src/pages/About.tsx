@@ -72,7 +72,7 @@ export default function About() {
         </p>
       </section>
 
-      {(clinic.clinicImage || clinic.heroImage) && (
+            {(clinic.clinicImage || clinic.heroImage) && (
         <section className="space-y-3">
           <h2 className="text-xl font-bold text-stone-900">The clinic</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -85,7 +85,7 @@ export default function About() {
               />
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
