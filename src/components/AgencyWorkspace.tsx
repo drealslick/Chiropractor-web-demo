@@ -438,7 +438,7 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-                <div>
+                                <div>
                   <label className="block text-xs text-stone-400 mb-1">Phone Number</label>
                   <input
                     type="text"
@@ -447,6 +447,17 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={(clinic as typeof clinic & { email?: string }).email || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, email: e.target.value } as typeof clinic)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">City / Region</label>
                   <input
