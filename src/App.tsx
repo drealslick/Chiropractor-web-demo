@@ -11,6 +11,8 @@ import ConditionDetail from './pages/ConditionDetail';
 import FirstVisit from './pages/FirstVisit';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 import Pricing from './pages/Pricing';
 
 function AppShell() {
@@ -48,6 +50,8 @@ function AppShell() {
             <Route path="/first-visit" element={<FirstVisit />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/pricing" element={<Pricing />} />
           </Routes>
         </main>
@@ -64,6 +68,10 @@ function AppShell() {
               {clinic.cityState ? ` · ${clinic.cityState}` : ''}
             </p>
             <p className="text-xs text-stone-600">© {new Date().getFullYear()} All Rights Reserved.</p>
+            <p className="text-xs text-stone-600 space-x-3">
+              <a href="/privacy" className="underline">Privacy</a>
+              <a href="/terms" className="underline">Terms</a>
+            </p>
           </div>
         </footer>
       </div>
