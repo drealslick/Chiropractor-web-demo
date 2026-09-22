@@ -565,6 +565,20 @@ export function AgencyWorkspace({
                 </div>
 
                 <div>
+                  <label className="block text-xs text-stone-400 mb-1">Clinic gallery URLs (one per line)</label>
+                  <textarea
+                    rows={3}
+                    value={((clinic as ClinicInfo & { clinicGallery?: string[] }).clinicGallery || []).join('\n')}
+                    onChange={(e) =>
+                      onUpdateClinic({
+                        ...clinic,
+                        clinicGallery: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
+                      } as ClinicInfo)
+                    }
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs text-stone-400 mb-1">Booking link (Jane / Calendly)</label>
                   <input
                     type="url"
