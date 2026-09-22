@@ -82,8 +82,8 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
               <span className="font-bold text-stone-900 text-base leading-tight">
                 {clinic.trustPatientsLabel || "2,000+ Patients"}
               </span>
-              <span className="text-xs text-stone-500">
-                {clinic.trustPatientsSub ||`Treated in ${clinic.city || clinic.cityState || 'clinic'}`
+                            <span className="text-xs text-stone-500">
+                {clinic.trustPatientsSub || `Treated in ${clinic.city || clinic.cityState || 'clinic'}`}
               </span>
             </div>
           </motion.div>
