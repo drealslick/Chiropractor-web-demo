@@ -353,7 +353,29 @@ export function AgencyWorkspace({
           {activeTab === 'lists' && (
             <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} />
           )}
-
+          {activeTab === 'presets' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-bold text-stone-200 text-base">Instant Prospect Presets</h3>
+                <p className="text-xs text-stone-400">Switch branding on a sales call.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 pt-2">
+                {Object.entries(agencyDemoPresets).map(([key, preset]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => onUpdateClinic({ ...clinic, ...preset })}
+                    className="p-4 bg-stone-800/60 border border-stone-700/80 rounded-xl text-left"
+                  >
+                    <div className="font-bold text-stone-100">{preset.name}</div>
+                    <div className="text-xs text-stone-400">
+                      {preset.city}, {preset.state || ''}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {activeTab === 'content' && (
             <div className="space-y-4">
               <div>
