@@ -379,6 +379,21 @@ export function AgencyWorkspace({
                 <p className="text-xs text-stone-400">Switch entire practice branding dynamically during sales calls.</p>
               </div>
               <div className="grid grid-cols-1 gap-3 pt-2">
+                {Object.entries(JSON.parse(localStorage.getItem('agency_saved_presets') || '{}')).map(([key, preset]: [string, ClinicInfo]) => (
+                  <button
+                    key={key}
+                    onClick={() => onUpdateClinic({ ...clinic, ...preset })}
+                    className="p-4 bg-stone-800/60 hover:bg-stone-800 border border-emerald-700/50 rounded-xl text-left transition flex justify-between items-center"
+                  >
+                    <div>
+                      <div className="font-bold text-stone-100">{preset.name}</div>
+                      <div className="text-xs text-stone-400 mt-0.5">Saved on this phone</div>
+                    </div>
+                    <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-900/50 text-emerald-200 rounded-md">
+                      Load saved
+                    </span>
+                  </button>
+                ))}
                 {Object.entries(agencyDemoPresets).map(([key, preset]) => (
                   <button
                     key={key}
