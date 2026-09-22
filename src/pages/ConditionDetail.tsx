@@ -66,8 +66,8 @@ export default function ConditionDetail() {
         <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl">
           <h2 className="font-bold text-xl text-stone-900 mb-3">How we treat it</h2>
           <p className="text-sm text-stone-700 leading-relaxed">
-            {extra.treatment ||
-              `Exam first at ${clinic.name}, then a plan with a timeline. No package until you understand the finding.`}
+            {condition.howWeHelp ||
+              `Care at ${clinic.name} in ${clinic.cityState || clinic.city}.`}
           </p>
         </div>
       </div>
