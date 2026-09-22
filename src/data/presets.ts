@@ -22,6 +22,16 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerSubtext: "Includes orthopedic exam & personalized treatment plan.",
     offerCtaText: "CLAIM $39 SPECIAL →",
     colorPalette: "warm-bone-charcoal",
+    legalLabel: "HIPAA Aware",
+    currencySymbol: "$",
+    customInsurances: [
+      "Anthem Blue Cross Blue Shield",
+      "Aetna",
+      "UnitedHealthcare",
+      "Medicare",
+      "Cigna",
+      "HSA / FSA Accepted",
+    ],
   },
   denver: {
     name: "Denver Family Chiropractic",
@@ -44,6 +54,16 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerSubtext: "Speak directly with Dr. Rostova before your first appointment.",
     offerCtaText: "BOOK FREE CONSULT →",
     colorPalette: "warm-sand-terracotta",
+    legalLabel: "HIPAA Aware",
+    currencySymbol: "$",
+    customInsurances: [
+      "Anthem Blue Cross Blue Shield",
+      "Aetna",
+      "UnitedHealthcare",
+      "Medicare",
+      "Cigna",
+      "HSA / FSA Accepted",
+    ],
   },
   preston: {
     name: "Elite Chiropractic Preston",
@@ -66,6 +86,16 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerSubtext: "Limited priority consultations available weekly.",
     offerCtaText: "BOOK A CONSULTATION →",
     colorPalette: "emerald-stone",
+    legalLabel: "GDPR Ready",
+    currencySymbol: "£",
+    customInsurances: [
+      "Bupa",
+      "AXA Health",
+      "Aviva",
+      "Vitality",
+      "WPA",
+      "Self-pay",
+    ],
   },
   cheiron: {
     name: "Cheiron Chiropractic",
@@ -88,6 +118,16 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerSubtext: "Book directly. No GP referral required.",
     offerCtaText: "BOOK YOUR FIRST VISIT →",
     colorPalette: "soft-ivory-forest",
+    legalLabel: "GDPR Ready",
+    currencySymbol: "£",
+    customInsurances: [
+      "Bupa",
+      "AXA Health",
+      "Aviva",
+      "Vitality",
+      "WPA",
+      "Self-pay",
+    ],
   },
   sandiego: {
     name: "Pacific Coast Health & Spine",
@@ -110,5 +150,15 @@ export const agencyDemoPresets: Record<string, Partial<ClinicInfo>> = {
     offerSubtext: "First 20 new patients this month only.",
     offerCtaText: "CLAIM YOUR SPOT →",
     colorPalette: "pale-stone-teal",
+    legalLabel: "HIPAA Aware",
+    currencySymbol: "$",
+    customInsurances: [
+      "Anthem Blue Cross Blue Shield",
+      "Aetna",
+      "UnitedHealthcare",
+      "Medicare",
+      "Cigna",
+      "HSA / FSA Accepted",
+    ],
   }
 };
