@@ -150,6 +150,31 @@ export function ListsEditor({
       </div>
 
       <div>
+        <h3 className="font-bold text-stone-200 text-base">About page</h3>
+        <textarea
+          rows={2}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="Approach"
+          value={(clinic as ClinicInfo & { aboutApproach?: string }).aboutApproach || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, aboutApproach: e.target.value } as ClinicInfo)}
+        />
+        <textarea
+          rows={2}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 mb-2"
+          placeholder="Mission / why this practice"
+          value={(clinic as ClinicInfo & { aboutMission?: string }).aboutMission || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, aboutMission: e.target.value } as ClinicInfo)}
+        />
+        <textarea
+          rows={3}
+          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+          placeholder="Short story"
+          value={(clinic as ClinicInfo & { aboutStory?: string }).aboutStory || ''}
+          onChange={(e) => onUpdateClinic({ ...clinic, aboutStory: e.target.value } as ClinicInfo)}
+        />
+      </div>
+
+      <div>
         <h3 className="font-bold text-stone-200 text-base">FAQs</h3>
         <p className="text-xs text-stone-400 mb-3">Paste image URLs. Local uploads can wait.</p>
         <Field
