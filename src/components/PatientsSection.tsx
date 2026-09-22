@@ -48,7 +48,7 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
                     <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <blockquote className="text-stone-800 text-base sm:text-lg font-serif italic leading-snug mb-6">
+                <blockquote className="text-stone-100 text-base sm:text-lg font-serif italic leading-snug mb-6">
                   "{item.quote}"
                 </blockquote>
               </div>
