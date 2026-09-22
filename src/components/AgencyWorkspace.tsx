@@ -359,6 +359,24 @@ export function AgencyWorkspace({
               <div>
                 <h3 className="font-bold text-stone-200 text-base">Instant Prospect Presets</h3>
                 <p className="text-xs text-stone-400">Switch entire practice branding dynamically during sales calls.</p>
+                <button
+                  type="button"
+                  className="mt-3 text-xs bg-emerald-700 text-white px-3 py-2 rounded-lg"
+                  onClick={() => {
+                    const name = window.prompt('Preset name', clinic.name || 'Client');
+                    if (!name) return;
+                    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                    const raw = localStorage.getItem('agency_saved_presets') || '{}';
+                    const saved = JSON.parse(raw);
+                    saved[key] = { ...clinic, name };
+                    localStorage.setItem('agency_saved_presets', JSON.stringify(saved));
+                    window.alert('Saved. Reload admin to see it in the list.');
+                  }}
+                >
+                  Save current as preset
+                </button>
+              </div>
+                <p className="text-xs text-stone-400">Switch entire practice branding dynamically during sales calls.</p>
               </div>
               <div className="grid grid-cols-1 gap-3 pt-2">
                 {Object.entries(agencyDemoPresets).map(([key, preset]) => (
