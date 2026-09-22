@@ -52,12 +52,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
         </div>
 
         {/* Desktop Navigation Links (Multi-Page Routes) */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
+                <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
           <Link to="/" className="hover:text-stone-900 transition-colors">Home</Link>
-          <Link to="/conditions" className="hover:text-stone-900 transition-colors">Conditions</Link>
-          <Link to="/first-visit" className="hover:text-stone-900 transition-colors">First Visit</Link>
-          <Link to="/pricing" className="hover:text-stone-900 transition-colors">Pricing</Link>
-          <Link to="/about" className="hover:text-stone-900 transition-colors">About</Link>
+          {clinic.showNavConditions !== false && (
+            <Link to="/conditions" className="hover:text-stone-900 transition-colors">Conditions</Link>
+          )}
+          {clinic.showNavFirstVisit !== false && (
+            <Link to="/first-visit" className="hover:text-stone-900 transition-colors">First Visit</Link>
+          )}
+          {clinic.showNavAbout !== false && (
+            <Link to="/about" className="hover:text-stone-900 transition-colors">About</Link>
+          )}
+          {clinic.showNavPricing !== false && (
+            <Link to="/pricing" className="hover:text-stone-900 transition-colors">Pricing</Link>
+          )}
           <Link to="/contact" className="hover:text-stone-900 transition-colors">Contact</Link>
         </nav>
 
