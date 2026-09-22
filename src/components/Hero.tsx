@@ -10,7 +10,7 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
   return (
-    <section className="pt-12 pb-16 md:pt-20 md:pb-24 overflow-hidden">
+    <section className="pt-8 pb-8 md:pt-12 md:pb-12 overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         
         {/* Sub-label location pill */}
