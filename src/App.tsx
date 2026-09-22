@@ -37,7 +37,7 @@ function AppShell() {
                 <Phone className="w-3 h-3 text-emerald-400" /> {clinic.phone}
               </span>
               <span className="bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded text-[10px]">
-                GDPR Ready
+                {clinic.legalLabel || "GDPR Ready"}
               </span>
             </div>
           </div>
