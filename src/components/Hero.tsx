@@ -85,7 +85,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
         <div className="relative rounded-2xl overflow-hidden shadow-xl border border-stone-200/80 bg-stone-100 group">
           <img
             src={clinic.heroImage}
-            alt="Doctor examining patient in treatment room at Columbus Chiropractic Care"
+            alt={`Treatment room at ${clinic.name} in ${clinic.city}`}
             className="w-full h-[360px] sm:h-[480px] md:h-[560px] object-cover object-center transition-transform duration-700 group-hover:scale-[1.01]"
             loading="eager"
             referrerPolicy="no-referrer"
