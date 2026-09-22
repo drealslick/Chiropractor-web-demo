@@ -12,7 +12,7 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
   const list = clinic?.customTestimonials || testimonials;
 
   return (
-    <section id="results" className="py-20 md:py-28 bg-stone-50 border-b border-stone-200 overflow-hidden">
+    <section id="results" className="py-14 md:py-20 bg-stone-900 text-stone-100 overflow-hidden">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
