@@ -4,7 +4,7 @@ import { useClinic } from '../data/ClinicContext';
 import { ClinicInfo } from '../types';
 
 export default function Pricing() {
-  const { clinicData: clinic } = useClinic();
+  const { clinicData: clinic, openBookingModal } = useClinic();
   const extra = clinic as typeof clinic & {
     customInsurances?: string[];
     pricingTitle?: string;
@@ -103,14 +103,21 @@ export default function Pricing() {
       <section className="p-8 bg-stone-900 text-white rounded-2xl text-center space-y-4">
         <h2 className="text-2xl font-bold">Questions about cost?</h2>
         <p className="text-stone-300 text-sm">Call {clinic.phone} before you book.</p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <button
+            type="button"
+            onClick={() => openBookingModal('Back pain')}
+            className="w-full sm:w-auto inline-block bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold px-6 py-3 rounded-lg transition cursor-pointer"
+          >
+            {clinic.offerCtaText || 'Book Appointment'}
+          </button>
           <a
             href={`tel:${clinic.phoneRaw || clinic.phone}`}
-            className="inline-block bg-emerald-500 text-stone-950 font-bold px-6 py-3 rounded-lg"
+            className="w-full sm:w-auto inline-block bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold px-6 py-3 rounded-lg transition"
           >
             Call {clinic.phone}
           </a>
-          <Link to="/first-visit" className="inline-block bg-stone-800 font-bold px-6 py-3 rounded-lg">
+          <Link to="/first-visit" className="w-full sm:w-auto inline-block bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold px-6 py-3 rounded-lg transition">
             First visit guide
           </Link>
         </div>

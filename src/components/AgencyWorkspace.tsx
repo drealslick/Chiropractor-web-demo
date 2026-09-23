@@ -805,21 +805,22 @@ export function AgencyWorkspace({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs text-stone-400 mb-1">External Booking URL (JaneApp / Calendly)</label>
-                  <input
-                    type="url"
-                    placeholder="https://yourclinic.janeapp.com"
-                    value={clinic.externalBookingUrl || ''}
-                    onChange={(e) =>
-                      onUpdateClinic({
-                        ...clinic,
-                        externalBookingUrl: e.target.value,
-                        bookingMode: e.target.value ? 'external' : clinic.bookingMode,
-                      })
-                    }
-                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                  />
+                <div className="bg-stone-800/80 border border-stone-700/80 rounded-xl p-3 flex items-center justify-between">
+                  <div className="pr-2">
+                    <span className="text-xs font-semibold text-stone-200 block">External Booking & Calendar System</span>
+                    <span className="text-[11px] text-stone-400">
+                      {clinic.externalBookingUrl
+                        ? `Connected (${clinic.bookingEmbedMode || 'iframe'} mode)`
+                        : 'Using 3-step triage request'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('booking')}
+                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline shrink-0 cursor-pointer"
+                  >
+                    Manage Settings →
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">

@@ -12,7 +12,7 @@ function slugify(title: string) {
 
 export default function ConditionDetail() {
   const { conditionId } = useParams<{ conditionId: string }>();
-  const { clinicData: clinic } = useClinic();
+  const { clinicData: clinic, openBookingModal } = useClinic();
   const list = clinic.customConditions?.length ? clinic.customConditions : conditionsData;
 
   const condition = list.find((c) => {
@@ -74,22 +74,14 @@ export default function ConditionDetail() {
 
       <div className="p-8 bg-stone-900 text-white rounded-2xl text-center space-y-4">
         <h3 className="text-2xl font-bold">Start with an exam</h3>
-        <p className="text-stone-300 text-sm">{clinic.offerSubtext || `Call ${clinic.phone}`}</p>
-        {clinic.externalBookingUrl ? (
-          <a
-            href={clinic.externalBookingUrl}
-            className="inline-block bg-emerald-500 text-stone-950 font-bold px-6 py-3 rounded-lg"
-          >
-            {clinic.offerCtaText || 'Book now'}
-          </a>
-        ) : (
-          <a
-            href={`tel:${clinic.phoneRaw || clinic.phone}`}
-            className="inline-block bg-emerald-500 text-stone-950 font-bold px-6 py-3 rounded-lg"
-          >
-            Call {clinic.phone}
-          </a>
-        )}
+        <p className="text-stone-300 text-sm">{clinic.offerSubtext || `Initial comprehensive consultation and spinal examination.`}</p>
+        <button
+          type="button"
+          onClick={() => openBookingModal(condition.title)}
+          className="inline-block bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold px-6 py-3 rounded-lg transition-colors cursor-pointer"
+        >
+          {clinic.offerCtaText || `Request Exam for ${condition.title}`}
+        </button>
       </div>
     </div>
   );

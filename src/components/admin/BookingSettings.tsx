@@ -102,13 +102,19 @@ export const BookingSettings: React.FC = () => {
   };
 
   const handleApplyPreset = (preset: PlatformPresetItem) => {
-    if (!currentUrl || currentUrl.startsWith('http')) {
-      const updated = preset.placeholder;
+    // If the input is empty or just whitespace, fill in the starter placeholder
+    if (!currentUrl || currentUrl.trim() === '') {
       updateClinic({
         ...clinic,
-        externalBookingUrl: updated,
+        externalBookingUrl: preset.placeholder,
         bookingPlatformPreset: preset.id,
         bookingEmbedMode: clinic.bookingEmbedMode || 'iframe',
+      });
+    } else {
+      // Preserve existing live clinic URL, only associate the chosen platform preset
+      updateClinic({
+        ...clinic,
+        bookingPlatformPreset: preset.id,
       });
     }
   };

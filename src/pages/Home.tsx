@@ -17,15 +17,11 @@ import { LocationSection } from '../components/LocationSection';
 import { FAQSection } from '../components/FAQSection';
 import { FinalCTA } from '../components/FinalCTA';
 import { MobileStickyBar } from '../components/MobileStickyBar';
-import { BookingModal } from '../components/BookingModal';
 import { usePageMeta } from '../data/usePageMeta';
 
 export default function Home() {
-  const { clinicData: clinic } = useClinic();
+  const { clinicData: clinic, openBookingModal } = useClinic();
   usePageMeta('Home', clinic.seoDescription || clinic.tagline);
-
-  const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
-  const [selectedConditionForBooking, setSelectedConditionForBooking] = useState<string>('Back pain');
 
   useEffect(() => {
     const config = resolvePalette(clinic.colorPalette);
@@ -123,38 +119,17 @@ export default function Home() {
     }
   }, [clinic.seoTitle, clinic.seoDescription, clinic.name, clinic.tagline]);
 
-  const handleOpenBooking = (conditionTitle?: string) => {
-    if (clinic.externalBookingUrl) {
-      window.open(clinic.externalBookingUrl, '_blank');
-      return;
-    }
-    if (conditionTitle) {
-      if (conditionTitle.includes('Back')) {
-        setSelectedConditionForBooking('Back pain');
-      } else if (conditionTitle.includes('Neck') || conditionTitle.includes('Shoulder')) {
-        setSelectedConditionForBooking('Neck pain');
-      } else if (conditionTitle.includes('Sports')) {
-        setSelectedConditionForBooking('Sports injury');
-      } else if (conditionTitle.includes('Headache')) {
-        setSelectedConditionForBooking('Headaches');
-      } else {
-        setSelectedConditionForBooking(conditionTitle);
-      }
-    }
-    setIsBookingOpen(true);
-  };
-
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col font-sans relative pb-16 md:pb-0 overflow-x-hidden">
       <StickyOfferBanner
         clinic={clinic}
-        onClaim={() => handleOpenBooking('Back pain')}
+        onClaim={() => openBookingModal('Back pain')}
       />
 
       <main className="flex-1">
         <Hero
           clinic={clinic}
-          onBookClick={() => handleOpenBooking()}
+          onBookClick={() => openBookingModal()}
         />
 
         {(clinic.showTrustBar !== false) && <TrustBar clinic={clinic} />}
@@ -162,7 +137,7 @@ export default function Home() {
         {(clinic.showConditions !== false) && (
           <TheProblem
             conditions={clinic.customConditions || conditionsData}
-            onSelectCondition={(cond) => handleOpenBooking(cond)}
+            onSelectCondition={(cond) => openBookingModal(cond)}
           />
         )}
 
@@ -186,20 +161,13 @@ export default function Home() {
 
         <FinalCTA
           clinic={clinic}
-          onBookClick={() => handleOpenBooking()}
+          onBookClick={() => openBookingModal()}
         />
       </main>
 
       <MobileStickyBar
         clinic={clinic}
-        onBookClick={() => handleOpenBooking()}
-      />
-
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        clinic={clinic}
-        initialCondition={selectedConditionForBooking}
+        onBookClick={() => openBookingModal()}
       />
     </div>
   );

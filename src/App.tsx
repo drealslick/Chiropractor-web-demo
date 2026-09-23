@@ -6,6 +6,7 @@ import { Navbar } from './components/Navbar';
 import { ClinicProvider, useClinic } from './data/ClinicContext';
 import { GlobalAnnouncementBanner } from './components/GlobalAnnouncementBanner';
 import { GlobalAgencyController } from './components/GlobalAgencyController';
+import { BookingModal } from './components/BookingModal';
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -85,6 +86,7 @@ function AppShell() {
         </footer>
 
         <GlobalAgencyController />
+        <BookingModal />
       </div>
     </Router>
   );

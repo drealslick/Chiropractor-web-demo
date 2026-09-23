@@ -19,6 +19,11 @@ interface ClinicContextType {
   errorMessage: string | null;
   hasSupabase: boolean;
   importClinicBlueprint: (blueprint: Partial<ClinicInfo>) => boolean;
+  // Global Booking State & Triggers
+  isBookingModalOpen: boolean;
+  bookingInitialCondition: string;
+  openBookingModal: (initialCondition?: string) => void;
+  closeBookingModal: () => void;
 }
 
 export const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -51,8 +56,45 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'local_only');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
+  const [bookingInitialCondition, setBookingInitialCondition] = useState<string>('Back pain');
 
   const hasSupabase = Boolean(supabase);
+
+  const openBookingModal = useCallback((initialCondition?: string) => {
+    if (initialCondition) {
+      if (initialCondition.includes('Back')) {
+        setBookingInitialCondition('Back pain');
+      } else if (initialCondition.includes('Neck') || initialCondition.includes('Shoulder')) {
+        setBookingInitialCondition('Neck pain');
+      } else if (initialCondition.includes('Sports')) {
+        setBookingInitialCondition('Sports injury');
+      } else if (initialCondition.includes('Headache')) {
+        setBookingInitialCondition('Headaches');
+      } else {
+        setBookingInitialCondition(initialCondition);
+      }
+    } else {
+      setBookingInitialCondition('Back pain');
+    }
+
+    // Direct Redirect Mode Check
+    if (clinicData.bookingEmbedMode === 'redirect' && clinicData.externalBookingUrl) {
+      try {
+        window.open(clinicData.externalBookingUrl, '_blank', 'noopener,noreferrer');
+      } catch {
+        window.location.href = clinicData.externalBookingUrl;
+      }
+      return;
+    }
+
+    // Otherwise open modal (either iframe embed mode or 3-step triage)
+    setIsBookingModalOpen(true);
+  }, [clinicData.bookingEmbedMode, clinicData.externalBookingUrl]);
+
+  const closeBookingModal = useCallback(() => {
+    setIsBookingModalOpen(false);
+  }, []);
 
   // Load from Supabase on mount if connected
   useEffect(() => {
@@ -188,8 +230,26 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       errorMessage,
       hasSupabase,
       importClinicBlueprint,
+      isBookingModalOpen,
+      bookingInitialCondition,
+      openBookingModal,
+      closeBookingModal,
     }),
-    [clinicData, updateClinic, resetClinic, loadPreset, syncStatus, lastSaved, errorMessage, hasSupabase, importClinicBlueprint]
+    [
+      clinicData,
+      updateClinic,
+      resetClinic,
+      loadPreset,
+      syncStatus,
+      lastSaved,
+      errorMessage,
+      hasSupabase,
+      importClinicBlueprint,
+      isBookingModalOpen,
+      bookingInitialCondition,
+      openBookingModal,
+      closeBookingModal,
+    ]
   );
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;

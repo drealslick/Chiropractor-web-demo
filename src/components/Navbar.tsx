@@ -82,27 +82,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             <span>{clinic.phone}</span>
           </a>
 
-                    {clinic.externalBookingUrl ? (
-            <a
-              href={clinic.externalBookingUrl}
-              target="_blank"
-              rel="noreferrer"
-              id="nav-book-now-button"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-semibold tracking-wide rounded-md shadow-sm transition-all active:scale-[0.98]"
-            >
-              <Calendar className="w-4 h-4 text-emerald-400" />
-              <span>{clinic.navButtonText || "BOOK NOW"}</span>
-            </a>
-          ) : (
-            <a
-              href={`tel:${clinic.phoneRaw || clinic.phone}`}
-              id="nav-book-now-button"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-semibold tracking-wide rounded-md shadow-sm transition-all active:scale-[0.98]"
-            >
-              <Calendar className="w-4 h-4 text-emerald-400" />
-              <span>{clinic.navButtonText || "BOOK NOW"}</span>
-            </a>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              context.openBookingModal();
+              if (onBookClick) onBookClick();
+            }}
+            id="nav-book-now-button"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-semibold tracking-wide rounded-md shadow-sm transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <Calendar className="w-4 h-4 text-emerald-400" />
+            <span>{clinic.navButtonText || "BOOK NOW"}</span>
+          </button>
 
           {/* Mobile Hamburger Button */}
           <button

@@ -1,26 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Calendar as CalendarIcon, Clock, User, Phone, Mail, ArrowRight, ArrowLeft, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { X, Check, Calendar as CalendarIcon, Clock, User, Phone, Mail, ArrowRight, ArrowLeft, ShieldCheck, CheckCircle2, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData } from '../types';
-
+import { useClinic } from '../data/ClinicContext';
 import { saveLead } from '../data/leadsStore';
 
 interface BookingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  clinic: ClinicInfo;
+  isOpen?: boolean;
+  onClose?: () => void;
+  clinic?: ClinicInfo;
   initialCondition?: string;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({
-  isOpen,
-  onClose,
-  clinic,
-  initialCondition
+  isOpen: propIsOpen,
+  onClose: propOnClose,
+  clinic: propClinic,
+  initialCondition: propInitialCondition,
 }) => {
+  const context = useClinic();
+  const clinic = propClinic || context.clinicData;
+  const isOpen = propIsOpen !== undefined ? propIsOpen : context.isBookingModalOpen;
+  const onClose = propOnClose || context.closeBookingModal;
+  const activeInitialCondition = propInitialCondition || context.bookingInitialCondition || 'Back pain';
+
   const [step, setStep] = useState<number>(1);
   const [formData, setFormData] = useState<BookingFormData>({
-    condition: initialCondition || 'Back pain',
+    condition: activeInitialCondition,
     date: '',
     time: '',
     name: '',
@@ -54,10 +60,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (initialCondition) {
-      setFormData(prev => ({ ...prev, condition: initialCondition }));
+    if (activeInitialCondition) {
+      setFormData(prev => ({ ...prev, condition: activeInitialCondition }));
     }
-  }, [initialCondition]);
+  }, [activeInitialCondition]);
 
   useEffect(() => {
     if (nextDays.length > 0 && !formData.date) {
