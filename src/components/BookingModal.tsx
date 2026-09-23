@@ -137,61 +137,118 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/70 backdrop-blur-sm"
-        >
+        clinic.externalBookingUrl ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
-            role="dialog"
-            aria-modal="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/70 backdrop-blur-sm"
           >
-            {/* Header */}
-        <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
-              {step === 4 ? 'Appointment Request' : `Step ${step} of 3`}
-            </span>
-            <h2 className="text-xl font-serif font-bold text-stone-900 leading-tight">
-              {step === 1 && 'What brings you in?'}
-              {step === 2 && 'Choose a date & time'}
-              {step === 3 && 'Your details'}
-              {step === 4 && 'Request Confirmed'}
-            </h2>
-          <p className="text-xs text-stone-500">
-            {clinic.externalBookingUrl
-              ? 'This demo form is off. Use Book on the site to open the clinic calendar.'
-              : 'Demo request only. Live clinics replace this with Jane or Calendly.'}
-          </p>
-          </div>
-          <button
-            onClick={resetAndClose}
-            aria-label="Close booking modal"
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-md overflow-hidden flex flex-col p-6 text-stone-900"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
+                  Secure Live Booking
+                </span>
+                <button
+                  onClick={resetAndClose}
+                  className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="text-center py-4 space-y-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-serif font-bold text-stone-900">
+                    Secure Practice Calendar
+                  </h3>
+                  <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto">
+                    To protect your medical health data privacy and view real-time availability, bookings for Dr. {clinic.doctorName?.replace('Dr. ', '')} are managed securely via JaneApp or Calendly.
+                  </p>
+                </div>
+
+                <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-[11px] text-stone-600">
+                  You are about to be redirected to our HIPAA & GDPR compliant external diary.
+                </div>
+
+                <a
+                  href={clinic.externalBookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={resetAndClose}
+                  className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 transition text-white font-semibold rounded-xl block text-center text-sm shadow-md cursor-pointer"
+                >
+                  Open secure Booking Diary →
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/70 backdrop-blur-sm"
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
+              role="dialog"
+              aria-modal="true"
+            >
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
+                    {step === 4 ? 'Appointment Request' : `Step ${step} of 3`}
+                  </span>
+                  <h2 className="text-xl font-serif font-bold text-stone-900 leading-tight">
+                    {step === 1 && 'What brings you in?'}
+                    {step === 2 && 'Choose a date & time'}
+                    {step === 3 && 'Your details'}
+                    {step === 4 && 'Request Confirmed'}
+                  </h2>
+                  <p className="text-xs text-stone-500">
+                    Demo request simulator. Live clinics replace this with Jane or Calendly.
+                  </p>
+                </div>
+                <button
+                  onClick={resetAndClose}
+                  aria-label="Close booking modal"
+                  className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-        {/* Progress bar */}
-        {step < 4 && (
-          <div className="w-full bg-stone-100 h-1">
-            <div
-              className="bg-emerald-700 h-1 transition-all duration-300"
-              style={{ width: `${(step / 3) * 100}%` }}
-            />
-          </div>
-        )}
+              {/* Progress bar */}
+              {step < 4 && (
+                <div className="w-full bg-stone-100 h-1">
+                  <div
+                    className="bg-emerald-700 h-1 transition-all duration-300"
+                    style={{ width: `${(step / 3) * 100}%` }}
+                  />
+                </div>
+              )}
 
-        {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1">
+              {/* Body */}
+              <div className="p-6 overflow-y-auto flex-1">
           
           {/* STEP 1: What brings you in? */}
           {step === 1 && (
@@ -471,6 +528,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         </div>
           </motion.div>
         </motion.div>
+        )
       )}
     </AnimatePresence>
   );

@@ -86,7 +86,7 @@ export function AgencyWorkspace({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number | string;
   }[] = [
-    { id: 'inbox', label: 'Patient Leads', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
+    { id: 'inbox', label: 'Demo Requests', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
     { id: 'audit', label: 'Health Audit', icon: Sparkles },
     { id: 'branding', label: 'Theme & Colors', icon: Palette },
     { id: 'lists', label: 'Content & FAQs', icon: FileText },
