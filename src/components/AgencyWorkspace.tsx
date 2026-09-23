@@ -425,6 +425,36 @@ export function AgencyWorkspace({
                   />
                 </div>
                 <div>
+                  <label className="block text-xs text-stone-400 mb-1">Trust: rating subtext</label>
+                  <input
+                    type="text"
+                    placeholder="Verified Patient Reviews"
+                    value={(clinic as ClinicInfo & { trustRatingSub?: string }).trustRatingSub || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, trustRatingSub: e.target.value } as ClinicInfo)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Trust: years subtext</label>
+                  <input
+                    type="text"
+                    placeholder="Clinical Excellence"
+                    value={(clinic as ClinicInfo & { trustExperienceSub?: string }).trustExperienceSub || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, trustExperienceSub: e.target.value } as ClinicInfo)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">Trust: patients subtext</label>
+                  <input
+                    type="text"
+                    placeholder="Treated in this city"
+                    value={(clinic as ClinicInfo & { trustPatientsSub?: string }).trustPatientsSub || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, trustPatientsSub: e.target.value } as ClinicInfo)}
+                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs text-stone-400 mb-1">Google reviews URL</label>
                   <input
                     type="url"
