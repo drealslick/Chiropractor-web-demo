@@ -208,6 +208,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     onClose();
   };
 
+  const [activeViewMode, setActiveViewMode] = useState<'flow' | 'iframe'>(
+    clinic.bookingEmbedMode === 'iframe' && clinic.externalBookingUrl ? 'iframe' : 'flow'
+  );
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveViewMode(clinic.bookingEmbedMode === 'iframe' && clinic.externalBookingUrl ? 'iframe' : 'flow');
+    }
+  }, [isOpen, clinic.bookingEmbedMode, clinic.externalBookingUrl]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -223,47 +233,95 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
+            className={`bg-white rounded-2xl shadow-2xl border border-stone-200 w-full overflow-hidden flex flex-col max-h-[92vh] ${
+              activeViewMode === 'iframe' ? 'max-w-3xl h-[85vh]' : 'max-w-lg'
+            }`}
             role="dialog"
             aria-modal="true"
           >
             {/* Header */}
-            <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
+            <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
-                  {step === 4 ? 'Appointment Request' : `Step ${step} of 3`}
+                  {activeViewMode === 'iframe'
+                    ? 'Integrated Live Schedule'
+                    : step === 4
+                    ? 'Appointment Request'
+                    : `Step ${step} of 3`}
                 </span>
                 <h2 className="text-xl font-serif font-bold text-stone-900 leading-tight">
-                  {step === 1 && 'What brings you in?'}
-                  {step === 2 && 'Choose a date & time'}
-                  {step === 3 && 'Your details'}
-                  {step === 4 && 'Request Confirmed'}
+                  {activeViewMode === 'iframe'
+                    ? `Book with ${doctorDisplayName}`
+                    : step === 1
+                    ? 'What brings you in?'
+                    : step === 2
+                    ? 'Choose a date & time'
+                    : step === 3
+                    ? 'Your details'
+                    : 'Request Confirmed'}
                 </h2>
                 <p className="text-xs text-stone-500">
-                  Online appointment request
+                  {activeViewMode === 'iframe'
+                    ? 'Select your appointment type and slot below'
+                    : 'Online appointment request'}
                 </p>
               </div>
-              <button
-                onClick={resetAndClose}
-                aria-label="Close booking modal"
-                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {activeViewMode === 'iframe' && clinic.externalBookingUrl && (
+                  <a
+                    href={clinic.externalBookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open in new window"
+                    className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors text-xs font-medium"
+                  >
+                    ↗ New Window
+                  </a>
+                )}
+                <button
+                  onClick={resetAndClose}
+                  aria-label="Close booking modal"
+                  className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Progress bar */}
-            {step < 4 && (
-              <div className="w-full bg-stone-100 h-1">
-                <div
-                  className="bg-emerald-700 h-1 transition-all duration-300"
-                  style={{ width: `${(step / 3) * 100}%` }}
+            {/* IFRAME EMBED VIEW */}
+            {activeViewMode === 'iframe' && clinic.externalBookingUrl ? (
+              <div className="flex-1 flex flex-col overflow-hidden relative bg-stone-50">
+                <iframe
+                  src={clinic.externalBookingUrl}
+                  title={`${clinic.name} Online Booking Calendar`}
+                  className="w-full h-full flex-1 border-0"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                 />
+                <div className="p-2.5 bg-stone-100 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500">
+                  <span>Having trouble with the calendar?</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveViewMode('flow')}
+                    className="font-semibold text-emerald-800 hover:underline cursor-pointer"
+                  >
+                    Switch to Quick Request Form →
+                  </button>
+                </div>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Progress bar */}
+                {step < 4 && (
+                  <div className="w-full bg-stone-100 h-1">
+                    <div
+                      className="bg-emerald-700 h-1 transition-all duration-300"
+                      style={{ width: `${(step / 3) * 100}%` }}
+                    />
+                  </div>
+                )}
 
-            {/* Body */}
-            <div className="p-6 overflow-y-auto flex-1">
+                {/* Body */}
+                <div className="p-6 overflow-y-auto flex-1">
           
           {/* STEP 1: What brings you in? */}
           {step === 1 && (
@@ -584,10 +642,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           )}
 
-        </div>
-          </motion.div>
+              </div>
+            </>
+          )}
         </motion.div>
-      )}
-    </AnimatePresence>
-  );
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 };

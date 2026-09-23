@@ -19,6 +19,7 @@ import {
   CloudCheck,
   CloudOff,
   AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -26,6 +27,7 @@ import { colorPalettes, resolvePalette } from '../data/colorPalettes';
 import { ListsEditor } from './ListsEditor';
 import { LeadsInbox } from './admin/LeadsInbox';
 import { PracticeAudit } from './admin/PracticeAudit';
+import { BookingSettings } from './admin/BookingSettings';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -39,7 +41,7 @@ interface AgencyWorkspaceProps {
   hasSupabase?: boolean;
 }
 
-type TabType = 'inbox' | 'branding' | 'lists' | 'copy' | 'presets' | 'content' | 'seo' | 'audit';
+type TabType = 'inbox' | 'booking' | 'audit' | 'branding' | 'lists' | 'copy' | 'presets' | 'content' | 'seo';
 
 export function AgencyWorkspace({
   isOpen,
@@ -94,6 +96,7 @@ export function AgencyWorkspace({
     badge?: number | string;
   }[] = [
     { id: 'inbox', label: 'Requests', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
+    { id: 'booking', label: 'Booking System', icon: Calendar },
     { id: 'audit', label: 'Checklist', icon: Sparkles },
     { id: 'branding', label: 'Themes', icon: Palette },
     { id: 'lists', label: 'Content', icon: FileText },
@@ -235,6 +238,11 @@ export function AgencyWorkspace({
           {/* TAB 1: INBOX & LEADS CRM */}
           {activeTab === 'inbox' && (
             <LeadsInbox clinicName={clinic.name || 'Clinic'} />
+          )}
+
+          {/* TAB: EXTERNAL BOOKING SETTINGS */}
+          {activeTab === 'booking' && (
+            <BookingSettings />
           )}
 
           {/* TAB 2: PRACTICE HEALTH AUDIT */}

@@ -73,6 +73,9 @@ export interface ClinicPost {
   author?: string;
 }
 
+export type BookingEmbedMode = 'triage_request' | 'iframe' | 'redirect';
+export type BookingPlatformPreset = 'jane' | 'calendly' | 'cliniko' | 'acuity' | 'custom';
+
 export interface ClinicInfo {
   id?: string;
   name?: string;
