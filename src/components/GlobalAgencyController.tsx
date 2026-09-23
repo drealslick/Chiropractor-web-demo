@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useClinic } from '../data/ClinicContext';
 import { AgencyWorkspace } from './AgencyWorkspace';
-import { resolvePalette } from '../data/colorPalettes';
+import { resolvePalette, generateCustomShades } from '../data/colorPalettes';
 import { Lock, Sliders, Shield } from 'lucide-react';
 
 export function GlobalAgencyController() {
@@ -53,20 +53,35 @@ export function GlobalAgencyController() {
   // 2. Global CSS Variables & Color Themes injection across all pages
   useEffect(() => {
     const config = resolvePalette(clinic.colorPalette);
-    const primary = clinic.customPrimaryColor || config.variables['--color-primary'];
-    const accent = clinic.customAccentColor || config.variables['--color-accent'];
-    const bg = clinic.customBgColor || config.variables['--color-bg'];
-    const text = clinic.customTextColor || config.variables['--color-text'];
 
-    const root = document.documentElement;
-    root.style.setProperty('--theme-primary-500', primary);
-    root.style.setProperty('--theme-primary-600', primary);
-    root.style.setProperty('--theme-primary-700', primary);
-    root.style.setProperty('--theme-primary-800', primary);
-    root.style.setProperty('--theme-accent', accent);
-    root.style.setProperty('--theme-bg-page', bg);
-    root.style.setProperty('--theme-primary-950', text);
-    root.style.setProperty('--color-primary', primary);
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      
+      // Inject all palette variables (primary shades 50-950, page bg, muted bg, accent, text)
+      Object.entries(config.variables).forEach(([cssVar, colorVal]) => {
+        root.style.setProperty(cssVar, colorVal);
+      });
+
+      // If user specified custom primary color, compute full gradient shades
+      if (clinic.customPrimaryColor) {
+        const customShades = generateCustomShades(clinic.customPrimaryColor);
+        Object.entries(customShades).forEach(([cssVar, colorVal]) => {
+          root.style.setProperty(cssVar, colorVal);
+        });
+      }
+      if (clinic.customAccentColor) {
+        root.style.setProperty('--theme-accent', clinic.customAccentColor);
+        root.style.setProperty('--color-accent', clinic.customAccentColor);
+      }
+      if (clinic.customBgColor) {
+        root.style.setProperty('--theme-bg-page', clinic.customBgColor);
+        root.style.setProperty('--color-bg', clinic.customBgColor);
+      }
+      if (clinic.customTextColor) {
+        root.style.setProperty('--theme-text', clinic.customTextColor);
+        root.style.setProperty('--color-text', clinic.customTextColor);
+      }
+    }
   }, [
     clinic.colorPalette,
     clinic.customPrimaryColor,

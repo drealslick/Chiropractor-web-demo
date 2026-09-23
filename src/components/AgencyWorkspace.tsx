@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
-import { colorPalettes } from '../data/colorPalettes';
+import { colorPalettes, resolvePalette } from '../data/colorPalettes';
 import { ListsEditor } from './ListsEditor';
 import { LeadsInbox } from './admin/LeadsInbox';
 import { PracticeAudit } from './admin/PracticeAudit';
@@ -75,10 +75,17 @@ export function AgencyWorkspace({
 
   if (!isOpen) return null;
 
-  const primaryVal = clinic.customPrimaryColor || '#059669';
-  const accentVal = clinic.customAccentColor || '#10b981';
-  const bgVal = clinic.customBgColor || '#f5f5f4';
-  const textVal = clinic.customTextColor || '#1c1917';
+  const currentPalette = resolvePalette(clinic.colorPalette);
+  const hasCustomColors = Boolean(
+    clinic.customPrimaryColor ||
+    clinic.customAccentColor ||
+    clinic.customBgColor ||
+    clinic.customTextColor
+  );
+  const primaryVal = clinic.customPrimaryColor || currentPalette.preview.primary;
+  const accentVal = clinic.customAccentColor || currentPalette.preview.accent;
+  const bgVal = clinic.customBgColor || currentPalette.preview.bg;
+  const textVal = clinic.customTextColor || currentPalette.variables['--theme-text'] || '#1C1917';
 
   const tabs: {
     id: TabType;
@@ -245,20 +252,29 @@ export function AgencyWorkspace({
                   {Object.values(colorPalettes).map((p) => (
                     <button
                       key={p.id}
-                      onClick={() => onUpdateClinic({ ...clinic, colorPalette: p.id })}
-                      className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition ${
-                        clinic.colorPalette === p.id
-                          ? 'border-emerald-500 bg-emerald-950/20 text-emerald-300'
+                      onClick={() =>
+                        onUpdateClinic({
+                          ...clinic,
+                          colorPalette: p.id,
+                          customPrimaryColor: undefined,
+                          customAccentColor: undefined,
+                          customBgColor: undefined,
+                          customTextColor: undefined,
+                        })
+                      }
+                      className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition cursor-pointer ${
+                        clinic.colorPalette === p.id && !hasCustomColors
+                          ? 'border-emerald-500 bg-emerald-950/40 text-emerald-300 ring-1 ring-emerald-500/50'
                           : 'border-stone-800 bg-stone-850 hover:border-stone-700'
                       }`}
                     >
                       <div className="flex -space-x-1 shrink-0">
                         <span
-                          className="w-4 h-4 rounded-full border border-stone-800"
+                          className="w-4 h-4 rounded-full border border-stone-800 shadow-sm"
                           style={{ backgroundColor: p.preview.primary }}
                         />
                         <span
-                          className="w-4 h-4 rounded-full border border-stone-800"
+                          className="w-4 h-4 rounded-full border border-stone-800 shadow-sm"
                           style={{ backgroundColor: p.preview.accent }}
                         />
                       </div>
@@ -273,9 +289,28 @@ export function AgencyWorkspace({
 
               {/* Custom CSS Hex Pickers */}
               <div className="p-4 bg-stone-800/40 border border-stone-800 rounded-xl space-y-3">
-                <h4 className="font-bold text-xs text-stone-300 flex items-center gap-1.5">
-                  <Paintbrush className="w-3.5 h-3.5 text-emerald-400" /> Granular Hex Overrides
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-stone-300 flex items-center gap-1.5">
+                    <Paintbrush className="w-3.5 h-3.5 text-emerald-400" /> Granular Hex Overrides
+                  </h4>
+                  {hasCustomColors && (
+                    <button
+                      onClick={() =>
+                        onUpdateClinic({
+                          ...clinic,
+                          customPrimaryColor: undefined,
+                          customAccentColor: undefined,
+                          customBgColor: undefined,
+                          customTextColor: undefined,
+                        })
+                      }
+                      className="text-[11px] text-amber-400 hover:text-amber-300 font-medium underline cursor-pointer"
+                      title="Reset to selected preset theme colors"
+                    >
+                      Reset to preset defaults
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <label className="block text-[11px] text-stone-400 mb-1">Primary Color</label>
