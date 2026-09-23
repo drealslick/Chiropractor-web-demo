@@ -141,38 +141,38 @@ export function GlobalAgencyController() {
       {isStaffMode && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-50 bg-stone-900/90 hover:bg-stone-900 text-stone-200 hover:text-emerald-400 p-2.5 rounded-full shadow-2xl border border-stone-700/80 backdrop-blur transition flex items-center gap-1.5 text-xs font-semibold group cursor-pointer"
-          title="Agency Command Suite (Cmd+Shift+C)"
+          className="fixed bottom-4 right-4 z-50 bg-stone-900 hover:bg-stone-850 text-stone-200 hover:text-white px-3 py-2 rounded-lg shadow-lg border border-stone-700/80 backdrop-blur transition flex items-center gap-2 text-xs font-medium cursor-pointer"
+          title="Admin settings"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="hidden sm:inline font-mono text-[11px]">Agency Suite</span>
-          <Sliders className="w-4 h-4 text-emerald-400" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span>Admin</span>
+          <Sliders className="w-3.5 h-3.5 text-stone-400" />
         </button>
       )}
 
       {/* Passcode Gate or Full Workspace */}
       {isOpen && (
         !isUnlocked ? (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-sm rounded-2xl border border-stone-800 bg-stone-900 p-6 text-white shadow-2xl animate-fadeIn">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-xl border border-stone-800 bg-stone-900 p-5 text-stone-100 shadow-2xl">
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-base font-semibold">Admin Verification</h3>
+                <h3 className="text-sm font-semibold">Admin Verification</h3>
               </div>
-              <p className="mb-4 text-xs text-stone-400 leading-relaxed">
-                Enter passcode to access Omniscient Agency Suite.
+              <p className="mb-4 text-xs text-stone-400">
+                Enter passcode to continue.
               </p>
 
               <form onSubmit={handleUnlock}>
                 <div className="relative mb-2">
-                  <Lock className="w-3.5 h-3.5 text-stone-500 absolute left-3 top-3" />
+                  <Lock className="w-3.5 h-3.5 text-stone-500 absolute left-3 top-2.5" />
                   <input
                     type="password"
                     autoFocus
-                    placeholder="Enter secret passcode"
+                    placeholder="Passcode"
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
-                    className="w-full rounded-xl border border-stone-700 bg-stone-800/80 pl-9 pr-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-stone-700 bg-stone-800/80 pl-9 pr-3 py-1.5 text-xs text-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
                 {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
@@ -181,15 +181,15 @@ export function GlobalAgencyController() {
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="px-3.5 py-1.5 text-xs text-stone-400 hover:text-white transition"
+                    className="px-3 py-1.5 text-xs text-stone-400 hover:text-white transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 transition shadow-lg cursor-pointer"
+                    className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 transition cursor-pointer"
                   >
-                    Unlock Suite
+                    Unlock
                   </button>
                 </div>
               </form>

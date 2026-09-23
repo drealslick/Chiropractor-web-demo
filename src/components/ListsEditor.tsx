@@ -198,8 +198,8 @@ export function ListsEditor({
       </div>
 
       <div>
-        <h3 className="font-bold text-stone-200 text-base">FAQs</h3>
-        <p className="text-xs text-stone-400 mb-3">Paste image URLs. Local uploads can wait.</p>
+        <h3 className="font-semibold text-stone-200 text-sm">Image URLs</h3>
+        <p className="text-xs text-stone-400 mb-3">Direct image URLs for hero, doctor, and clinic photos.</p>
         <Field
           label="Hero image URL"
           value={typeof clinic.heroImage === 'string' ? clinic.heroImage : ''}

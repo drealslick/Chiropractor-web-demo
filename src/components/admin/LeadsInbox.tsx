@@ -107,17 +107,17 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
     <div className="space-y-6">
       {/* Top Banner Stats */}
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-stone-800/80 border border-stone-700/60 p-2.5 rounded-xl">
+        <div className="bg-stone-850 border border-stone-800 p-2.5 rounded-lg">
           <span className="text-xl font-bold text-stone-100">{leads.length}</span>
-          <span className="block text-[10px] text-stone-400 font-medium">Demo Requests</span>
+          <span className="block text-[10px] text-stone-400 font-medium">Total</span>
         </div>
-        <div className="bg-emerald-950/60 border border-emerald-800/50 p-2.5 rounded-xl">
+        <div className="bg-stone-850 border border-stone-800 p-2.5 rounded-lg">
           <span className="text-xl font-bold text-emerald-400">{newCount}</span>
-          <span className="block text-[10px] text-emerald-300 font-medium">Needs Review</span>
+          <span className="block text-[10px] text-stone-400 font-medium">New</span>
         </div>
-        <div className="bg-blue-950/60 border border-blue-800/50 p-2.5 rounded-xl">
+        <div className="bg-stone-850 border border-stone-800 p-2.5 rounded-lg">
           <span className="text-xl font-bold text-blue-400">{bookedCount}</span>
-          <span className="block text-[10px] text-blue-300 font-medium">Demo Bookings</span>
+          <span className="block text-[10px] text-stone-400 font-medium">Booked</span>
         </div>
       </div>
 
@@ -127,7 +127,7 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
           <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
           <input
             type="text"
-            placeholder="Search demo name, phone, concern..."
+            placeholder="Search name, phone, condition..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 bg-stone-800 border border-stone-700 rounded-lg text-xs text-stone-200 placeholder-stone-500 focus:outline-none focus:border-emerald-500"
@@ -138,14 +138,13 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
           <button
             onClick={handleAddDemoLead}
             className="px-2.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 rounded-lg text-xs font-medium flex items-center gap-1 transition cursor-pointer"
-            title="Simulate sample inquiry for presentation"
           >
-            <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Generate Demo Lead</span>
+            <PlusCircle className="w-3.5 h-3.5 text-stone-400" />
+            <span>Add Sample</span>
           </button>
           <button
             onClick={() => exportLeadsToCSV(leads, clinicName)}
-            className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+            className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
@@ -159,7 +158,7 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`px-3 py-1.5 rounded-lg font-medium capitalize transition whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-lg font-medium capitalize transition whitespace-nowrap cursor-pointer ${
               filter === tab
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                 : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800'
@@ -177,47 +176,47 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
 
       {/* Lead Cards List */}
       {filtered.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-stone-800 rounded-2xl p-6">
-          <Inbox className="w-10 h-10 text-stone-600 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-stone-300">No demo requests found</p>
+        <div className="text-center py-10 border border-dashed border-stone-800 rounded-xl p-6">
+          <Inbox className="w-8 h-8 text-stone-600 mx-auto mb-2" />
+          <p className="text-xs font-medium text-stone-300">No requests found</p>
           <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
-            This tab simulates patient lead capture. If secure external Booking is active, patients are guided directly to JaneApp / Calendly.
+            Inquiries from booking modal and contact form appear here.
           </p>
           <button
             onClick={handleAddDemoLead}
-            className="mt-4 px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs rounded-lg inline-flex items-center gap-1.5 border border-stone-700 cursor-pointer"
+            className="mt-3 px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs rounded-lg inline-flex items-center gap-1.5 border border-stone-700 cursor-pointer"
           >
-            <PlusCircle className="w-3.5 h-3.5 text-emerald-400" /> Simulate Demo Booking
+            <PlusCircle className="w-3.5 h-3.5 text-stone-400" /> Add Sample
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filtered.map((lead) => {
             const isNew = lead.status === 'new';
             return (
               <div
                 key={lead.id}
-                className={`p-4 rounded-xl border transition ${
+                className={`p-3.5 rounded-lg border transition ${
                   isNew
-                    ? 'bg-stone-800/90 border-emerald-500/40 shadow-lg shadow-emerald-950/20'
-                    : 'bg-stone-800/50 border-stone-700/60'
+                    ? 'bg-stone-850 border-emerald-500/40'
+                    : 'bg-stone-850/60 border-stone-800'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-stone-100 text-sm">{lead.name}</span>
+                      <span className="font-medium text-stone-100 text-xs">{lead.name}</span>
                       <span
-                        className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[10px] uppercase font-medium px-2 py-0.5 rounded ${
                           lead.source === 'booking'
-                            ? 'bg-purple-950/70 text-purple-300 border border-purple-800/50'
-                            : 'bg-amber-950/70 text-amber-300 border border-amber-800/50'
+                            ? 'bg-stone-800 text-stone-300 border border-stone-700'
+                            : 'bg-stone-800 text-stone-300 border border-stone-700'
                         }`}
                       >
-                        {lead.source === 'booking' ? 'Appointment Request' : 'Contact Form'}
+                        {lead.source === 'booking' ? 'Booking' : 'Contact'}
                       </span>
                     </div>
-                    <span className="text-[11px] text-stone-400">
+                    <span className="text-[11px] text-stone-500">
                       {new Date(lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -227,31 +226,31 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
                     onChange={(e) => handleStatusChange(lead.id, e.target.value as PatientLead['status'])}
                     className="bg-stone-900 border border-stone-700 text-stone-200 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-emerald-500 cursor-pointer"
                   >
-                    <option value="new">🔴 New / Unread</option>
-                    <option value="contacted">🟡 Contacted</option>
-                    <option value="booked">🟢 Booked Visit</option>
-                    <option value="archived">⚪ Archived</option>
+                    <option value="new">New</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="booked">Booked</option>
+                    <option value="archived">Archived</option>
                   </select>
                 </div>
 
-                {/* Patient Details Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-stone-300 my-2 pt-2 border-t border-stone-700/40">
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-stone-300 my-2 pt-2 border-t border-stone-800">
                   <div className="flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                     <a href={`tel:${lead.phone}`} className="hover:text-emerald-400 font-medium">
-                      {lead.phone || 'No phone provided'}
+                      {lead.phone || 'No phone'}
                     </a>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                     <a href={`mailto:${lead.email}`} className="hover:text-emerald-400 truncate">
-                      {lead.email || 'No email provided'}
+                      {lead.email || 'No email'}
                     </a>
                   </div>
                   {lead.condition && (
                     <div className="col-span-1 sm:col-span-2 text-stone-300 text-xs">
                       <span className="text-stone-500 font-medium">Concern:</span>{' '}
-                      <span className="text-emerald-300 font-medium">{lead.condition}</span>
+                      <span className="text-stone-200">{lead.condition}</span>
                     </div>
                   )}
                   {lead.date && (
@@ -266,26 +265,26 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
 
                 {/* Callback note */}
                 {lead.notes && (
-                  <div className="p-2.5 bg-stone-900/60 rounded-lg text-xs text-stone-300 mt-2 border border-stone-700/40">
-                    <span className="text-stone-500 font-semibold block text-[10px] mb-0.5 uppercase tracking-wider">
+                  <div className="p-2.5 bg-stone-900 rounded-lg text-xs text-stone-300 mt-2 border border-stone-800">
+                    <span className="text-stone-500 font-medium block text-[10px] mb-0.5 uppercase tracking-wider">
                       Callback note
                     </span>
-                    <p className="whitespace-pre-line text-stone-300 leading-relaxed">{lead.notes}</p>
+                    <p className="whitespace-pre-line text-stone-300">{lead.notes}</p>
                   </div>
                 )}
 
                 {/* Card Action Footer */}
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-stone-700/40 text-xs">
+                <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-stone-800 text-xs">
                   <div className="flex items-center gap-2">
                     <a
                       href={`tel:${lead.phone}`}
-                      className="px-2.5 py-1 bg-emerald-900/50 hover:bg-emerald-900 text-emerald-300 rounded text-[11px] font-semibold flex items-center gap-1"
+                      className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded text-[11px] font-medium flex items-center gap-1"
                     >
-                      <Phone className="w-3 h-3" /> Call Patient
+                      <Phone className="w-3 h-3" /> Call
                     </a>
                     <a
-                      href={`mailto:${lead.email}?subject=Your Consultation at ${clinicName}`}
-                      className="px-2.5 py-1 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded text-[11px] flex items-center gap-1"
+                      href={`mailto:${lead.email}?subject=Your Inquiry at ${clinicName}`}
+                      className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded text-[11px] flex items-center gap-1"
                     >
                       <Mail className="w-3 h-3" /> Email
                     </a>
@@ -293,8 +292,8 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
 
                   <button
                     onClick={() => handleDelete(lead.id)}
-                    className="p-1 text-stone-500 hover:text-red-400 transition"
-                    title="Delete lead"
+                    className="p-1 text-stone-500 hover:text-red-400 transition cursor-pointer"
+                    title="Delete record"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

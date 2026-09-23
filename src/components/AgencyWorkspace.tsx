@@ -93,14 +93,14 @@ export function AgencyWorkspace({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number | string;
   }[] = [
-    { id: 'inbox', label: 'Demo Requests', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
-    { id: 'audit', label: 'Site checklist', icon: Sparkles },
-    { id: 'branding', label: 'Theme & Colors', icon: Palette },
-    { id: 'lists', label: 'Content & FAQs', icon: FileText },
-    { id: 'copy', label: 'Site Copy', icon: FileText },
-    { id: 'presets', label: 'Presets & Clone', icon: Globe },
+    { id: 'inbox', label: 'Requests', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
+    { id: 'audit', label: 'Checklist', icon: Sparkles },
+    { id: 'branding', label: 'Themes', icon: Palette },
+    { id: 'lists', label: 'Content', icon: FileText },
+    { id: 'copy', label: 'Copy', icon: FileText },
+    { id: 'presets', label: 'Presets & Backup', icon: Globe },
     { id: 'content', label: 'Sections', icon: Layout },
-    { id: 'seo', label: 'Clinic & Alerts', icon: Sliders },
+    { id: 'seo', label: 'Clinic Info', icon: Sliders },
   ];
 
   const handleExportBlueprint = () => {
@@ -246,8 +246,8 @@ export function AgencyWorkspace({
           {activeTab === 'branding' && (
             <div className="space-y-6">
               <div>
-                <h3 className="font-bold text-stone-200 text-base">Color Themes</h3>
-                <p className="text-xs text-stone-400">Choose a proven luxury aesthetic.</p>
+                <h3 className="font-semibold text-stone-200 text-sm">Theme</h3>
+                <p className="text-xs text-stone-400">Select active color palette.</p>
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   {Object.values(colorPalettes).map((p) => (
                     <button
@@ -262,7 +262,7 @@ export function AgencyWorkspace({
                           customTextColor: undefined,
                         })
                       }
-                      className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition cursor-pointer ${
+                      className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition cursor-pointer ${
                         clinic.colorPalette === p.id && !hasCustomColors
                           ? 'border-emerald-500 bg-emerald-950/40 text-emerald-300 ring-1 ring-emerald-500/50'
                           : 'border-stone-800 bg-stone-850 hover:border-stone-700'
@@ -279,7 +279,7 @@ export function AgencyWorkspace({
                         />
                       </div>
                       <div className="truncate">
-                        <div className="font-semibold text-xs truncate">{p.name}</div>
+                        <div className="font-medium text-xs truncate">{p.name}</div>
                         <div className="text-[10px] text-stone-400">{p.tagline}</div>
                       </div>
                     </button>
@@ -288,10 +288,10 @@ export function AgencyWorkspace({
               </div>
 
               {/* Custom CSS Hex Pickers */}
-              <div className="p-4 bg-stone-800/40 border border-stone-800 rounded-xl space-y-3">
+              <div className="p-3.5 bg-stone-850 border border-stone-800 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs text-stone-300 flex items-center gap-1.5">
-                    <Paintbrush className="w-3.5 h-3.5 text-emerald-400" /> Granular Hex Overrides
+                  <h4 className="font-medium text-xs text-stone-300 flex items-center gap-1.5">
+                    <Paintbrush className="w-3.5 h-3.5 text-emerald-400" /> Custom Hex Colors
                   </h4>
                   {hasCustomColors && (
                     <button
@@ -349,7 +349,7 @@ export function AgencyWorkspace({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-stone-400 mb-1">Page Canvas Bg</label>
+                    <label className="block text-[11px] text-stone-400 mb-1">Background Color</label>
                     <div className="flex gap-2 items-center">
                       <input
                         type="color"
@@ -388,25 +388,25 @@ export function AgencyWorkspace({
 
               {/* Font Pairings */}
               <div>
-                <h3 className="font-bold text-stone-200 text-base">Typography Pairings</h3>
+                <h3 className="font-semibold text-stone-200 text-sm">Font Pairings</h3>
                 <div className="grid grid-cols-1 gap-2 mt-2">
                   {[
-                    { id: 'classic-editorial', name: 'Playfair Display + Plus Jakarta', style: 'High-end clinical luxury' },
-                    { id: 'modern-sans', name: 'Inter + Montserrat', style: 'Clinical, precise, corporate' },
-                    { id: 'warm-editorial', name: 'Lora + Inter', style: 'Welcoming, human, empathetic' },
-                    { id: 'bold-contemporary', name: 'Syne + Space Grotesk', style: 'Cutting-edge sports medicine' },
-                    { id: 'refined-elegance', name: 'Cinzel + Plus Jakarta', style: 'Prestige private practice' },
+                    { id: 'classic-editorial', name: 'Playfair Display + Plus Jakarta', style: 'Serif / Sans' },
+                    { id: 'modern-sans', name: 'Inter + Montserrat', style: 'Clean Sans' },
+                    { id: 'warm-editorial', name: 'Lora + Inter', style: 'Editorial Serif' },
+                    { id: 'bold-contemporary', name: 'Syne + Space Grotesk', style: 'Display Sans' },
+                    { id: 'refined-elegance', name: 'Cinzel + Plus Jakarta', style: 'Formal Serif' },
                   ].map((fp) => (
                     <button
                       key={fp.id}
                       onClick={() => onUpdateClinic({ ...clinic, fontPairing: fp.id })}
-                      className={`p-3 rounded-xl border text-left transition ${
+                      className={`p-2.5 rounded-lg border text-left transition cursor-pointer ${
                         (clinic.fontPairing || 'classic-editorial') === fp.id
-                          ? 'border-emerald-500 bg-emerald-950/20 text-emerald-300'
+                          ? 'border-emerald-500 bg-emerald-950/30 text-emerald-300'
                           : 'border-stone-800 bg-stone-850 hover:border-stone-700'
                       }`}
                     >
-                      <div className="font-semibold text-xs text-stone-100">{fp.name}</div>
+                      <div className="font-medium text-xs text-stone-100">{fp.name}</div>
                       <div className="text-[11px] text-stone-400">{fp.style}</div>
                     </button>
                   ))}
@@ -424,8 +424,8 @@ export function AgencyWorkspace({
           {activeTab === 'copy' && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-bold text-stone-200 text-base">Site Copy & Core Messaging</h3>
-                <p className="text-xs text-stone-400">Modify live headlines and doctor bio copy.</p>
+                <h3 className="font-semibold text-stone-200 text-sm">Site Copy</h3>
+                <p className="text-xs text-stone-400">Headlines and doctor profile text.</p>
               </div>
 
               <div className="space-y-3">
@@ -440,7 +440,7 @@ export function AgencyWorkspace({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Hero Main Headline</label>
+                  <label className="block text-xs text-stone-400 mb-1">Hero Headline</label>
                   <textarea
                     rows={2}
                     value={clinic.heroTitle || ''}
@@ -460,7 +460,7 @@ export function AgencyWorkspace({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Lead Doctor Name</label>
+                  <label className="block text-xs text-stone-400 mb-1">Doctor Name</label>
                   <input
                     type="text"
                     value={clinic.doctorName || ''}
@@ -470,7 +470,7 @@ export function AgencyWorkspace({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Doctor Credentials</label>
+                  <label className="block text-xs text-stone-400 mb-1">Credentials</label>
                   <input
                     type="text"
                     value={clinic.doctorCredentials || ''}
@@ -480,7 +480,7 @@ export function AgencyWorkspace({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Doctor Philosophy Quote</label>
+                  <label className="block text-xs text-stone-400 mb-1">Doctor Quote</label>
                   <textarea
                     rows={3}
                     value={clinic.doctorQuote || ''}
@@ -492,72 +492,72 @@ export function AgencyWorkspace({
             </div>
           )}
 
-          {/* TAB 6: PRESETS & CLONE / BACKUP ENGINE */}
+          {/* TAB 6: PRESETS & BACKUP */}
           {activeTab === 'presets' && (
             <div className="space-y-6">
               <div>
-                <h3 className="font-bold text-stone-200 text-base">Client Demonstration Profiles</h3>
-                <p className="text-xs text-stone-400">1-click switch between target client niches.</p>
+                <h3 className="font-semibold text-stone-200 text-sm">Presets</h3>
+                <p className="text-xs text-stone-400">Load a pre-configured clinic preset.</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {Object.entries(agencyDemoPresets).map(([key, preset]) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => onUpdateClinic({ ...clinic, ...preset })}
-                    className="p-4 bg-stone-800/60 border border-stone-700/80 rounded-xl text-left hover:border-emerald-500/60 transition group"
+                    className="p-3 bg-stone-850 border border-stone-800 rounded-lg text-left hover:border-stone-700 transition cursor-pointer"
                   >
-                    <div className="font-bold text-stone-100 group-hover:text-emerald-400 transition">
+                    <div className="font-medium text-xs text-stone-100">
                       {preset.name}
                     </div>
-                    <div className="text-xs text-stone-400">
+                    <div className="text-[11px] text-stone-400">
                       {preset.city}, {preset.state || ''}
                     </div>
                   </button>
                 ))}
               </div>
 
-              {/* Blueprint Clone Engine */}
-              <div className="p-4 bg-stone-800/40 border border-stone-700/80 rounded-xl space-y-4 mt-6">
+              {/* Backup / Export */}
+              <div className="p-3.5 bg-stone-850 border border-stone-800 rounded-lg space-y-3 mt-4">
                 <div>
-                  <h4 className="font-bold text-sm text-stone-100 flex items-center gap-1.5">
-                    <Download className="w-4 h-4 text-emerald-400" /> Blueprint Backup & Transfer Engine
+                  <h4 className="font-medium text-xs text-stone-200 flex items-center gap-1.5">
+                    <Download className="w-3.5 h-3.5 text-emerald-400" /> Export & Import
                   </h4>
-                  <p className="text-xs text-stone-400 mt-1">
-                    Download this clinic's complete profile or clone it into another deployment.
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Save clinic configuration to JSON or restore from file.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleExportBlueprint}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
                   >
-                    <Download className="w-3.5 h-3.5" /> Download Blueprint (.json)
+                    <Download className="w-3.5 h-3.5" /> Download JSON
                   </button>
                   <button
                     onClick={handleCopyJson}
-                    className="px-3.5 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-stone-700 transition"
+                    className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-stone-700 transition cursor-pointer"
                   >
                     {jsonCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{jsonCopied ? 'Copied to Clipboard!' : 'Copy JSON'}</span>
+                    <span>{jsonCopied ? 'Copied' : 'Copy JSON'}</span>
                   </button>
                 </div>
 
-                <div className="pt-2 border-t border-stone-700/60">
-                  <label className="block text-xs font-semibold text-stone-300 mb-1.5">
-                    Import Blueprint from File or Paste JSON
+                <div className="pt-2 border-t border-stone-800">
+                  <label className="block text-[11px] font-medium text-stone-300 mb-1">
+                    Restore from JSON
                   </label>
                   <input
                     type="file"
                     accept=".json"
                     onChange={handleFileUpload}
-                    className="block w-full text-xs text-stone-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-stone-700 file:text-stone-200 hover:file:bg-stone-600 cursor-pointer mb-2"
+                    className="block w-full text-xs text-stone-400 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-medium file:bg-stone-700 file:text-stone-200 hover:file:bg-stone-600 cursor-pointer mb-2"
                   />
                   <textarea
                     rows={2}
-                    placeholder="Or paste JSON blueprint here..."
+                    placeholder="Or paste JSON string here..."
                     value={importJsonText}
                     onChange={(e) => setImportJsonText(e.target.value)}
                     className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 font-mono"
@@ -566,9 +566,9 @@ export function AgencyWorkspace({
                   {importJsonText && (
                     <button
                       onClick={handleImportJson}
-                      className="mt-2 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg"
+                      className="mt-2 px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg cursor-pointer"
                     >
-                      Apply Pasted JSON
+                      Apply JSON
                     </button>
                   )}
                 </div>
@@ -580,20 +580,20 @@ export function AgencyWorkspace({
           {activeTab === 'content' && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-bold text-stone-200 text-base">Homepage Section Visibility</h3>
+                <h3 className="font-semibold text-stone-200 text-sm">Sections & Navigation</h3>
                 <p className="text-xs text-stone-400">Toggle sections and pages.</p>
               </div>
-              <div className="space-y-2 pt-2">
+              <div className="space-y-1.5 pt-1">
                 {[
-                  { key: 'showTrustBar', label: 'Trust Bar & Ratings' },
-                  { key: 'showConditions', label: 'Conditions & Symptom Selector' },
-                  { key: 'showWhyUs', label: 'Why Us / Value Proposition' },
-                  { key: 'showTheProcess', label: '3-Step Patient Process' },
-                  { key: 'showTheDoctor', label: 'Doctor / Specialist Profile' },
-                  { key: 'showPatients', label: 'Patient Reviews & Social Proof' },
-                  { key: 'showTheClinic', label: 'Clinic Facility Gallery' },
-                  { key: 'showInsurancePayment', label: 'Insurance & Payment Options' },
-                  { key: 'showFAQ', label: 'Frequently Asked Questions' },
+                  { key: 'showTrustBar', label: 'Ratings Bar' },
+                  { key: 'showConditions', label: 'Conditions Treated' },
+                  { key: 'showWhyUs', label: 'Why Choose Us' },
+                  { key: 'showTheProcess', label: '3-Step Process' },
+                  { key: 'showTheDoctor', label: 'Doctor Profile' },
+                  { key: 'showPatients', label: 'Patient Reviews' },
+                  { key: 'showTheClinic', label: 'Clinic Gallery' },
+                  { key: 'showInsurancePayment', label: 'Insurance & Payment' },
+                  { key: 'showFAQ', label: 'FAQs' },
                   { key: 'showNavConditions', label: 'Page: Conditions' },
                   { key: 'showNavFirstVisit', label: 'Page: First Visit' },
                   { key: 'showNavAbout', label: 'Page: About' },
@@ -604,9 +604,9 @@ export function AgencyWorkspace({
                   return (
                     <label
                       key={key}
-                      className="flex items-center justify-between p-3 bg-stone-800/40 border border-stone-800 rounded-xl cursor-pointer hover:border-stone-700 transition"
+                      className="flex items-center justify-between p-2.5 bg-stone-850 border border-stone-800 rounded-lg cursor-pointer hover:border-stone-700 transition"
                     >
-                      <span className="text-xs font-medium text-stone-300">{label}</span>
+                      <span className="text-xs text-stone-300">{label}</span>
                       <input
                         type="checkbox"
                         checked={isVisible}
@@ -624,13 +624,13 @@ export function AgencyWorkspace({
           {activeTab === 'seo' && (
             <div className="space-y-6">
               {/* Emergency Alert Banner System */}
-              <div className="p-4 bg-stone-800/60 border border-stone-700/80 rounded-xl space-y-3">
+              <div className="p-3.5 bg-stone-850 border border-stone-800 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs text-stone-200 flex items-center gap-1.5">
-                    <Bell className="w-3.5 h-3.5 text-amber-400" /> Global Announcement / Alert Bar
+                  <h4 className="font-medium text-xs text-stone-200 flex items-center gap-1.5">
+                    <Bell className="w-3.5 h-3.5 text-amber-400" /> Announcement Banner
                   </h4>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <span className="text-xs text-stone-400">Broadcast</span>
+                    <span className="text-xs text-stone-400">Enabled</span>
                     <input
                       type="checkbox"
                       checked={banner.enabled}
@@ -646,12 +646,12 @@ export function AgencyWorkspace({
                 </div>
 
                 {banner.enabled && (
-                  <div className="space-y-2 pt-2 border-t border-stone-700/60 text-xs">
+                  <div className="space-y-2 pt-2 border-t border-stone-800 text-xs">
                     <div>
-                      <label className="block text-[11px] text-stone-400 mb-1">Banner Message</label>
+                      <label className="block text-[11px] text-stone-400 mb-1">Message</label>
                       <input
                         type="text"
-                        placeholder="e.g. Inclement Weather Alert: Practice closing at 3pm today."
+                        placeholder="e.g. Holiday Notice: Clinic closed on Monday."
                         value={banner.message}
                         onChange={(e) =>
                           onUpdateClinic({
@@ -665,10 +665,10 @@ export function AgencyWorkspace({
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[11px] text-stone-400 mb-1">Badge Text</label>
+                        <label className="block text-[11px] text-stone-400 mb-1">Badge</label>
                         <input
                           type="text"
-                          placeholder="Notice / Urgent"
+                          placeholder="Notice"
                           value={banner.badge || ''}
                           onChange={(e) =>
                             onUpdateClinic({
@@ -680,7 +680,7 @@ export function AgencyWorkspace({
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] text-stone-400 mb-1">Color Variant</label>
+                        <label className="block text-[11px] text-stone-400 mb-1">Variant</label>
                         <select
                           value={banner.variant || 'amber'}
                           onChange={(e) =>
@@ -694,10 +694,10 @@ export function AgencyWorkspace({
                           }
                           className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 cursor-pointer"
                         >
-                          <option value="amber">Amber (Warning / Alert)</option>
-                          <option value="rose">Rose (Emergency / Closed)</option>
-                          <option value="emerald">Emerald (Announcement / Promo)</option>
-                          <option value="indigo">Indigo (Information)</option>
+                          <option value="amber">Amber</option>
+                          <option value="rose">Rose</option>
+                          <option value="emerald">Emerald</option>
+                          <option value="indigo">Indigo</option>
                         </select>
                       </div>
                     </div>
@@ -707,10 +707,10 @@ export function AgencyWorkspace({
 
               {/* Clinic Logistics */}
               <div className="space-y-3">
-                <h3 className="font-bold text-stone-200 text-base">Practice Logistics & Scheduling</h3>
+                <h3 className="font-semibold text-stone-200 text-sm">Clinic Details</h3>
 
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Practice Name</label>
+                  <label className="block text-xs text-stone-400 mb-1">Clinic Name</label>
                   <input
                     type="text"
                     value={clinic.name || ''}
@@ -719,7 +719,7 @@ export function AgencyWorkspace({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Phone Number (Display)</label>
+                  <label className="block text-xs text-stone-400 mb-1">Phone (Display)</label>
                   <input
                     type="text"
                     value={clinic.phone || ''}
@@ -728,7 +728,7 @@ export function AgencyWorkspace({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Raw Phone (for tel: dialing)</label>
+                  <label className="block text-xs text-stone-400 mb-1">Phone (Dialing)</label>
                   <input
                     type="text"
                     value={clinic.phoneRaw || ''}
@@ -756,7 +756,7 @@ export function AgencyWorkspace({
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-stone-400 mb-1">City, State / Region</label>
+                    <label className="block text-xs text-stone-400 mb-1">City, State</label>
                     <input
                       type="text"
                       value={clinic.cityState || clinic.city || ''}
@@ -842,16 +842,16 @@ export function AgencyWorkspace({
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400">
+        <div className="p-3.5 bg-stone-950 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400">
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Admin on</span>
+            <span>Saved on this device</span>
           </span>
           <button
             onClick={onClose}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-1.5 rounded-lg transition cursor-pointer"
+            className="bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white font-medium px-3.5 py-1.5 rounded-lg border border-stone-700 transition cursor-pointer"
           >
-            Apply & Close
+            Close
           </button>
         </div>
       </div>
