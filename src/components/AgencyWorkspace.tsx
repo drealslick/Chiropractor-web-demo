@@ -87,7 +87,7 @@ export function AgencyWorkspace({
     badge?: number | string;
   }[] = [
     { id: 'inbox', label: 'Demo Requests', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
-    { id: 'audit', label: 'Health Audit', icon: Sparkles },
+    { id: 'audit', label: 'Site checklist', icon: Sparkles },
     { id: 'branding', label: 'Theme & Colors', icon: Palette },
     { id: 'lists', label: 'Content & FAQs', icon: FileText },
     { id: 'copy', label: 'Site Copy', icon: FileText },
@@ -164,10 +164,7 @@ export function AgencyWorkspace({
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
             <div>
               <h2 className="font-bold text-base text-white tracking-tight flex items-center gap-2">
-                Omniscient Practice Suite
-                <span className="text-[10px] bg-emerald-950 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-800/60 uppercase">
-                  Omnipotent
-                </span>
+                {clinic.name || 'Noir Labs'} Admin
               </h2>
               <div className="flex items-center gap-2 text-[11px] text-stone-400 mt-0.5">
                 <span>{clinic.name || 'Private Practice'}</span>
@@ -813,7 +810,7 @@ export function AgencyWorkspace({
         <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400">
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Omniscient Control Active</span>
+            <span>Admin on</span>
           </span>
           <button
             onClick={onClose}

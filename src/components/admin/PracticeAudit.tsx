@@ -3,13 +3,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  ShieldCheck,
-  Globe,
   Sparkles,
-  Database,
-  Calendar,
-  Layers,
-  FileCheck,
 } from 'lucide-react';
 import { ClinicInfo } from '../../types';
 
@@ -33,15 +27,19 @@ export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAudit
 
   // 1. Local SEO & Schema Audit
   const hasCompleteAddress = Boolean(clinic.address && (clinic.cityState || clinic.city) && clinic.zip);
+  const formattedAddress = hasCompleteAddress
+    ? `${clinic.address}, ${clinic.cityState || clinic.city || ''} ${clinic.zip || ''}`.trim().replace(/,\s*,/g, ',').replace(/\s+/g, ' ')
+    : '';
+
   auditItems.push({
     id: 'address',
     category: 'seo',
     title: 'Local NAP & Schema Address',
     status: hasCompleteAddress ? 'pass' : 'warning',
     detail: hasCompleteAddress
-      ? `${clinic.address}, ${clinic.cityState || clinic.city} ${clinic.zip}`
+      ? formattedAddress
       : 'Address is missing street, city, or postal code.',
-    recommendation: 'Complete address is mandatory for Google Maps 3-Pack rankings and Schema.org injection.',
+    recommendation: 'Complete address is mandatory for Google Maps rankings and Schema.org integration.',
   });
 
   const hasPhone = Boolean(clinic.phone);
@@ -51,7 +49,7 @@ export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAudit
     title: 'Direct Click-to-Call Line',
     status: hasPhone ? 'pass' : 'fail',
     detail: hasPhone ? clinic.phone! : 'No phone number configured.',
-    recommendation: 'Patients with severe acute pain call immediately from mobile.',
+    recommendation: 'Ensures patients with severe acute pain can call immediately from mobile device taps.',
   });
 
   const hasHours = Boolean(clinic.hoursWeekday);
@@ -71,8 +69,8 @@ export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAudit
     title: 'Patient Intake / Scheduling Engine',
     status: hasBooking ? 'pass' : 'warning',
     detail: clinic.externalBookingUrl
-      ? `External URL connected (${clinic.externalBookingUrl.slice(0, 32)}...)`
-      : 'Integrated interactive 3-step booking modal enabled with $49 promotion.',
+      ? 'Calendar linked'
+      : 'Integrated interactive 3-step booking modal enabled.',
   });
 
   const hasPricing = Boolean(clinic.examFee);
@@ -82,7 +80,6 @@ export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAudit
     title: 'Transparent Pricing & Fees',
     status: hasPricing ? 'pass' : 'warning',
     detail: hasPricing ? `Exam Fee: ${clinic.examFee}` : 'No explicit examination fee label configured.',
-    recommendation: 'Transparent pricing reduces booking hesitation by 40% for cash & private patients.',
   });
 
   // 3. Clinical Credibility
@@ -123,7 +120,7 @@ export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAudit
     status: hasSupabase ? 'pass' : 'warning',
     detail: hasSupabase
       ? `Supabase Cloud Connected (Status: ${syncStatus})`
-      : 'LocalStorage Cache Active (Set Supabase env vars in .env to enable multi-device cloud replication).',
+      : 'LocalStorage Cache Active (Configure Supabase env vars to enable multi-device cloud replication).',
   });
 
   const hasAnnouncement = Boolean(clinic.announcementBanner?.enabled);
@@ -137,45 +134,20 @@ export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAudit
       : 'Announcement banner is idle. Ready to broadcast weather or holiday notices.',
   });
 
-  // Calculate Health Score
-  const passCount = auditItems.filter((i) => i.status === 'pass').length;
-  const healthScore = Math.round((passCount / auditItems.length) * 100);
-
   return (
     <div className="space-y-6">
-      {/* Overall Score Card */}
-      <div className="p-5 rounded-2xl bg-gradient-to-br from-stone-800 to-stone-900 border border-stone-700/80 shadow-xl flex items-center justify-between">
-        <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Omniscient Health Audit
-          </span>
-          <h3 className="text-xl font-bold text-white mt-1">Practice Readiness</h3>
-          <p className="text-xs text-stone-400 mt-0.5">
-            Real-time verification of local SEO schema, conversion mechanics, and clinic data.
-          </p>
-        </div>
-
-        <div className="text-right">
-          <div className="inline-flex items-baseline gap-1 bg-stone-950/80 px-4 py-2 rounded-xl border border-stone-800">
-            <span
-              className={`text-3xl font-extrabold ${
-                healthScore >= 90
-                  ? 'text-emerald-400'
-                  : healthScore >= 70
-                  ? 'text-amber-400'
-                  : 'text-red-400'
-              }`}
-            >
-              {healthScore}%
-            </span>
-          </div>
-          <span className="block text-[10px] text-stone-500 font-semibold mt-1">
-            {passCount} / {auditItems.length} Verification Checks
-          </span>
-        </div>
+      {/* Title Header without the 90% score badge */}
+      <div className="p-5 rounded-2xl bg-gradient-to-br from-stone-800 to-stone-900 border border-stone-700/80 shadow-xl">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5" /> Practice Checklist
+        </span>
+        <h3 className="text-xl font-bold text-white mt-1">Practice Readiness</h3>
+        <p className="text-xs text-stone-400 mt-0.5">
+          Real-time verification of local SEO tags, booking integration states, and clinic configurations.
+        </p>
       </div>
 
-      {/* Audit List */}
+      {/* Checklist List */}
       <div className="space-y-2.5">
         {auditItems.map((item) => {
           return (

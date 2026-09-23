@@ -264,11 +264,11 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
                   )}
                 </div>
 
-                {/* Patient Notes */}
+                {/* Callback note */}
                 {lead.notes && (
                   <div className="p-2.5 bg-stone-900/60 rounded-lg text-xs text-stone-300 mt-2 border border-stone-700/40">
                     <span className="text-stone-500 font-semibold block text-[10px] mb-0.5 uppercase tracking-wider">
-                      Patient Notes
+                      Callback note
                     </span>
                     <p className="whitespace-pre-line text-stone-300 leading-relaxed">{lead.notes}</p>
                   </div>
@@ -307,7 +307,7 @@ export function LeadsInbox({ clinicName }: LeadsInboxProps) {
 
       {leads.length > 0 && (
         <div className="pt-2 flex justify-between items-center text-xs text-stone-500">
-          <span>{leads.length} records stored in local CRM</span>
+          <span>{leads.length} records saved on this device</span>
           <button
             onClick={handleClearAll}
             className="text-stone-500 hover:text-red-400 text-xs underline"
