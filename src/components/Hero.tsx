@@ -98,7 +98,12 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-stone-900/85 backdrop-blur-md text-stone-100 px-4 py-2 rounded-lg text-xs font-medium border border-white/10 flex items-center gap-2 shadow-sm"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>{clinic.heroImageCaption || `Dr. ${clinic.doctorName.replace('Dr. ', '')} in the ${clinic.city} treatment suite`}</span>
+            <span>
+              {clinic.heroImageCaption ||
+                (clinic.doctorName.startsWith('Dr.')
+                  ? `${clinic.doctorName} in the ${clinic.city} treatment suite`
+                  : `${clinic.doctorName} at ${clinic.name}`)}
+            </span>
           </motion.div>
         </div>
       </motion.div>

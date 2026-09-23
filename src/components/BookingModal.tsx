@@ -91,7 +91,43 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   ];
 
   const currentDay = nextDays[selectedDayIndex] || nextDays[0];
-  const availableSlots = currentDay?.isSaturday ? timeSlotsSaturday : timeSlotsWeekday;
+  const allSlots = currentDay?.isSaturday ? timeSlotsSaturday : timeSlotsWeekday;
+
+  // Determine taken/booked slots based on recorded leads + realistic schedule simulation
+  const takenSlotsForDay = React.useMemo(() => {
+    if (!currentDay) return new Set<string>();
+    const taken = new Set<string>();
+    
+    // 1. Any actual booked lead from local storage/leads store
+    try {
+      const stored = localStorage.getItem('agency_patient_leads_v1');
+      if (stored) {
+        const leads = JSON.parse(stored);
+        leads.forEach((l: { date?: string; time?: string; status?: string }) => {
+          if (l.date === currentDay.dateString && l.time && l.status !== 'archived') {
+            taken.add(l.time);
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Realistic schedule simulation: prime busy clinic hours (e.g. 10:15 AM, 3:00 PM) based on day index
+    const dateNum = currentDay.dayNumber;
+    if (dateNum % 2 === 0) {
+      taken.add('10:15 AM');
+      taken.add('4:15 PM');
+    } else {
+      taken.add('11:30 AM');
+      taken.add('3:00 PM');
+    }
+    if (currentDay.isSaturday) {
+      taken.add('10:45 AM');
+    }
+
+    return taken;
+  }, [currentDay, step]);
 
   const handleConditionSelect = (cond: string) => {
     setFormData(prev => ({ ...prev, condition: cond }));
@@ -99,6 +135,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleTimeSelect = (slot: string) => {
+    if (takenSlotsForDay.has(slot)) return;
     setFormData(prev => ({
       ...prev,
       date: currentDay.dateString,
@@ -107,13 +144,50 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setStep(3);
   };
 
+  const feeDisplay = clinic.examFee || (clinic.currencySymbol === '£' ? '£45' : '$49');
+  const doctorDisplayName = clinic.doctorName?.startsWith('Dr.')
+    ? clinic.doctorName
+    : clinic.doctorName || 'our lead practitioner';
+
+  // Build prefilled external URL for JaneApp / Calendly / Acuity / Cliniko
+  const prefilledExternalUrl = React.useMemo(() => {
+    if (!clinic.externalBookingUrl) return '';
+    try {
+      const url = new URL(clinic.externalBookingUrl);
+      const nameParts = (formData.name || '').trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      if (formData.name) url.searchParams.set('name', formData.name);
+      if (firstName) url.searchParams.set('first_name', firstName);
+      if (lastName) url.searchParams.set('last_name', lastName);
+      if (formData.email) url.searchParams.set('email', formData.email);
+      if (formData.phone) url.searchParams.set('phone', formData.phone);
+      if (formData.condition) {
+        url.searchParams.set('condition', formData.condition);
+        url.searchParams.set('a1', formData.condition); // Calendly question 1
+      }
+      return url.toString();
+    } catch {
+      const params = new URLSearchParams();
+      if (formData.name) params.set('name', formData.name);
+      if (formData.email) params.set('email', formData.email);
+      if (formData.phone) params.set('phone', formData.phone);
+      if (formData.condition) params.set('condition', formData.condition);
+      const q = params.toString();
+      return clinic.externalBookingUrl.includes('?')
+        ? `${clinic.externalBookingUrl}&${q}`
+        : `${clinic.externalBookingUrl}?${q}`;
+    }
+  }, [clinic.externalBookingUrl, formData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.email) {
       alert('Please fill in your name, phone number, and email.');
       return;
     }
-    // Save to Omniscient Lead Inbox
+    // Save to Lead Inbox (always captured)
     saveLead({
       source: 'booking',
       name: formData.name,
@@ -123,7 +197,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       date: formData.date,
       time: formData.time,
       clinicName: clinic.name,
-      notes: `Special rate requested: $49 Initial Exam. Preferred slot: ${formData.date} at ${formData.time}`,
+      notes: `Requested: Initial Consultation (${feeDisplay}). Preferred slot: ${formData.date} at ${formData.time}`,
       status: 'new',
     });
     setStep(4);
@@ -137,124 +211,65 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        clinic.externalBookingUrl ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/70 backdrop-blur-sm"
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/70 backdrop-blur-sm"
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
+            role="dialog"
+            aria-modal="true"
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-md overflow-hidden flex flex-col p-6 text-stone-900"
-              role="dialog"
-              aria-modal="true"
-            >
-              <div className="flex justify-between items-start mb-4">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
+              <div>
                 <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
-                  Secure Live Booking
+                  {step === 4 ? 'Appointment Request' : `Step ${step} of 3`}
                 </span>
-                <button
-                  onClick={resetAndClose}
-                  className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <h2 className="text-xl font-serif font-bold text-stone-900 leading-tight">
+                  {step === 1 && 'What brings you in?'}
+                  {step === 2 && 'Choose a date & time'}
+                  {step === 3 && 'Your details'}
+                  {step === 4 && 'Request Confirmed'}
+                </h2>
+                <p className="text-xs text-stone-500">
+                  Online appointment request
+                </p>
               </div>
+              <button
+                onClick={resetAndClose}
+                aria-label="Close booking modal"
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <div className="text-center py-4 space-y-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div className="space-y-1.5">
-                  <h3 className="text-lg font-serif font-bold text-stone-900">
-                    Secure Practice Calendar
-                  </h3>
-                  <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto">
-                    To protect your medical health data privacy and view real-time availability, bookings for Dr. {clinic.doctorName?.replace('Dr. ', '')} are managed securely via JaneApp or Calendly.
-                  </p>
-                </div>
-
-                <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-[11px] text-stone-600">
-                  You are about to be redirected to our HIPAA & GDPR compliant external diary.
-                </div>
-
-                <a
-                  href={clinic.externalBookingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={resetAndClose}
-                  className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 transition text-white font-semibold rounded-xl block text-center text-sm shadow-md cursor-pointer"
-                >
-                  Open secure Booking Diary →
-                </a>
+            {/* Progress bar */}
+            {step < 4 && (
+              <div className="w-full bg-stone-100 h-1">
+                <div
+                  className="bg-emerald-700 h-1 transition-all duration-300"
+                  style={{ width: `${(step / 3) * 100}%` }}
+                />
               </div>
-            </motion.div>
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/70 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh]"
-              role="dialog"
-              aria-modal="true"
-            >
-              {/* Header */}
-              <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-800">
-                    {step === 4 ? 'Appointment Request' : `Step ${step} of 3`}
-                  </span>
-                  <h2 className="text-xl font-serif font-bold text-stone-900 leading-tight">
-                    {step === 1 && 'What brings you in?'}
-                    {step === 2 && 'Choose a date & time'}
-                    {step === 3 && 'Your details'}
-                    {step === 4 && 'Request Confirmed'}
-                  </h2>
-                  <p className="text-xs text-stone-500">
-                    Demo request simulator. Live clinics replace this with Jane or Calendly.
-                  </p>
-                </div>
-                <button
-                  onClick={resetAndClose}
-                  aria-label="Close booking modal"
-                  className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/60 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+            )}
 
-              {/* Progress bar */}
-              {step < 4 && (
-                <div className="w-full bg-stone-100 h-1">
-                  <div
-                    className="bg-emerald-700 h-1 transition-all duration-300"
-                    style={{ width: `${(step / 3) * 100}%` }}
-                  />
-                </div>
-              )}
-
-              {/* Body */}
-              <div className="p-6 overflow-y-auto flex-1">
+            {/* Body */}
+            <div className="p-6 overflow-y-auto flex-1">
           
           {/* STEP 1: What brings you in? */}
           {step === 1 && (
             <div className="space-y-4">
               <p className="text-sm text-stone-600">
-                Select the primary issue you'd like Dr. {clinic.doctorName.replace('Dr. ', '')} to evaluate:
+                Select the primary issue you'd like {doctorDisplayName} to evaluate:
               </p>
 
               <div className="grid grid-cols-1 gap-2.5 pt-2">
@@ -282,7 +297,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               <div className="mt-6 p-3 rounded-lg bg-stone-100 border border-stone-200 flex items-center gap-2.5 text-xs text-stone-700">
                 <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span>
-                  <strong>New Patient Special:</strong> $49 initial exam, health history & full consultation applied automatically.
+                  <strong>New Patient Rate:</strong> {feeDisplay} initial consultation & assessment.
                 </span>
               </div>
             </div>
@@ -336,26 +351,55 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               {/* Time slots for selected day */}
               <div className="pt-2">
-                <span className="text-xs uppercase font-bold tracking-wider text-stone-500 block mb-2.5">
-                  Available Openings for {currentDay.dayName}, {currentDay.monthName} {currentDay.dayNumber}
-                </span>
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs uppercase font-bold tracking-wider text-stone-500">
+                    Openings for {currentDay.dayName}, {currentDay.monthName} {currentDay.dayNumber}
+                  </span>
+                  <div className="flex items-center gap-3 text-[10px] text-stone-500">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                      <span>Available</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-stone-400">
+                      <span className="w-2 h-2 rounded-full bg-stone-300" />
+                      <span>Booked</span>
+                    </span>
+                  </div>
+                </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto pr-1">
-                  {availableSlots.map((slot) => {
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto pr-1">
+                  {allSlots.map((slot) => {
+                    const isTaken = takenSlotsForDay.has(slot);
                     const isSelected = formData.time === slot && formData.date === currentDay.dateString;
+
+                    if (isTaken) {
+                      return (
+                        <div
+                          key={slot}
+                          title="This slot is already booked"
+                          className="py-2.5 px-3 rounded-lg border border-stone-200/70 bg-stone-100/80 text-stone-400 text-xs sm:text-sm font-medium text-center flex items-center justify-between cursor-not-allowed select-none opacity-60"
+                        >
+                          <span className="line-through">{slot}</span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 bg-stone-200/80 px-1.5 py-0.5 rounded">
+                            Booked
+                          </span>
+                        </div>
+                      );
+                    }
+
                     return (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => handleTimeSelect(slot)}
-                        className={`py-3 px-3 rounded-lg border text-xs sm:text-sm font-semibold text-center transition-all cursor-pointer ${
+                        className={`py-2.5 px-3 rounded-lg border text-xs sm:text-sm font-semibold text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           isSelected
-                            ? 'border-emerald-800 bg-emerald-800 text-white'
+                            ? 'border-emerald-800 bg-emerald-800 text-white shadow-sm'
                             : 'border-stone-200 hover:border-emerald-700 hover:bg-emerald-50/60 text-stone-800'
                         }`}
                       >
-                        <Clock className="w-3.5 h-3.5 inline mr-1.5 opacity-60" />
-                        {slot}
+                        <Clock className={`w-3.5 h-3.5 ${isSelected ? 'text-emerald-200' : 'text-stone-400'}`} />
+                        <span>{slot}</span>
                       </button>
                     );
                   })}
@@ -457,12 +501,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   id="submit-booking-request-btn"
                   className="w-full py-3.5 px-4 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm tracking-wide rounded-lg shadow-md transition-all active:scale-[0.99] cursor-pointer"
                 >
-                  Confirm Appointment Request ($49 New Patient Special)
+                  Request Appointment ({feeDisplay})
                 </button>
               </div>
 
               <p className="text-[11px] text-stone-500 text-center">
-                We respect your privacy. Your information is strictly protected under HIPAA.
+                Patient information is handled with strict confidentiality.
               </p>
             </form>
           )}
@@ -476,7 +520,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div className="space-y-2">
                 <h3 className="text-2xl font-serif font-bold text-stone-900">
-                  Request Received!
+                  Request Received
                 </h3>
                 {/* Exact prompt copy */}
                 <p className="text-base text-stone-700 font-medium max-w-sm mx-auto leading-relaxed">
@@ -502,25 +546,40 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <span className="font-semibold text-stone-900">{clinic.name}</span>
                 </div>
                 <div className="flex justify-between pt-1 text-emerald-800 font-medium">
-                  <span>Special Rate Applied:</span>
-                  <span>$49 Initial Exam</span>
+                  <span>Initial Exam Rate:</span>
+                  <span>{feeDisplay}</span>
                 </div>
               </div>
 
-              <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={resetAndClose}
-                  className="flex-1 py-3 px-4 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
-                >
-                  Done
-                </button>
-                <a
-                  href={`tel:${clinic.phoneRaw}`}
-                  className="flex-1 py-3 px-4 border border-stone-300 hover:bg-stone-100 text-stone-800 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Phone className="w-4 h-4 text-emerald-700" />
-                  <span>Call Front Desk</span>
-                </a>
+              <div className="pt-2 flex flex-col gap-2.5">
+                {prefilledExternalUrl ? (
+                  <a
+                    href={prefilledExternalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={resetAndClose}
+                    className="w-full py-3.5 px-4 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                  >
+                    <span>Proceed to Live Diary with Pre-filled Info</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                ) : null}
+
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    onClick={resetAndClose}
+                    className="flex-1 py-3 px-4 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  <a
+                    href={`tel:${clinic.phoneRaw}`}
+                    className="flex-1 py-3 px-4 border border-stone-300 hover:bg-stone-100 text-stone-800 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Phone className="w-4 h-4 text-emerald-700" />
+                    <span>Call Front Desk</span>
+                  </a>
+                </div>
               </div>
             </div>
           )}
@@ -528,7 +587,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         </div>
           </motion.div>
         </motion.div>
-        )
       )}
     </AnimatePresence>
   );

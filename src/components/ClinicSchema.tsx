@@ -18,7 +18,11 @@ export function ClinicSchema() {
       addressLocality: clinic.city,
       addressRegion: clinic.state,
       postalCode: clinic.zip,
-      addressCountry: clinic.country || 'GB',
+      addressCountry:
+        clinic.country ||
+        (clinic.state === 'UK' || clinic.state === 'England' || clinic.cityState?.includes('UK')
+          ? 'GB'
+          : 'US'),
     },
     openingHours: [clinic.hoursWeekday, clinic.hoursSaturday].filter(Boolean),
   };
