@@ -47,6 +47,10 @@
 
 /* Custom smooth scrollbar & focus rings */
 *:focus-visible {
+  @keyframes trustStar {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
   outline: 2px solid var(--theme-primary-600);
   outline-offset: 2px;
 }
