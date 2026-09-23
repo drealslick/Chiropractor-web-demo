@@ -28,9 +28,21 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
             className="flex items-center gap-3"
           >
             <div className="flex text-amber-500">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-500" />
-              ))}
+              {[0, 1, 2, 3, 4].map((i) => {
+                const rating = Number(clinic.googleRating || 4.9);
+                const filled = i < Math.round(rating);
+                return (
+                  <Star
+                    key={i}
+                    className={`w-5 h-5 ${
+                      filled ? 'fill-amber-400 text-amber-500' : 'fill-transparent text-stone-300'
+                    }`}
+                    style={{
+                      animation: filled ? `trustStar 0.45s ease ${i * 0.08}s both` : undefined,
+                    }}
+                  />
+                );
+              })}
             </div>
             <div className="flex flex-col">
               {clinic.reviewsUrl ? (
