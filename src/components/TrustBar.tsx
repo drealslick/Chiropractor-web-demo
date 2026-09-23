@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Clock, Users } from 'lucide-react';
+import { Star, Shield, Award, Clock, HeartHandshake } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ClinicInfo } from '../types';
 
@@ -8,113 +8,74 @@ interface TrustBarProps {
 }
 
 export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
+  const rating = Number(clinic.googleRating) || 4.9;
+  const reviewCount = clinic.googleReviewsCount || clinic.googleReviewCount || '140+';
+
+  const trustHighlights = [
+    {
+      icon: Star,
+      primary: `${rating} ★ Rating`,
+      secondary: `${reviewCount} Verified Reviews`,
+      link: clinic.reviewsUrl,
+    },
+    {
+      icon: Award,
+      primary: clinic.doctorCredentials || 'Board Certified DC',
+      secondary: 'Licensed & Insured',
+    },
+    {
+      icon: Clock,
+      primary: 'No Rushed Visits',
+      secondary: 'Dedicated 1-on-1 Doctor Time',
+    },
+    {
+      icon: Shield,
+      primary: 'Zero Long Contracts',
+      secondary: 'Discharged Once You Heal',
+    },
+  ];
+
   return (
-    <section className="border-y border-stone-200/90 bg-stone-100/70 py-6 sm:py-8 overflow-hidden">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-20px' }}
-          transition={{ duration: 0.5, staggerChildren: 0.15 }}
-          className="flex flex-col sm:flex-row items-center justify-around gap-6 sm:gap-4 text-stone-800"
-        >
-          
-          {/* Rating */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4 }}
-            className="flex items-center gap-3"
-          >
-            <div className="flex text-amber-500">
-              {[0, 1, 2, 3, 4].map((i) => {
-                const fromLabel = parseFloat(String(clinic.trustRatingLabel || ''));
-                const rating = Number.isFinite(fromLabel)
-                  ? fromLabel
-                  : Number(clinic.googleRating) || 4.9;
-                const filled = i < Math.round(rating);
-                return (
-                  <Star
-                    key={i}
-                    className={`w-5 h-5 ${
-                      filled ? 'fill-amber-400 text-amber-500' : 'fill-transparent text-stone-300'
-                    }`}
-                    style={{
-                      animation: filled ? `trustStar 0.45s ease ${i * 0.08}s both` : undefined,
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <div className="flex flex-col">
-              {clinic.reviewsUrl ? (
-                <a
-                  href={clinic.reviewsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-bold text-stone-900 text-base leading-tight underline"
-                >
-                  {clinic.trustRatingLabel || "4.9 Google"}
-                </a>
-              ) : (
-                <span className="font-bold text-stone-900 text-base leading-tight">
-                  {clinic.trustRatingLabel || "4.9 Google"}
-                </span>
-              )}
-              <span className="text-xs text-stone-500">
-                {clinic.trustRatingSub || "Verified Patient Reviews"}
-              </span>
-            </div>
-          </motion.div>
-
-          <div className="hidden sm:block w-px h-8 bg-stone-300" />
-
-          {/* Experience */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="flex items-center gap-3"
-          >
-            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-stone-900 text-base leading-tight">
-                {clinic.trustExperienceLabel || `${clinic.doctorYears || '15'}+ Years`}
-              </span>
-              <span className="text-xs text-stone-500">
-                {clinic.trustExperienceSub || "Clinical Excellence"}
-              </span>
-            </div>
-          </motion.div>
-
-          <div className="hidden sm:block w-px h-8 bg-stone-300" />
-
-          {/* Patients */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="flex items-center gap-3"
-          >
-            <div className="w-10 h-10 rounded-full bg-stone-200 text-stone-800 flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-stone-900 text-base leading-tight">
-                {clinic.trustPatientsLabel || "2,000+ Patients"}
-              </span>
-                            <span className="text-xs text-stone-500">
-                {clinic.trustPatientsSub || `Treated in ${clinic.city || clinic.cityState || 'clinic'}`}
-              </span>
-            </div>
-          </motion.div>
-
-        </motion.div>
+    <section className="border-y border-stone-200/90 bg-stone-100/70 py-4 sm:py-5 overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 divide-y sm:divide-y-0 sm:divide-x divide-stone-200/80">
+          {trustHighlights.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: idx * 0.08 }}
+                className={`flex items-center gap-3 ${idx > 0 ? 'pt-3 sm:pt-0 sm:pl-6' : ''}`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-stone-200/70 text-emerald-800 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="text-left leading-tight min-w-0">
+                  {item.link ? (
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-xs sm:text-sm text-stone-900 hover:text-emerald-800 hover:underline truncate block"
+                    >
+                      {item.primary}
+                    </a>
+                  ) : (
+                    <span className="font-bold text-xs sm:text-sm text-stone-900 truncate block">
+                      {item.primary}
+                    </span>
+                  )}
+                  <span className="text-[11px] text-stone-500 truncate block mt-0.5">
+                    {item.secondary}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

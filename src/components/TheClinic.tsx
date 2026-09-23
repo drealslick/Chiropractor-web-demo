@@ -1,4 +1,5 @@
 import React from 'react';
+import { VolumeX, Wind, Clock, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ClinicInfo } from '../types';
 
@@ -8,68 +9,68 @@ interface TheClinicProps {
 
 export const TheClinic: React.FC<TheClinicProps> = ({ clinic }) => {
   return (
-    <section className="py-0 bg-stone-950 overflow-hidden">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-16 md:py-24 bg-stone-950 text-stone-100 overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.5 }}
-          className="sr-only"
-        >
-          <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-2">
-            {clinic.clinicSectionSubtitle || "Our Space"}
+        {/* Section Header */}
+        <div className="max-w-3xl mb-12">
+          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-400 bg-emerald-950 border border-emerald-800/80 px-3 py-1 rounded-md inline-block mb-3">
+            {clinic.clinicSectionSubtitle || "Our Practice Environment"}
           </span>
-          <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
-            {clinic.clinicSectionTitle || "The Clinic"}
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight leading-tight">
+            {clinic.clinicSectionTitle || "A Sanctuary Designed for Focused Healing"}
           </h2>
-        </motion.div>
+          <p className="text-stone-400 text-sm sm:text-base mt-3 leading-relaxed">
+            We intentionally designed our space to feel like a tranquil private retreat rather than a sterile medical office.
+          </p>
+        </div>
 
-        {/* Big Photo — treatment room, waiting area, or detail shot */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98, y: 25 }}
-          whileInView={{ opacity: 1, scale: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-          className="relative rounded-2xl overflow-hidden shadow-lg border border-stone-200 bg-stone-100 mb-8 group"
-        >
+        {/* Big Architectural Photography Carrier */}
+        <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-stone-800 bg-stone-900 mb-10 group">
           <img
             src={clinic.clinicImage}
-            alt={`Modern treatment room at ${clinic.name}`}
-            className="w-full h-[360px] sm:h-[480px] md:h-[560px] object-cover transition-transform duration-700 group-hover:scale-[1.01]"
+            alt={`Private treatment room at ${clinic.name}`}
+            className="w-full h-[360px] sm:h-[480px] md:h-[540px] object-cover transition-transform duration-700 group-hover:scale-[1.01]"
             loading="lazy"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-transparent to-transparent flex items-end">
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="p-6 sm:p-10 text-white max-w-xl"
-            >
-              <p className="text-2xl sm:text-3xl font-serif italic text-white font-medium">
-                "{clinic.clinicQuote || "The experience matters."}"
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/20 to-transparent flex items-end">
+            <div className="p-6 sm:p-10 text-white max-w-xl">
+              <p className="text-xl sm:text-2xl font-serif italic text-white font-medium">
+                "{clinic.clinicQuote || "The clinical environment directly affects the nervous system."}"
               </p>
-              <p className="text-xs sm:text-sm text-stone-200/90 mt-2">
-                {clinic.clinicQuoteDescription || "A calm, quiet clinic environment designed for focused assessment, unhurried care, and complete recovery."}
+              <p className="text-xs sm:text-sm text-stone-300 mt-2">
+                {clinic.clinicQuoteDescription ||
+                  "A calm, quiet clinic environment designed for focused diagnostic assessment, unhurried care, and deep restorative recovery."}
               </p>
-            </motion.div>
-        {((clinic as ClinicInfo & { clinicGallery?: string[] }).clinicGallery || []).length > 0 && (
-          <div className="grid grid-cols-2 gap-3 mt-4 px-4 sm:px-0 max-w-5xl mx-auto pb-10">
-            {((clinic as ClinicInfo & { clinicGallery?: string[] }).clinicGallery || []).map((src) => (
-              <img
-                key={src}
-                src={src}
-                alt={`${clinic.name} clinic`}
-                className="w-full h-40 sm:h-56 object-cover rounded-xl"
-              />
-            ))}
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* 3 Sanctuary Features Grid */}
+        <div className="grid sm:grid-cols-3 gap-6">
+          <div className="p-6 rounded-2xl bg-stone-900 border border-stone-800 space-y-2">
+            <VolumeX className="w-5 h-5 text-emerald-400 mb-2" />
+            <h3 className="font-bold text-sm text-stone-100">Private Acoustic Suites</h3>
+            <p className="text-xs text-stone-400 leading-relaxed">
+              No curtain cubicles or crowded gym floors. Every consult and treatment takes place in private, sound-dampened rooms.
+            </p>
           </div>
-        </motion.div>
+          <div className="p-6 rounded-2xl bg-stone-900 border border-stone-800 space-y-2">
+            <Clock className="w-5 h-5 text-emerald-400 mb-2" />
+            <h3 className="font-bold text-sm text-stone-100">Zero-Wait Guarantee</h3>
+            <p className="text-xs text-stone-400 leading-relaxed">
+              We never double-book time slots. When you arrive for your scheduled time, your doctor is ready for you.
+            </p>
+          </div>
+          <div className="p-6 rounded-2xl bg-stone-900 border border-stone-800 space-y-2">
+            <Wind className="w-5 h-5 text-emerald-400 mb-2" />
+            <h3 className="font-bold text-sm text-stone-100">Clean Air & Natural Light</h3>
+            <p className="text-xs text-stone-400 leading-relaxed">
+              Continuous medical-grade HEPA filtration, organic botanical accents, and calming circadian illumination.
+            </p>
+          </div>
+        </div>
 
       </div>
     </section>
