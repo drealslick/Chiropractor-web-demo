@@ -53,29 +53,20 @@ export function GlobalAgencyController() {
   // 2. Global CSS Variables & Color Themes injection across all pages
   useEffect(() => {
     const config = resolvePalette(clinic.colorPalette);
+    const primary = clinic.customPrimaryColor || config.variables['--color-primary'];
+    const accent = clinic.customAccentColor || config.variables['--color-accent'];
+    const bg = clinic.customBgColor || config.variables['--color-bg'];
+    const text = clinic.customTextColor || config.variables['--color-text'];
 
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-      Object.entries(config.variables).forEach(([cssVar, colorVal]) => {
-        root.style.setProperty(cssVar, colorVal);
-      });
-
-      if (clinic.customPrimaryColor) {
-        root.style.setProperty('--theme-primary-500', clinic.customPrimaryColor);
-        root.style.setProperty('--theme-primary-600', clinic.customPrimaryColor);
-        root.style.setProperty('--theme-primary-700', clinic.customPrimaryColor);
-        root.style.setProperty('--theme-primary-800', clinic.customPrimaryColor);
-      }
-      if (clinic.customAccentColor) {
-        root.style.setProperty('--theme-accent', clinic.customAccentColor);
-      }
-      if (clinic.customBgColor) {
-        root.style.setProperty('--theme-bg-page', clinic.customBgColor);
-      }
-      if (clinic.customTextColor) {
-        root.style.setProperty('--theme-primary-950', clinic.customTextColor);
-      }
-    }
+    const root = document.documentElement;
+    root.style.setProperty('--theme-primary-500', primary);
+    root.style.setProperty('--theme-primary-600', primary);
+    root.style.setProperty('--theme-primary-700', primary);
+    root.style.setProperty('--theme-primary-800', primary);
+    root.style.setProperty('--theme-accent', accent);
+    root.style.setProperty('--theme-bg-page', bg);
+    root.style.setProperty('--theme-primary-950', text);
+    root.style.setProperty('--color-primary', primary);
   }, [
     clinic.colorPalette,
     clinic.customPrimaryColor,
