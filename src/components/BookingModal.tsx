@@ -93,12 +93,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const currentDay = nextDays[selectedDayIndex] || nextDays[0];
   const allSlots = currentDay?.isSaturday ? timeSlotsSaturday : timeSlotsWeekday;
 
-  // Determine taken/booked slots based on recorded leads + realistic schedule simulation
+  // Determine taken/booked slots strictly from actual recorded leads
   const takenSlotsForDay = React.useMemo(() => {
     if (!currentDay) return new Set<string>();
     const taken = new Set<string>();
     
-    // 1. Any actual booked lead from local storage/leads store
+    // Read only actual submitted appointments from the leads store
     try {
       const stored = localStorage.getItem('agency_patient_leads_v1');
       if (stored) {
@@ -111,19 +111,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       }
     } catch {
       // ignore
-    }
-
-    // 2. Realistic schedule simulation: prime busy clinic hours (e.g. 10:15 AM, 3:00 PM) based on day index
-    const dateNum = currentDay.dayNumber;
-    if (dateNum % 2 === 0) {
-      taken.add('10:15 AM');
-      taken.add('4:15 PM');
-    } else {
-      taken.add('11:30 AM');
-      taken.add('3:00 PM');
-    }
-    if (currentDay.isSaturday) {
-      taken.add('10:45 AM');
     }
 
     return taken;
@@ -418,10 +405,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       <span>Available</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 text-stone-400">
-                      <span className="w-2 h-2 rounded-full bg-stone-300" />
-                      <span>Booked</span>
-                    </span>
+                    {takenSlotsForDay.size > 0 && (
+                      <span className="inline-flex items-center gap-1 text-stone-400">
+                        <span className="w-2 h-2 rounded-full bg-stone-300" />
+                        <span>Booked</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 
