@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   RotateCcw,
@@ -23,6 +23,8 @@ interface AgencyWorkspaceProps {
   onResetDefault: () => void;
 }
 
+type TabType = 'branding' | 'copy' | 'lists' | 'presets' | 'content' | 'seo';
+
 export function AgencyWorkspace({
   isOpen,
   onClose,
@@ -30,9 +32,15 @@ export function AgencyWorkspace({
   onUpdateClinic,
   onResetDefault,
 }: AgencyWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<
-    'branding' | 'copy' | 'lists' | 'presets' | 'content' | 'seo'
-  >('branding');
+  const [activeTab, setActiveTab] = useState<TabType>('branding');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -41,9 +49,23 @@ export function AgencyWorkspace({
   const bgVal = clinic.customBgColor || '#f5f5f4';
   const textVal = clinic.customTextColor || '#1c1917';
 
+  const tabs: { id: TabType; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'branding', label: 'Theme & Colors', icon: Palette },
+    { id: 'lists', label: 'FAQs & Conditions', icon: FileText },
+    { id: 'copy', label: 'Site Copy & Text', icon: FileText },
+    { id: 'presets', label: 'Client Demos', icon: Globe },
+    { id: 'content', label: 'Sections', icon: Layout },
+    { id: 'seo', label: 'Clinic Info', icon: Sliders },
+  ];
+
   return (
     <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
-      <div className="w-full max-w-lg bg-stone-900 text-stone-100 h-full flex flex-col shadow-2xl border-l border-stone-800 overflow-hidden">
+      <div 
+        className="w-full max-w-lg bg-stone-900 text-stone-100 h-full flex flex-col shadow-2xl border-l border-stone-800 overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Header */}
         <div className="p-4 sm:p-6 border-b border-stone-800 flex items-center justify-between bg-stone-950">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -61,81 +83,36 @@ export function AgencyWorkspace({
             <button
               onClick={onClose}
               className="p-2 text-stone-400 hover:text-white transition hover:bg-stone-800 rounded-lg"
+              aria-label="Close suite"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <div className="flex border-b border-stone-800 bg-stone-900/50 text-xs font-semibold overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => setActiveTab('branding')}
-            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
-              activeTab === 'branding'
-                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
-                : 'border-transparent text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Theme & Colors</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('lists')}
-            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
-              activeTab === 'lists'
-                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
-                : 'border-transparent text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>FAQs & Conditions</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('copy')}
-            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
-              activeTab === 'copy'
-                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
-                : 'border-transparent text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Site Copy & Text</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('presets')}
-            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
-              activeTab === 'presets'
-                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
-                : 'border-transparent text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Client Demos</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('content')}
-            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
-              activeTab === 'content'
-                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
-                : 'border-transparent text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            <Layout className="w-3.5 h-3.5" />
-            <span>Sections</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('seo')}
-            className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
-              activeTab === 'seo'
-                ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
-                : 'border-transparent text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Clinic Info</span>
-          </button>
+        {/* Tab Strip */}
+        <div className="flex border-b border-stone-800 bg-stone-900/50 text-xs font-semibold overflow-x-auto no-scrollbar whitespace-nowrap">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-3 border-b-2 shrink-0 transition ${
+                  isActive
+                    ? 'border-emerald-500 text-emerald-400 bg-stone-800/50'
+                    : 'border-transparent text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
+        {/* Tab Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-sm">
           {activeTab === 'branding' && (
             <div className="space-y-6">
@@ -190,74 +167,30 @@ export function AgencyWorkspace({
                   <h3 className="font-bold text-stone-200 text-base">Custom Color Palette</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
-                    <label className="block text-xs font-semibold text-stone-300">Primary Color</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={primaryVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
-                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={primaryVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
+                  {[
+                    { label: 'Primary Color', val: primaryVal, key: 'customPrimaryColor' as const },
+                    { label: 'Accent Color', val: accentVal, key: 'customAccentColor' as const },
+                    { label: 'Page Background', val: bgVal, key: 'customBgColor' as const },
+                    { label: 'Text Color', val: textVal, key: 'customTextColor' as const },
+                  ].map(({ label, val, key }) => (
+                    <div key={key} className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
+                      <label className="block text-xs font-semibold text-stone-300">{label}</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={val}
+                          onChange={(e) => onUpdateClinic({ ...clinic, [key]: e.target.value })}
+                          className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
+                        />
+                        <input
+                          type="text"
+                          value={val}
+                          onChange={(e) => onUpdateClinic({ ...clinic, [key]: e.target.value })}
+                          className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
-                    <label className="block text-xs font-semibold text-stone-300">Accent Color</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={accentVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
-                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={accentVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
-                    <label className="block text-xs font-semibold text-stone-300">Page Background</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={bgVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
-                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={bgVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="p-3 bg-stone-800/50 border border-stone-700/80 rounded-xl space-y-2">
-                    <label className="block text-xs font-semibold text-stone-300">Text Color</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={textVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
-                        className="w-9 h-9 rounded-lg border border-stone-600 bg-transparent cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={textVal}
-                        onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
-                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-1.5 text-xs font-mono text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
@@ -353,6 +286,7 @@ export function AgencyWorkspace({
           {activeTab === 'lists' && (
             <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} />
           )}
+
           {activeTab === 'presets' && (
             <div className="space-y-4">
               <div>
@@ -365,7 +299,7 @@ export function AgencyWorkspace({
                     key={key}
                     type="button"
                     onClick={() => onUpdateClinic({ ...clinic, ...preset })}
-                    className="p-4 bg-stone-800/60 border border-stone-700/80 rounded-xl text-left"
+                    className="p-4 bg-stone-800/60 border border-stone-700/80 rounded-xl text-left hover:border-emerald-500/60 transition"
                   >
                     <div className="font-bold text-stone-100">{preset.name}</div>
                     <div className="text-xs text-stone-400">
@@ -376,6 +310,7 @@ export function AgencyWorkspace({
               </div>
             </div>
           )}
+
           {activeTab === 'content' && (
             <div className="space-y-4">
               <div>
@@ -403,7 +338,7 @@ export function AgencyWorkspace({
                   return (
                     <label
                       key={key}
-                      className="flex items-center justify-between p-3 bg-stone-800/40 border border-stone-800 rounded-xl cursor-pointer"
+                      className="flex items-center justify-between p-3 bg-stone-800/40 border border-stone-800 rounded-xl cursor-pointer hover:border-stone-700 transition"
                     >
                       <span className="text-xs font-medium text-stone-300">{label}</span>
                       <input
@@ -435,7 +370,7 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-                                <div>
+                <div>
                   <label className="block text-xs text-stone-400 mb-1">Phone Number</label>
                   <input
                     type="text"
@@ -444,18 +379,16 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Email</label>
                   <input
                     type="email"
-                    value={(clinic as typeof clinic & { email?: string }).email || ''}
-                    onChange={(e) => onUpdateClinic({ ...clinic, email: e.target.value } as typeof clinic)}
+                    value={clinic.email || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, email: e.target.value })}
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
-                                <div>
+                <div>
                   <label className="block text-xs text-stone-400 mb-1">City / Region</label>
                   <input
                     type="text"
@@ -464,7 +397,6 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Trust: rating line</label>
                   <input
@@ -492,18 +424,16 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Google reviews URL</label>
                   <input
                     type="url"
                     placeholder="https://g.page/..."
-                    value={(clinic as ClinicInfo & { reviewsUrl?: string }).reviewsUrl || ''}
-                    onChange={(e) => onUpdateClinic({ ...clinic, reviewsUrl: e.target.value } as ClinicInfo)}
+                    value={clinic.reviewsUrl || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, reviewsUrl: e.target.value })}
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Address</label>
                   <input
@@ -513,7 +443,6 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Postcode</label>
                   <input
@@ -523,17 +452,6 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs text-stone-400 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={(clinic as typeof clinic & { email?: string }).email || ''}
-                    onChange={(e) => onUpdateClinic({ ...clinic, email: e.target.value } as typeof clinic)}
-                    className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Weekday hours</label>
                   <input
@@ -543,7 +461,6 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Saturday hours</label>
                   <input
@@ -553,7 +470,6 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Logo image URL</label>
                   <input
@@ -563,17 +479,16 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Clinic gallery URLs (one per line)</label>
                   <textarea
                     rows={3}
-                    value={((clinic as ClinicInfo & { clinicGallery?: string[] }).clinicGallery || []).join('\n')}
+                    value={(clinic.clinicGallery || []).join('\n')}
                     onChange={(e) =>
                       onUpdateClinic({
                         ...clinic,
                         clinicGallery: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
-                      } as ClinicInfo)
+                      })
                     }
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
@@ -593,7 +508,6 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Offer headline</label>
                   <input
@@ -612,14 +526,13 @@ export function AgencyWorkspace({
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Exam price label</label>
                   <input
                     type="text"
                     placeholder="£65 exam"
-                    value={(clinic as ClinicInfo & { examFee?: string }).examFee || ''}
-                    onChange={(e) => onUpdateClinic({ ...clinic, examFee: e.target.value } as ClinicInfo)}
+                    value={clinic.examFee || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, examFee: e.target.value })}
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
@@ -628,8 +541,8 @@ export function AgencyWorkspace({
                   <input
                     type="text"
                     placeholder="£45 visit"
-                    value={(clinic as ClinicInfo & { followUpFee?: string }).followUpFee || ''}
-                    onChange={(e) => onUpdateClinic({ ...clinic, followUpFee: e.target.value } as ClinicInfo)}
+                    value={clinic.followUpFee || ''}
+                    onChange={(e) => onUpdateClinic({ ...clinic, followUpFee: e.target.value })}
                     className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
@@ -638,6 +551,7 @@ export function AgencyWorkspace({
           )}
         </div>
 
+        {/* Footer */}
         <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between text-xs text-stone-500">
           <span className="flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Total Control Active
