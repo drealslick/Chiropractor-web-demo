@@ -29,7 +29,10 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
           >
             <div className="flex text-amber-500">
               {[0, 1, 2, 3, 4].map((i) => {
-                const rating = Number(clinic.googleRating || 4.9);
+                const rating =
+                  Number(clinic.googleRating) ||
+                  parseFloat(String(clinic.trustRatingLabel || '4.9')) ||
+                  4.9;
                 const filled = i < Math.round(rating);
                 return (
                   <Star
