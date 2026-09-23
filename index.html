@@ -3,45 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Chiropractic Care</title>
-    <meta name="description" content="Personalized chiropractic care for people who refuse to slow down." />
-    <meta property="og:title" content="Chiropractic Care" />
-    <meta property="og:description" content="Personalized chiropractic care for people who refuse to slow down." />
+    <title>Columbus Chiropractic Care | Personalized Chiropractic in Columbus, OH</title>
+    <meta name="description" content="Personalized chiropractic care in Columbus for people who refuse to slow down. Evidence-informed treatment for back, neck, headaches, and sports injuries." />
+    <meta property="og:title" content="Columbus Chiropractic Care | Personalized Chiropractic in Columbus, OH" />
+    <meta property="og:description" content="Personalized chiropractic care in Columbus for people who refuse to slow down. Evidence-informed treatment for back, neck, headaches, and sports injuries." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
   </head>
   <body class="bg-stone-50 text-stone-900 antialiased selection:bg-emerald-100 selection:text-emerald-900">
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></  
-  <!-- Auto-Translating Google Script -->
-  <div id="google_translate_element" style="position: fixed; bottom: 10px; left: 10px; z-index: 9999;"></div>
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'en',
-        autoDisplay: false
-      }, 'google_translate_element');
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- Auto-Translating Google Script -->
+    <div id="google_translate_element" style="position: fixed; bottom: 10px; left: 10px; z-index: 9999;"></div>
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        if (window.google && window.google.translate) {
+          new window.google.translate.TranslateElement({
+            pageLanguage: 'en',
+            autoDisplay: false
+          }, 'google_translate_element');
 
-      // Auto-detect visitor's browser language and trigger translation
-      var userLang = navigator.language || navigator.userLanguage;
-      var langCode = userLang.split('-')[0];
-      if (langCode !== 'en') {
-        setTimeout(function() {
-          var select = document.querySelector('.goog-te-combo');
-          if (select) {
-            select.value = langCode;
-            select.dispatchEvent(new Event('change'));
+          var userLang = navigator.language || navigator.userLanguage;
+          var langCode = userLang ? userLang.split('-')[0] : 'en';
+          if (langCode !== 'en') {
+            setTimeout(function() {
+              var select = document.querySelector('.goog-te-combo');
+              if (select) {
+                select.value = langCode;
+                select.dispatchEvent(new Event('change'));
+              }
+            }, 1000);
           }
-        }, 1000);
+        }
       }
-    }
-  </script>
-  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
-
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   </body>
 </html>
 

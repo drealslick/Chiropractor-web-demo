@@ -19,42 +19,13 @@ import { FinalCTA } from '../components/FinalCTA';
 import { MobileStickyBar } from '../components/MobileStickyBar';
 import { BookingModal } from '../components/BookingModal';
 import { usePageMeta } from '../data/usePageMeta';
-import { AgencyWorkspace } from '../components/AgencyWorkspace';
 
 export default function Home() {
-  const { clinicData: clinic, updateClinic, resetClinic } = useClinic();
+  const { clinicData: clinic } = useClinic();
   usePageMeta('Home', clinic.seoDescription || clinic.tagline);
 
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
-  const [isManagerOpen, setIsManagerOpen] = useState<boolean>(false);
-  const [passcode, setPasscode] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [error, setError] = useState('');
-  const [isStaffMode, setIsStaffMode] = useState<boolean>(false);
   const [selectedConditionForBooking, setSelectedConditionForBooking] = useState<string>('Back pain');
-
-  useEffect(() => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const hasAdminParam = urlParams.get('admin') === 'true' || urlParams.get('agency') === 'true' || urlParams.get('staff') === 'true' || urlParams.get('edit') === 'true';
-      if (hasAdminParam) {
-        setIsStaffMode(true);
-        setIsManagerOpen(true);
-      }
-    } catch {
-      // Ignore search param errors
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
-        e.preventDefault();
-        setIsStaffMode(true);
-        setIsManagerOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   useEffect(() => {
     const config = resolvePalette(clinic.colorPalette);
@@ -152,9 +123,6 @@ export default function Home() {
     }
   }, [clinic.seoTitle, clinic.seoDescription, clinic.name, clinic.tagline]);
 
-  const handleUpdateClinic = updateClinic;
-  const handleResetDefault = resetClinic;
-
   const handleOpenBooking = (conditionTitle?: string) => {
     if (clinic.externalBookingUrl) {
       window.open(clinic.externalBookingUrl, '_blank');
@@ -233,60 +201,6 @@ export default function Home() {
         clinic={clinic}
         initialCondition={selectedConditionForBooking}
       />
-
-      {isManagerOpen && (
-        !isUnlocked ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-            <div className="w-full max-w-xs rounded-xl border border-stone-800 bg-stone-900 p-6 text-white shadow-2xl">
-              <h3 className="mb-1 text-base font-semibold">Admin Verification</h3>
-              <p className="mb-4 text-xs text-stone-400">Enter passcode to open Agency Manager.</p>
-
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                if (passcode === 'Slick2026!') {
-                  setIsUnlocked(true);
-                  setError('');
-                } else {
-                  setError('Incorrect passcode');
-                }
-              }}>
-                <input
-                  type="password"
-                  placeholder="Enter secret passcode"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  className="mb-2 w-full rounded-lg border border-stone-700 bg-stone-800 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
-                />
-                {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
-
-                <div className="flex justify-end gap-2 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsManagerOpen(false)}
-                    className="px-3 py-1.5 text-xs text-stone-400 hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-emerald-500"
-                  >
-                    Unlock
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        ) : (
-          <AgencyWorkspace
-            isOpen={isManagerOpen}
-            onClose={() => setIsManagerOpen(false)}
-            clinic={clinic}
-            onUpdateClinic={handleUpdateClinic}
-            onResetDefault={handleResetDefault}
-          />
-        )
-      )}
     </div>
   );
 }

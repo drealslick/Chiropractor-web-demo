@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useClinic } from '../data/ClinicContext';
+import { saveLead } from '../data/leadsStore';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function Contact() {
   const { clinicData: clinic } = useClinic();
@@ -72,10 +74,24 @@ export default function Contact() {
         onSubmit={(e) => {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
+          const name = String(data.get('name') || '');
+          const phone = String(data.get('phone') || '');
+          const email = String(data.get('email') || '');
+          const message = String(data.get('message') || '');
+
+          saveLead({
+            source: 'contact',
+            name: name || 'Website Visitor',
+            phone,
+            email,
+            condition: 'Contact Inquiry',
+            notes: message,
+            clinicName: clinic.name,
+            status: 'new',
+          });
+
           const subject = encodeURIComponent(`Website enquiry — ${clinic.name}`);
-          const body = encodeURIComponent(
-            `${data.get('name')}\n${data.get('phone')}\n${data.get('email')}\n\n${data.get('message')}`
-          );
+          const body = encodeURIComponent(`${name}\n${phone}\n${email}\n\n${message}`);
           const to = extra.email || '';
           if (to) window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
           setSent(true);
@@ -83,12 +99,18 @@ export default function Contact() {
       >
         <h2 className="text-xl font-bold text-stone-900">Send a message</h2>
         <p className="text-xs text-stone-500">No health details. Name and how to reach you is enough.</p>
+        {sent ? (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-sm flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>Thank you! Your message was received and logged. Our team will get back to you shortly.</span>
+          </div>
+        ) : null}
         <input name="name" required placeholder="Name" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
         <input name="phone" placeholder="Phone" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
         <input name="email" type="email" placeholder="Email" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
         <textarea name="message" rows={4} placeholder="How can we help?" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
-        <button type="submit" className="bg-stone-900 text-white font-semibold px-5 py-2.5 rounded-lg">
-          {sent ? 'Opening email…' : 'Send'}
+        <button type="submit" className="bg-stone-900 hover:bg-stone-800 transition text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer">
+          {sent ? 'Message Sent ✓' : 'Send Message'}
         </button>
       </form>
     </div>

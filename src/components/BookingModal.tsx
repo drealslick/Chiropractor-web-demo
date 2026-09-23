@@ -3,6 +3,8 @@ import { X, Check, Calendar as CalendarIcon, Clock, User, Phone, Mail, ArrowRigh
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData } from '../types';
 
+import { saveLead } from '../data/leadsStore';
+
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -111,6 +113,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       alert('Please fill in your name, phone number, and email.');
       return;
     }
+    // Save to Omniscient Lead Inbox
+    saveLead({
+      source: 'booking',
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      condition: formData.condition || 'Chiropractic Initial Exam',
+      date: formData.date,
+      time: formData.time,
+      clinicName: clinic.name,
+      notes: `Special rate requested: $49 Initial Exam. Preferred slot: ${formData.date} at ${formData.time}`,
+      status: 'new',
+    });
     setStep(4);
   };
 

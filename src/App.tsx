@@ -4,6 +4,8 @@ import { Phone, MapPin } from 'lucide-react';
 import { ClinicSchema } from './components/ClinicSchema';
 import { Navbar } from './components/Navbar';
 import { ClinicProvider, useClinic } from './data/ClinicContext';
+import { GlobalAnnouncementBanner } from './components/GlobalAnnouncementBanner';
+import { GlobalAgencyController } from './components/GlobalAgencyController';
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -25,7 +27,8 @@ function AppShell() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
-       <ClinicSchema />
+        <ClinicSchema />
+        <GlobalAnnouncementBanner banner={clinic.announcementBanner} />
         <div className="bg-stone-900 text-stone-400 text-[11px] py-1.5 px-3 border-b border-stone-800">
           <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 truncate">
@@ -80,6 +83,8 @@ function AppShell() {
             </p>
           </div>
         </footer>
+
+        <GlobalAgencyController />
       </div>
     </Router>
   );

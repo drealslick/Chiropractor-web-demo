@@ -55,6 +55,24 @@ export interface FAQItem {
   [key: string]: any;
 }
 
+export interface AnnouncementBannerConfig {
+  enabled: boolean;
+  message: string;
+  badge?: string;
+  linkText?: string;
+  linkUrl?: string;
+  variant?: 'emerald' | 'amber' | 'rose' | 'indigo' | 'stone';
+}
+
+export interface ClinicPost {
+  slug: string;
+  title: string;
+  date?: string;
+  excerpt?: string;
+  body?: string;
+  author?: string;
+}
+
 export interface ClinicInfo {
   id?: string;
   name?: string;
@@ -91,6 +109,13 @@ export interface ClinicInfo {
   customAccentColor?: string;
   customBgColor?: string;
   customTextColor?: string;
+  announcementBanner?: AnnouncementBannerConfig;
+  customPosts?: ClinicPost[];
+  examFee?: string;
+  followUpFee?: string;
+  aboutApproach?: string;
+  aboutMission?: string;
+  aboutStory?: string;
   [key: string]: any;
 }
 
