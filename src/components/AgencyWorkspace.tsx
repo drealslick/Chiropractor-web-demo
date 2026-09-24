@@ -44,6 +44,7 @@ import {
   Users,
   CreditCard,
   Plus,
+  Stethoscope,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -58,6 +59,7 @@ import { MediaManager } from './admin/MediaManager';
 import { TeamManager, UserRole } from './admin/TeamManager';
 import { LegalPolicyManager } from './admin/LegalPolicyManager';
 import { ConditionManager } from './admin/ConditionManager';
+import { HomepageConditionsEditor } from './admin/HomepageConditionsEditor';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -84,6 +86,7 @@ export type AdminTabId =
   | 'photos'
   | 'discomforts'
   | 'conditions'
+  | 'homepage_conditions'
   | 'why_us'
   | 'roadmap'
   | 'reviews'
@@ -173,7 +176,8 @@ export function AgencyWorkspace({
         { id: 'photos' as AdminTabId, label: 'Photos & Image URLs', icon: UploadCloud, badge: 'New' },
         { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
         { id: 'discomforts' as AdminTabId, label: 'Discomfort Selector', icon: Activity },
-        { id: 'conditions' as AdminTabId, label: 'Conditions & Protocols', icon: Layers },
+        { id: 'homepage_conditions' as AdminTabId, label: 'Homepage Conditions', icon: Stethoscope, badge: 'Home' },
+        { id: 'conditions' as AdminTabId, label: 'Conditions & Protocols', icon: Layers, badge: 'Pages' },
         { id: 'why_us' as AdminTabId, label: 'Why Choose Us', icon: Heart },
         { id: 'roadmap' as AdminTabId, label: '3-Phase Roadmap', icon: Clock },
         { id: 'reviews' as AdminTabId, label: 'Patient Reviews', icon: MessageSquare },
@@ -742,7 +746,16 @@ export function AgencyWorkspace({
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="triage" />
             )}
 
-            {/* 9. CONDITIONS & PROTOCOLS */}
+            {/* 8b. HOMEPAGE CONDITIONS SECTION */}
+            {activeTab === 'homepage_conditions' && (
+              <HomepageConditionsEditor
+                clinic={clinic}
+                onUpdateClinic={onUpdateClinic}
+                onNavigateToMiniPageBuilder={() => setActiveTab('conditions')}
+              />
+            )}
+
+            {/* 9. CONDITIONS & PROTOCOLS (MINI-PAGE BUILDER) */}
             {activeTab === 'conditions' && (
               <ConditionManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}

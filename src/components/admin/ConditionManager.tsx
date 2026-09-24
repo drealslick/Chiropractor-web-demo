@@ -29,10 +29,12 @@ import { conditionsData } from '../../data/clinicData';
 import { defaultBlogPosts } from '../../data/defaultPosts';
 import { BlogBlockEditor } from './BlogBlockEditor';
 import { ConditionIconBadge } from '../ConditionVisual';
+import { HomepageConditionsEditor } from './HomepageConditionsEditor';
 
 interface ConditionManagerProps {
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
+  initialScope?: 'landing_pages' | 'homepage';
 }
 
 function slugify(title: string) {
@@ -46,7 +48,9 @@ function slugify(title: string) {
 export const ConditionManager: React.FC<ConditionManagerProps> = ({
   clinic,
   onUpdateClinic,
+  initialScope = 'landing_pages',
 }) => {
+  const [viewScope, setViewScope] = useState<'landing_pages' | 'homepage'>(initialScope);
   const condList: ProblemCondition[] =
     clinic.customConditions && clinic.customConditions.length > 0
       ? clinic.customConditions
@@ -336,8 +340,46 @@ export const ConditionManager: React.FC<ConditionManagerProps> = ({
         </div>
       )}
 
-      {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-4">
+      {/* SCOPE SELECTOR TABS: LANDING PAGES VS HOMEPAGE SECTION */}
+      {!isEditing && (
+        <div className="flex items-center gap-2 p-1.5 rounded-xl bg-stone-900 border border-stone-800">
+          <button
+            type="button"
+            onClick={() => setViewScope('landing_pages')}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${
+              viewScope === 'landing_pages'
+                ? 'bg-emerald-950 border border-emerald-500/60 text-emerald-300 shadow-xs'
+                : 'text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Dedicated Condition Landing Pages (/conditions)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewScope('homepage')}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${
+              viewScope === 'homepage'
+                ? 'bg-emerald-950 border border-emerald-500/60 text-emerald-300 shadow-xs'
+                : 'text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            <Stethoscope className="w-3.5 h-3.5" />
+            <span>Homepage Condition Section (/#care)</span>
+          </button>
+        </div>
+      )}
+
+      {viewScope === 'homepage' && !isEditing ? (
+        <HomepageConditionsEditor
+          clinic={clinic}
+          onUpdateClinic={onUpdateClinic}
+          onNavigateToMiniPageBuilder={() => setViewScope('landing_pages')}
+        />
+      ) : (
+        <>
+          {/* HEADER SECTION */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-4">
         <div>
           <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
             <Activity className="w-5 h-5 text-emerald-400" />
@@ -939,6 +981,8 @@ export const ConditionManager: React.FC<ConditionManagerProps> = ({
             })}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

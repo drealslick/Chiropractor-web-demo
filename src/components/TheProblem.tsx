@@ -31,7 +31,7 @@ export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCond
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-stone-600 max-w-md leading-relaxed">
-            Pain is rarely random. We isolate the exact nerve irritation, joint restriction, or postural compensation causing your symptoms.
+            {clinic?.conditionsIntro || "Pain is rarely random. We isolate the exact nerve irritation, joint restriction, or postural compensation causing your symptoms."}
           </p>
         </div>
 
