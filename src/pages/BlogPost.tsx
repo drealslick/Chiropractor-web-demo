@@ -29,7 +29,7 @@ export default function BlogPost() {
   const [copied, setCopied] = useState(false);
 
   const posts: ClinicPost[] =
-    clinic.customPosts && clinic.customPosts.length > 0
+    clinic.customPosts !== undefined
       ? clinic.customPosts
       : defaultBlogPosts;
 

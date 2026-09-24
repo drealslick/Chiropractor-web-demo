@@ -54,7 +54,7 @@ const CATEGORY_PRESETS = [
 
 export const BlogManager: React.FC<BlogManagerProps> = ({ clinic, onUpdateClinic }) => {
   const posts: ClinicPost[] =
-    clinic.customPosts && clinic.customPosts.length > 0
+    clinic.customPosts !== undefined
       ? clinic.customPosts
       : defaultBlogPosts;
 
@@ -759,9 +759,13 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ clinic, onUpdateClinic
         {filteredPosts.length === 0 ? (
           <div className="p-8 text-center bg-stone-850 border border-dashed border-stone-800 rounded-xl space-y-3">
             <BookOpen className="w-8 h-8 text-stone-600 mx-auto" />
-            <p className="text-sm font-medium text-stone-300">No articles match your criteria.</p>
+            <p className="text-sm font-medium text-stone-300">
+              {posts.length === 0 ? 'No articles in your library' : 'No articles match your criteria'}
+            </p>
             <p className="text-xs text-stone-500">
-              Create a new patient guide with structured blocks or restore presets.
+              {posts.length === 0
+                ? 'All placeholder articles have been deleted. You can write your first patient guide or reload default library presets at any time.'
+                : 'Try adjusting your search query or filter selection.'}
             </p>
             <div className="flex items-center justify-center gap-2 pt-2">
               <button

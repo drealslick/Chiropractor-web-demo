@@ -306,12 +306,13 @@ export const MediaManager: React.FC<MediaManagerProps> = ({ clinic, onUpdateClin
       <div className="space-y-6">
         {imageSlots.map((slot) => {
           const Icon = slot.icon;
-          const currentValue = (clinic[slot.imageKey] as string) || slot.defaultAsset;
+          const rawVal = clinic[slot.imageKey] as string | undefined;
+          const currentValue = rawVal !== undefined ? rawVal : slot.defaultAsset;
           const currentAlt = (clinic[slot.altKey] as string) || '';
           const isProcessing = processingState.slotId === slot.id;
           const isBase64 = currentValue?.startsWith('data:image/');
           const isDefault = currentValue === slot.defaultAsset && !isBase64;
-          const hasImage = Boolean(currentValue && currentValue.length > 0);
+          const hasImage = Boolean(currentValue && currentValue.trim().length > 0);
           const isAdvancedOpen = Boolean(expandedAdvancedUrl[slot.id]);
           const isDraggingThis = Boolean(isDragOver[slot.id]);
 

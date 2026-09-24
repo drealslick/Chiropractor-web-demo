@@ -50,7 +50,6 @@ import {
   Home,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
-import { agencyDemoPresets } from '../data/presets';
 import { colorPalettes, resolvePalette } from '../data/colorPalettes';
 import { ListsEditor } from './ListsEditor';
 import { LeadsInbox } from './admin/LeadsInbox';
@@ -66,6 +65,7 @@ import { HomepageConditionsEditor } from './admin/HomepageConditionsEditor';
 import { FirstVisitManager } from './admin/FirstVisitManager';
 import { AboutManager } from './admin/AboutManager';
 import { OurTeamManager } from './admin/OurTeamManager';
+import { PresetBackupManager } from './admin/PresetBackupManager';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -134,9 +134,6 @@ export function AgencyWorkspace({
   const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
-  const [jsonCopied, setJsonCopied] = useState(false);
-  const [importJsonText, setImportJsonText] = useState('');
-  const [importError, setImportError] = useState('');
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -221,7 +218,7 @@ export function AgencyWorkspace({
       minRole: 'editor' as UserRole,
       collapsible: true,
       items: [
-        { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
+        { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts !== undefined ? clinic.customPosts.length : 4 },
         { id: 'photos' as AdminTabId, label: 'Media Library', icon: UploadCloud, badge: 'New' },
       ],
     },
@@ -295,59 +292,6 @@ export function AgencyWorkspace({
       setActiveTab('overview');
     }
   }, [activeRolePreview, accessibleTabIds, activeTab]);
-
-  const handleExportBlueprint = () => {
-    const jsonStr = JSON.stringify(clinic, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(clinic.name || 'clinic').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-blueprint.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(clinic, null, 2));
-    setJsonCopied(true);
-    setTimeout(() => setJsonCopied(false), 2000);
-  };
-
-  const handleImportJson = () => {
-    try {
-      const parsed = JSON.parse(importJsonText);
-      if (typeof parsed !== 'object' || !parsed) {
-        setImportError('Invalid JSON format.');
-        return;
-      }
-      onUpdateClinic({ ...clinic, ...parsed });
-      setImportJsonText('');
-      setImportError('');
-      alert('Blueprint successfully imported!');
-    } catch {
-      setImportError('Failed to parse JSON. Please check syntax.');
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        const parsed = JSON.parse(text);
-        if (typeof parsed === 'object' && parsed) {
-          onUpdateClinic({ ...clinic, ...parsed });
-          alert('Blueprint successfully loaded from file!');
-        }
-      } catch {
-        alert('Could not parse imported JSON file.');
-      }
-    };
-    reader.readAsText(file);
-  };
 
   const banner = clinic.announcementBanner || { enabled: false, message: '', variant: 'amber' };
 
@@ -1618,108 +1562,7 @@ export function AgencyWorkspace({
 
             {/* 20. PRESETS & BACKUPS */}
             {activeTab === 'presets' && (
-              <div className="space-y-6">
-                <div className="border-b border-stone-800 pb-3">
-                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
-                    <Download className="w-4 h-4 text-emerald-400" />
-                    <span>Demo Presets & Blueprint Backup</span>
-                  </h3>
-                  <p className="text-xs text-stone-400 mt-0.5">
-                    Switch between pre-configured clinic archetypes or export/import complete site backups.
-                  </p>
-                </div>
-
-                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
-                  <div>
-                    <h4 className="font-bold text-xs text-stone-200 uppercase tracking-wider text-emerald-400">
-                      1-Click Practice Archetypes
-                    </h4>
-                    <p className="text-xs text-stone-400 mt-0.5">Load ready-made clinic content and color systems.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {Object.entries(agencyDemoPresets).map(([key, presetData]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`Load "${presetData.name || key}" preset? This replaces current practice data.`)) {
-                            onUpdateClinic({ ...clinic, ...presetData });
-                          }
-                        }}
-                        className="p-3.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition group cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-stone-100 group-hover:text-emerald-400 transition">
-                            {presetData.name}
-                          </span>
-                          <span className="text-[10px] text-stone-400 bg-stone-800 px-2 py-0.5 rounded font-mono">
-                            {presetData.cityState || presetData.city || 'Preset'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-stone-400 mt-1 line-clamp-1">
-                          {presetData.tagline || 'Pre-configured practice theme & content'}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Export & Import */}
-                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
-                  <div>
-                    <h4 className="font-bold text-xs text-stone-200 uppercase tracking-wider text-emerald-400">
-                      Blueprint JSON Backup
-                    </h4>
-                    <p className="text-xs text-stone-400 mt-0.5">Export this clinic's complete JSON configuration.</p>
-                  </div>
-
-                  <div className="flex gap-2.5">
-                    <button
-                      onClick={handleExportBlueprint}
-                      className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-stone-700"
-                    >
-                      <Download className="w-4 h-4 text-emerald-400" />
-                      <span>Download JSON Backup</span>
-                    </button>
-                    <button
-                      onClick={handleCopyJson}
-                      className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-stone-700"
-                    >
-                      {jsonCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-stone-400" />}
-                      <span>{jsonCopied ? 'Copied to Clipboard!' : 'Copy JSON'}</span>
-                    </button>
-                  </div>
-
-                  <div className="pt-3 border-t border-stone-800 space-y-2">
-                    <label className="block text-xs font-medium text-stone-300">
-                      Restore from JSON File or String
-                    </label>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleFileUpload}
-                      className="block w-full text-xs text-stone-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-stone-750 file:text-stone-200 hover:file:bg-stone-700 cursor-pointer"
-                    />
-                    <textarea
-                      rows={2}
-                      placeholder="Or paste raw JSON string here..."
-                      value={importJsonText}
-                      onChange={(e) => setImportJsonText(e.target.value)}
-                      className="w-full bg-stone-900 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 font-mono"
-                    />
-                    {importError && <p className="text-xs text-red-400">{importError}</p>}
-                    {importJsonText && (
-                      <button
-                        onClick={handleImportJson}
-                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl cursor-pointer transition shadow-xs"
-                      >
-                        Apply JSON Configuration
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <PresetBackupManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
           </main>
         </div>

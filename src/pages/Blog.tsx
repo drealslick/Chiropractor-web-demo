@@ -11,7 +11,7 @@ export default function Blog() {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const allPosts: ClinicPost[] =
-    clinic.customPosts && clinic.customPosts.length > 0
+    clinic.customPosts !== undefined
       ? clinic.customPosts
       : defaultBlogPosts;
 
