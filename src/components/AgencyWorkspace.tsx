@@ -46,6 +46,8 @@ import {
   Plus,
   Stethoscope,
   User,
+  ChevronDown,
+  Home,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -84,31 +86,34 @@ export type AdminTabId =
   | 'checklist'
   | 'leads'
   | 'booking'
-  // Website Content
+  // Homepage Sections
   | 'copy'
-  | 'blog'
-  | 'about'
-  | 'our_team'
-  | 'photos'
   | 'discomforts'
-  | 'conditions'
   | 'homepage_conditions'
+  | 'trust_badges'
   | 'why_us'
   | 'roadmap'
   | 'reviews'
+  | 'environment'
   | 'faqs'
+  // Core Pages
+  | 'about'
+  | 'our_team'
+  | 'conditions'
   | 'first_visit'
-  | 'legal'
   | 'pricing'
   | 'insurance'
   | 'financing'
-  // Business Info
-  | 'clinic_info'
+  | 'legal'
+  // Blog & Content
+  | 'blog'
+  | 'photos'
   // Design & Style
   | 'themes'
   | 'typography'
   | 'sections'
   // Settings & Tools
+  | 'clinic_info'
   | 'seo'
   | 'announcement'
   | 'users'
@@ -163,11 +168,13 @@ export function AgencyWorkspace({
   const bgVal = clinic.customBgColor || currentPalette.preview.bg;
   const textVal = clinic.customTextColor || currentPalette.variables['--theme-text'] || '#1C1917';
 
-  // Navigation Groups Definition with Role-Based Access Control Filtering
+  // Navigation Groups Definition with Page-First Architecture & Role-Based Access Control Filtering
   const allNavGroups = [
     {
       group: 'DASHBOARD',
+      icon: Layout,
       minRole: 'staff' as UserRole,
+      collapsible: false,
       items: [
         { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: clinic.isProductionMode ? 'Live' : 'Demo' },
         { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles },
@@ -176,21 +183,31 @@ export function AgencyWorkspace({
       ],
     },
     {
-      group: 'WEBSITE CONTENT',
+      group: 'HOMEPAGE SECTIONS',
+      icon: Home,
       minRole: 'editor' as UserRole,
+      collapsible: true,
       items: [
-        { id: 'copy' as AdminTabId, label: 'Headlines & Copy', icon: FileText, highlight: true },
-        { id: 'about' as AdminTabId, label: 'About & Clinician', icon: User, badge: 'Page' },
-        { id: 'our_team' as AdminTabId, label: 'Our Team & Clinicians', icon: Users, badge: (clinic.publicTeamMembers?.length || 3).toString() },
-        { id: 'photos' as AdminTabId, label: 'Photos & Image URLs', icon: UploadCloud, badge: 'New' },
-        { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
+        { id: 'copy' as AdminTabId, label: 'Homepage Hero & Copy', icon: FileText, highlight: true },
         { id: 'discomforts' as AdminTabId, label: 'Discomfort Selector', icon: Activity },
         { id: 'homepage_conditions' as AdminTabId, label: 'Homepage Conditions', icon: Stethoscope, badge: 'Home' },
-        { id: 'conditions' as AdminTabId, label: 'Conditions & Protocols', icon: Layers, badge: 'Pages' },
-        { id: 'why_us' as AdminTabId, label: 'Why Choose Us', icon: Heart },
+        { id: 'trust_badges' as AdminTabId, label: 'Trust & Badges', icon: ShieldCheck },
+        { id: 'why_us' as AdminTabId, label: 'Why Choose Us (Homepage)', icon: Heart },
         { id: 'roadmap' as AdminTabId, label: '3-Phase Roadmap', icon: Clock },
-        { id: 'reviews' as AdminTabId, label: 'Patient Reviews', icon: MessageSquare },
-        { id: 'faqs' as AdminTabId, label: 'Patient FAQs', icon: HelpCircle },
+        { id: 'reviews' as AdminTabId, label: 'Patient Reviews & Case Studies', icon: MessageSquare },
+        { id: 'environment' as AdminTabId, label: 'Clinic Gallery & Environment', icon: Sparkles },
+        { id: 'faqs' as AdminTabId, label: 'FAQs & First Visit', icon: HelpCircle },
+      ],
+    },
+    {
+      group: 'CORE PAGES',
+      icon: Layers,
+      minRole: 'editor' as UserRole,
+      collapsible: true,
+      items: [
+        { id: 'about' as AdminTabId, label: 'About & Clinician', icon: User, badge: 'Page' },
+        { id: 'our_team' as AdminTabId, label: 'Our Team & Clinicians', icon: Users, badge: (clinic.publicTeamMembers?.length || 3).toString() },
+        { id: 'conditions' as AdminTabId, label: 'Conditions & Protocols', icon: Layers, badge: 'Pages' },
         { id: 'first_visit' as AdminTabId, label: 'First Visit Guide', icon: FileText, badge: 'Guide' },
         { id: 'pricing' as AdminTabId, label: 'Pricing & Fees', icon: DollarSign, badge: (clinic.customFeeItems?.length || 2).toString() },
         { id: 'insurance' as AdminTabId, label: 'Insurance Partners', icon: Shield, badge: (clinic.customInsurances?.length || 6).toString() },
@@ -199,15 +216,20 @@ export function AgencyWorkspace({
       ],
     },
     {
-      group: 'BUSINESS INFO',
-      minRole: 'admin' as UserRole,
+      group: 'BLOG & CONTENT',
+      icon: BookOpen,
+      minRole: 'editor' as UserRole,
+      collapsible: true,
       items: [
-        { id: 'clinic_info' as AdminTabId, label: 'Clinic Info & Pricing', icon: Building2 },
+        { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
+        { id: 'photos' as AdminTabId, label: 'Media Library', icon: UploadCloud, badge: 'New' },
       ],
     },
     {
       group: 'DESIGN & STYLE',
+      icon: Palette,
       minRole: 'admin' as UserRole,
+      collapsible: true,
       items: [
         { id: 'themes' as AdminTabId, label: 'Themes & Colors', icon: Palette },
         { id: 'typography' as AdminTabId, label: 'Typography & Fonts', icon: Type },
@@ -216,8 +238,11 @@ export function AgencyWorkspace({
     },
     {
       group: 'SETTINGS & TOOLS',
+      icon: Sliders,
       minRole: 'admin' as UserRole,
+      collapsible: true,
       items: [
+        { id: 'clinic_info' as AdminTabId, label: 'Clinic Information', icon: Building2 },
         { id: 'seo' as AdminTabId, label: 'SEO & Meta Tags', icon: Globe },
         { id: 'announcement' as AdminTabId, label: 'Announcement Alert', icon: Bell },
         { id: 'users' as AdminTabId, label: 'Users & Team Roles', icon: Users, badge: (clinic.customTeamMembers?.length || 3).toString() },
@@ -225,6 +250,30 @@ export function AgencyWorkspace({
       ],
     },
   ];
+
+  // Helper to locate which category accordion group holds a given tab
+  const findGroupForTab = (tabId: AdminTabId): string => {
+    for (const g of allNavGroups) {
+      if (g.items.some((i) => i.id === tabId)) {
+        return g.group;
+      }
+    }
+    return 'HOMEPAGE SECTIONS';
+  };
+
+  const [openAccordion, setOpenAccordion] = useState<string>(() => findGroupForTab(activeTab));
+
+  // Automatically expand parent accordion when activeTab changes (e.g. from internal page links)
+  useEffect(() => {
+    const parentGroup = findGroupForTab(activeTab);
+    if (parentGroup && parentGroup !== 'DASHBOARD') {
+      setOpenAccordion(parentGroup);
+    }
+  }, [activeTab]);
+
+  const toggleGroup = (groupName: string) => {
+    setOpenAccordion((prev) => (prev === groupName ? '' : groupName));
+  };
 
   // Filter navigation groups based on active role preview
   const navGroups = allNavGroups.filter((g) => {
@@ -390,51 +439,95 @@ export function AgencyWorkspace({
               ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}
             `}
           >
-            <div className="p-3 space-y-4">
-              {navGroups.map((group) => (
-                <div key={group.group} className="space-y-1">
-                  <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-stone-500 uppercase">
-                    {group.group}
-                  </div>
-                  <div className="space-y-0.5">
-                    {group.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = activeTab === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveTab(item.id);
-                            setMobileMenuOpen(false);
-                          }}
-                          className={`w-full px-2.5 py-2 rounded-xl text-xs font-medium flex items-center justify-between transition cursor-pointer text-left ${
-                            isActive
-                              ? 'bg-emerald-800 text-white font-semibold shadow-xs'
-                              : 'text-stone-400 hover:text-stone-100 hover:bg-stone-900'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 truncate">
-                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-200' : 'text-stone-400'}`} />
-                            <span className="truncate">{item.label}</span>
-                          </div>
-                          {item.badge !== undefined && (
-                            <span
-                              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+            <div className="p-3 space-y-3">
+              {navGroups.map((group) => {
+                const isCollapsible = group.collapsible !== false;
+                const isGroupOpen = !isCollapsible || openAccordion === group.group;
+                const GroupIcon = group.icon || Layout;
+                const hasActiveItem = group.items.some((item) => item.id === activeTab);
+
+                return (
+                  <div key={group.group} className="space-y-1">
+                    {/* Collapsible Accordion Header */}
+                    {isCollapsible ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group.group)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between text-[11px] font-bold tracking-wider uppercase transition cursor-pointer text-left select-none ${
+                          isGroupOpen || hasActiveItem
+                            ? 'text-stone-200 bg-stone-900/80 hover:bg-stone-900'
+                            : 'text-stone-400 hover:text-stone-300 hover:bg-stone-900/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <GroupIcon className={`w-3.5 h-3.5 shrink-0 ${hasActiveItem ? 'text-emerald-400' : 'text-stone-400'}`} />
+                          <span className="truncate">{group.group}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {hasActiveItem && !isGroupOpen && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Active item inside" />
+                          )}
+                          <span className="text-[10px] text-stone-400 font-mono">
+                            {group.items.length}
+                          </span>
+                          {isGroupOpen ? (
+                            <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
+                          )}
+                        </div>
+                      </button>
+                    ) : (
+                      /* Non-collapsible Dashboard Header */
+                      <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-stone-400 uppercase flex items-center justify-between">
+                        <span>{group.group}</span>
+                        <span className="text-[10px] text-stone-400 font-mono">{group.items.length}</span>
+                      </div>
+                    )}
+
+                    {/* Accordion Items List */}
+                    {isGroupOpen && (
+                      <div className="space-y-0.5 pl-1 transition-all duration-150">
+                        {group.items.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = activeTab === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setActiveTab(item.id);
+                                setMobileMenuOpen(false);
+                              }}
+                              className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium flex items-center justify-between transition cursor-pointer text-left ${
                                 isActive
-                                  ? 'bg-emerald-950 text-emerald-200 border border-emerald-700'
-                                  : 'bg-stone-850 text-stone-400 border border-stone-750'
+                                  ? 'bg-emerald-800 text-white font-semibold shadow-xs'
+                                  : 'text-stone-400 hover:text-stone-100 hover:bg-stone-900'
                               }`}
                             >
-                              {item.badge}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                              <div className="flex items-center gap-2.5 truncate">
+                                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-200' : 'text-stone-400'}`} />
+                                <span className="truncate">{item.label}</span>
+                              </div>
+                              {item.badge !== undefined && (
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                                    isActive
+                                      ? 'bg-emerald-950 text-emerald-200 border border-emerald-700'
+                                      : 'bg-stone-850 text-stone-400 border border-stone-750'
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Bottom Quick Help Card */}
@@ -536,10 +629,10 @@ export function AgencyWorkspace({
                 <div className="border-b border-stone-800 pb-3">
                   <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-emerald-400" />
-                    <span>Website Copy & Headlines</span>
+                    <span>Homepage Hero & Copy</span>
                   </h3>
                   <p className="text-xs text-stone-400 mt-0.5">
-                    Customize your homepage headlines, doctor biography, and value propositions. All fields have plain-English helper descriptions.
+                    Customize your homepage hero headlines, doctor biography, and value propositions. All fields have plain-English helper descriptions.
                   </p>
                 </div>
 
@@ -775,6 +868,11 @@ export function AgencyWorkspace({
               />
             )}
 
+            {/* HOMEPAGE: TRUST & ACCREDITATION BADGES */}
+            {activeTab === 'trust_badges' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="trust" />
+            )}
+
             {/* 9. CONDITIONS & PROTOCOLS (MINI-PAGE BUILDER) */}
             {activeTab === 'conditions' && (
               <ConditionManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
@@ -793,6 +891,11 @@ export function AgencyWorkspace({
             {/* 12. PATIENT REVIEWS */}
             {activeTab === 'reviews' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="reviews" />
+            )}
+
+            {/* HOMEPAGE: CLINIC GALLERY & ENVIRONMENT */}
+            {activeTab === 'environment' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="sanctuary" />
             )}
 
             {/* 13. PATIENT FAQS */}
@@ -831,10 +934,10 @@ export function AgencyWorkspace({
                 <div className="border-b border-stone-800 pb-3">
                   <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-400" />
-                    <span>Clinic Info & Pricing</span>
+                    <span>Clinic Information</span>
                   </h3>
                   <p className="text-xs text-stone-400 mt-0.5">
-                    Organized into contact details, practice hours, fee schedule, and booking integrations.
+                    Organized into official practice contact details, operating hours, parking instructions, and EHR booking integrations.
                   </p>
                 </div>
 
@@ -960,13 +1063,13 @@ export function AgencyWorkspace({
                   />
                 </div>
 
-                {/* Sub-Section 3: Pricing & Fees */}
+                {/* Sub-Section 3: Pricing & Fee Settings */}
                 <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-800 pb-2">
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-emerald-400" />
                       <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-                        3. Pricing & Fees
+                        3. Pricing & Payment Settings
                       </h4>
                     </div>
                     <button
@@ -974,46 +1077,36 @@ export function AgencyWorkspace({
                       onClick={() => setActiveTab('pricing')}
                       className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
                     >
-                      <span>Manage Dynamic Fee Types & Inclusions →</span>
+                      <span>Manage Dynamic Fee Schedule & Pricing Page →</span>
                     </button>
                   </div>
 
-                  {/* Summary of Active Fee Types */}
-                  <div className="p-3 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+                  {/* Dedicated Pricing Page Callout Banner */}
+                  <div className="p-3.5 bg-stone-900 border border-emerald-900/60 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                        Active Fee Tiers ({clinic.customFeeItems?.length || 2})
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                        <span className="text-xs font-bold text-stone-200">
+                          Dedicated Pricing & Fees Page Editor
+                        </span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setActiveTab('pricing')}
-                        className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900 cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/80 cursor-pointer transition"
                       >
-                        + Add Custom Fee Type
+                        Open Pricing Editor →
                       </button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(clinic.customFeeItems && clinic.customFeeItems.length > 0
-                        ? clinic.customFeeItems
-                        : [
-                            { title: 'New Patient', price: clinic.examFee || '£49' },
-                            { title: 'Follow-up', price: clinic.followUpFee || '£50' },
-                          ]
-                      ).map((fee, fIdx) => (
-                        <span
-                          key={fIdx}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-800 text-stone-200 border border-stone-700 text-xs font-mono"
-                        >
-                          <span className="font-sans font-bold text-stone-300">{fee.title}:</span>
-                          <span className="text-emerald-400 font-bold">{fee.price}</span>
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-[11px] text-stone-400 leading-relaxed">
+                      Custom tiered fee plans, itemized services, badges (*e.g. Recommended First Step*), and visit inclusions are centrally managed under <strong className="text-stone-300">Core Pages → Pricing & Fees</strong>.
+                    </p>
                   </div>
 
+                  {/* Quick Price Reference Inputs */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field
-                      label="Initial Exam & Assessment Fee"
+                      label="Initial Exam Fee (Quick Reference)"
                       value={clinic.examFee || ''}
                       placeholder="£49 initial exam"
                       helperText="Published price for first-time comprehensive examination."
@@ -1024,7 +1117,7 @@ export function AgencyWorkspace({
                       }}
                     />
                     <Field
-                      label="Standard Follow-up Visit Fee"
+                      label="Standard Follow-up Visit Fee (Quick Reference)"
                       value={clinic.followUpFee || ''}
                       placeholder="£50 follow-up"
                       helperText="Routine follow-up treatment price."
@@ -1036,8 +1129,15 @@ export function AgencyWorkspace({
                     />
                   </div>
 
-                  <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400">
-                    <span>Spread fees over installments?</span>
+                  <div className="pt-2 border-t border-stone-800 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-400">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('insurance')}
+                      className="text-stone-400 hover:text-emerald-400 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Shield className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Configure Insurance Partners ({clinic.customInsurances?.length || 6}) →</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setActiveTab('financing')}
