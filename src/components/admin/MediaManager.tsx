@@ -181,12 +181,20 @@ export const MediaManager: React.FC<MediaManagerProps> = ({ clinic, onUpdateClin
         stepText: 'Finalizing image...',
       });
 
-      onUpdateClinic({
+      const updatedClinicData: ClinicInfo = {
         ...clinic,
         [slot.imageKey]: compressed,
         // Auto populate alt text if empty
         [slot.altKey]: clinic[slot.altKey] || `${slot.title} at ${clinic.name || 'our clinic'}`,
-      });
+      };
+
+      // Keep logoUrl and logoImage dual properties synchronized
+      if (slot.id === 'logo') {
+        updatedClinicData.logoUrl = compressed;
+        updatedClinicData.logoImage = compressed;
+      }
+
+      onUpdateClinic(updatedClinicData);
 
       setActiveNotification(`Successfully uploaded and optimized ${slot.title}!`);
       setTimeout(() => setActiveNotification(null), 3000);
@@ -201,21 +209,31 @@ export const MediaManager: React.FC<MediaManagerProps> = ({ clinic, onUpdateClin
   };
 
   const handleClearImage = (slot: ImageSlotConfig) => {
-    onUpdateClinic({
+    const updated: ClinicInfo = {
       ...clinic,
       [slot.imageKey]: '',
       [slot.altKey]: '',
-    });
+    };
+    if (slot.id === 'logo') {
+      updated.logoUrl = '';
+      updated.logoImage = '';
+    }
+    onUpdateClinic(updated);
     setActiveNotification(`Removed ${slot.title}.`);
     setTimeout(() => setActiveNotification(null), 2500);
   };
 
   const handleResetToDefault = (slot: ImageSlotConfig) => {
-    onUpdateClinic({
+    const updated: ClinicInfo = {
       ...clinic,
       [slot.imageKey]: slot.defaultAsset,
       [slot.altKey]: undefined,
-    });
+    };
+    if (slot.id === 'logo') {
+      updated.logoUrl = slot.defaultAsset;
+      updated.logoImage = slot.defaultAsset;
+    }
+    onUpdateClinic(updated);
     setActiveNotification(`Restored studio preset for ${slot.title}.`);
     setTimeout(() => setActiveNotification(null), 2500);
   };
@@ -238,10 +256,15 @@ export const MediaManager: React.FC<MediaManagerProps> = ({ clinic, onUpdateClin
   const handleCroppedSave = (croppedDataUrl: string) => {
     if (!croppingModal.slot) return;
     const slot = croppingModal.slot;
-    onUpdateClinic({
+    const updated: ClinicInfo = {
       ...clinic,
       [slot.imageKey]: croppedDataUrl,
-    });
+    };
+    if (slot.id === 'logo') {
+      updated.logoUrl = croppedDataUrl;
+      updated.logoImage = croppedDataUrl;
+    }
+    onUpdateClinic(updated);
     setActiveNotification(`Cropped and updated ${slot.title}!`);
     setTimeout(() => setActiveNotification(null), 3000);
   };
@@ -535,12 +558,18 @@ export const MediaManager: React.FC<MediaManagerProps> = ({ clinic, onUpdateClin
                           value={isBase64 ? '(Custom Uploaded File)' : currentValue}
                           disabled={isBase64}
                           placeholder="https://images.example.com/clinic-room.jpg"
-                          onChange={(e) =>
-                            onUpdateClinic({
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const updated: ClinicInfo = {
                               ...clinic,
-                              [slot.imageKey]: e.target.value,
-                            })
-                          }
+                              [slot.imageKey]: val,
+                            };
+                            if (slot.id === 'logo') {
+                              updated.logoUrl = val;
+                              updated.logoImage = val;
+                            }
+                            onUpdateClinic(updated);
+                          }}
                           className={`w-full bg-stone-900 border border-stone-750 rounded-xl px-3 py-1.5 text-xs font-mono text-stone-300 placeholder-stone-600 focus:outline-none focus:border-emerald-500 ${
                             isBase64 ? 'opacity-60 cursor-not-allowed text-stone-500' : ''
                           }`}

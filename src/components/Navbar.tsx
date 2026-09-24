@@ -20,6 +20,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
   
   // We grab clinicData and call it 'clinic' so the rest of your code works perfectly
   const { clinicData: clinic } = context; 
+  const activeLogo = clinic.logoUrl || clinic.logoImage || (clinic as any).logo;
+  const [logoImageError, setLogoImageError] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
@@ -28,24 +30,30 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
         {/* LOGO & Home Link */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2.5 group">
-            {clinic.logoImage ? (
-              <img
-                src={clinic.logoImage}
-                alt={clinic.logoText || clinic.name}
-                style={{ width: clinic.logoWidth ? `${clinic.logoWidth}px` : '150px' }}
-                className="h-auto max-h-12 object-contain rounded-md"
-              />
+            {activeLogo && !logoImageError ? (
+              <div className="flex items-center justify-center overflow-hidden rounded-xl bg-stone-900 border border-stone-800/20 shadow-xs transition-transform group-hover:scale-105 shrink-0">
+                <img
+                  src={activeLogo}
+                  alt={clinic.logoUrlAlt || clinic.logoImageAlt || clinic.logoText || clinic.name || 'Practice Logo'}
+                  onError={() => setLogoImageError(true)}
+                  style={{
+                    maxWidth: clinic.logoWidth ? `${clinic.logoWidth}px` : '200px',
+                    maxHeight: '46px',
+                  }}
+                  className="h-10 sm:h-11 w-auto max-w-[180px] sm:max-w-[220px] object-contain rounded-lg p-0.5"
+                />
+              </div>
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-stone-900 text-stone-50 flex items-center justify-center font-serif text-xl font-bold tracking-tight shadow-sm transition-transform group-hover:scale-105">
-                <span>{(clinic.logoText || clinic.name).charAt(0) || 'C'}</span>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-stone-900 text-stone-50 flex items-center justify-center font-serif text-xl font-bold tracking-tight shadow-sm transition-transform group-hover:scale-105 shrink-0">
+                <span>{(clinic.logoText || clinic.name || 'C').charAt(0) || 'C'}</span>
               </div>
             )}
-            <div className="flex flex-col">
-              <span className="font-serif font-bold text-lg leading-tight tracking-tight text-stone-900 group-hover:text-emerald-800 transition-colors">
+            <div className="flex flex-col min-w-0">
+              <span className="font-serif font-bold text-base sm:text-lg leading-tight tracking-tight text-stone-900 group-hover:text-emerald-800 transition-colors truncate max-w-[180px] sm:max-w-xs">
                 {clinic.logoText || clinic.name}
               </span>
-              <span className="text-xs tracking-wider uppercase text-stone-500 font-medium">
-                {clinic.cityState}
+              <span className="text-[11px] sm:text-xs tracking-wider uppercase text-stone-500 font-medium truncate">
+                {clinic.cityState || clinic.city || ''}
               </span>
             </div>
           </Link>

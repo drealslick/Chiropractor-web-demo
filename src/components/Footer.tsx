@@ -20,9 +20,19 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
           {/* Logo & NAP */}
           <div className="md:col-span-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-800 text-stone-100 flex items-center justify-center font-serif text-lg font-bold">
-                <span>{clinic.name.charAt(0) || 'C'}</span>
-              </div>
+              {(clinic.logoUrl || clinic.logoImage || (clinic as any).logo) ? (
+                <div className="flex items-center justify-center overflow-hidden rounded-xl bg-stone-900 border border-stone-800 shadow-xs shrink-0">
+                  <img
+                    src={clinic.logoUrl || clinic.logoImage || (clinic as any).logo}
+                    alt={clinic.logoUrlAlt || clinic.logoImageAlt || clinic.logoText || clinic.name || 'Practice Logo'}
+                    className="h-9 w-auto max-w-[160px] object-contain rounded-lg p-0.5"
+                  />
+                </div>
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-emerald-800 text-stone-100 flex items-center justify-center font-serif text-lg font-bold shrink-0">
+                  <span>{(clinic.name || 'C').charAt(0) || 'C'}</span>
+                </div>
+              )}
               <span className="font-serif font-bold text-xl text-white tracking-tight">
                 {clinic.logoText || clinic.name}
               </span>
