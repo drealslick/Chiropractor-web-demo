@@ -64,6 +64,43 @@ export interface AnnouncementBannerConfig {
   variant?: 'emerald' | 'amber' | 'rose' | 'indigo' | 'stone';
 }
 
+export type BlogBlockType =
+  | 'paragraph'
+  | 'heading'
+  | 'list'
+  | 'image'
+  | 'callout'
+  | 'quote'
+  | 'cta';
+
+export interface BlogBlock {
+  id: string;
+  type: BlogBlockType;
+  // Paragraph
+  content?: string;
+  // Heading
+  level?: 'h2' | 'h3';
+  headingText?: string;
+  // List
+  listType?: 'bullet' | 'numbered';
+  items?: string[];
+  // Image
+  imageUrl?: string;
+  imageAlt?: string;
+  caption?: string;
+  // Callout Box
+  calloutVariant?: 'takeaway' | 'warning' | 'tip' | 'research';
+  calloutTitle?: string;
+  calloutText?: string;
+  // Pull Quote
+  quoteText?: string;
+  quoteAuthor?: string;
+  // CTA Card
+  ctaHeadline?: string;
+  ctaSubtitle?: string;
+  ctaButtonText?: string;
+}
+
 export interface ClinicPost {
   slug: string;
   title: string;
@@ -73,6 +110,8 @@ export interface ClinicPost {
   author?: string;
   category?: string;
   readTime?: string;
+  status?: 'published' | 'draft';
+  blocks?: BlogBlock[];
 }
 
 export type BookingEmbedMode = 'triage_request' | 'iframe' | 'redirect';

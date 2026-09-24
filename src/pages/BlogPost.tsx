@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
 import { defaultBlogPosts } from '../data/defaultPosts';
-import { ClinicPost } from '../types';
+import { ClinicPost, BlogBlock } from '../types';
 import {
   ArrowLeft,
   Calendar,
@@ -13,12 +13,19 @@ import {
   Check,
   ChevronRight,
   Sparkles,
+  Lightbulb,
+  AlertTriangle,
+  Quote,
+  Target,
+  ArrowRight,
+  Bookmark,
+  Info,
 } from 'lucide-react';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const { clinicData: clinic, openBookingModal } = useClinic();
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
 
   const posts: ClinicPost[] =
     clinic.customPosts && clinic.customPosts.length > 0
@@ -53,9 +60,27 @@ export default function BlogPost() {
     );
   }
 
+  const isDraft = post.status === 'draft';
+  const hasBlocks = post.blocks && post.blocks.length > 0;
+
   return (
     <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
       <article className="max-w-3xl mx-auto space-y-8">
+        {/* Draft Notice Banner if viewed as draft */}
+        {isDraft && (
+          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center gap-2">
+              <Bookmark className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                <strong>Draft Preview:</strong> This clinical article is currently in draft mode and only visible via direct link.
+              </span>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded">
+              Unpublished
+            </span>
+          </div>
+        )}
+
         {/* Navigation Breadcrumbs & Share */}
         <div className="flex items-center justify-between gap-4 text-xs">
           <Link
@@ -83,13 +108,13 @@ export default function BlogPost() {
               {post.category || 'Clinical Guide'}
             </span>
             {post.readTime && (
-              <span className="text-stone-500 text-xs flex items-center gap-1">
+              <span className="text-stone-500 text-xs flex items-center gap-1 font-mono">
                 <Clock className="w-3.5 h-3.5 text-stone-400" />
                 {post.readTime}
               </span>
             )}
             {post.date && (
-              <span className="text-stone-500 text-xs flex items-center gap-1">
+              <span className="text-stone-500 text-xs flex items-center gap-1 font-mono">
                 <Calendar className="w-3.5 h-3.5 text-stone-400" />
                 {post.date}
               </span>
@@ -101,7 +126,7 @@ export default function BlogPost() {
           </h1>
 
           {post.excerpt && (
-            <p className="text-base sm:text-lg text-stone-600 leading-relaxed font-serif italic">
+            <p className="text-base sm:text-lg text-stone-600 leading-relaxed font-serif italic border-l-2 border-emerald-600 pl-4 py-1">
               {post.excerpt}
             </p>
           )}
@@ -122,45 +147,243 @@ export default function BlogPost() {
           </div>
         </header>
 
-        {/* Article Body */}
-        <div className="prose prose-stone max-w-none text-stone-700 text-sm sm:text-base leading-relaxed space-y-5">
-          {(post.body || '').split('\n\n').filter(Boolean).map((block, i) => {
-            const trimmed = block.trim();
-            // Render ordered/bullet points cleanly if formatted
-            if (trimmed.startsWith('1.') || trimmed.startsWith('2.') || trimmed.startsWith('3.') || trimmed.startsWith('4.') || trimmed.startsWith('5.')) {
-              const lines = trimmed.split('\n');
-              const heading = lines[0];
-              const rest = lines.slice(1).join(' ');
-              return (
-                <div key={i} className="p-4 sm:p-5 bg-white rounded-xl border border-stone-200/90 shadow-2xs space-y-2">
-                  <h3 className="font-serif font-bold text-stone-900 text-base">{heading}</h3>
-                  {rest && <p className="text-stone-600 text-sm leading-relaxed">{rest}</p>}
-                </div>
-              );
-            }
-            if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
-              const items = trimmed.split('\n').map((l) => l.replace(/^[-•]\s*/, ''));
-              return (
-                <ul key={i} className="list-disc pl-5 space-y-1.5 text-stone-700 text-sm">
-                  {items.map((item, idx) => (
-                    <li key={idx}>{item}</li>
-                  ))}
-                </ul>
-              );
-            }
-            return <p key={i} className="leading-relaxed">{trimmed}</p>;
-          })}
+        {/* ARTICLE BODY: STRUCTURED BLOCKS OR FORMATTED TEXT */}
+        <div className="space-y-6 text-stone-700 leading-relaxed">
+          {hasBlocks ? (
+            post.blocks!.map((block) => {
+              switch (block.type) {
+                // 1. SUBHEADING
+                case 'heading': {
+                  if (block.level === 'h3') {
+                    return (
+                      <h3
+                        key={block.id}
+                        className="text-lg sm:text-xl font-serif font-bold text-stone-900 pt-3"
+                      >
+                        {block.headingText}
+                      </h3>
+                    );
+                  }
+                  return (
+                    <h2
+                      key={block.id}
+                      className="text-xl sm:text-2xl font-serif font-bold text-stone-900 pt-5 pb-1 border-b border-stone-200"
+                    >
+                      {block.headingText}
+                    </h2>
+                  );
+                }
+
+                // 2. PARAGRAPH
+                case 'paragraph': {
+                  if (!block.content) return null;
+                  return (
+                    <p
+                      key={block.id}
+                      className="text-sm sm:text-base leading-relaxed text-stone-700"
+                    >
+                      {block.content}
+                    </p>
+                  );
+                }
+
+                // 3. BULLET / NUMBERED LIST
+                case 'list': {
+                  if (!block.items || !block.items.length) return null;
+                  if (block.listType === 'numbered') {
+                    return (
+                      <ol key={block.id} className="list-decimal pl-6 space-y-2 text-sm sm:text-base text-stone-700">
+                        {block.items.map((item, idx) => (
+                          <li key={idx} className="pl-1">
+                            {item}
+                          </li>
+                        ))}
+                      </ol>
+                    );
+                  }
+                  return (
+                    <ul key={block.id} className="list-disc pl-6 space-y-2 text-sm sm:text-base text-stone-700">
+                      {block.items.map((item, idx) => (
+                        <li key={idx} className="pl-1">
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                }
+
+                // 4. IMAGE WITH ALT TEXT & CAPTION
+                case 'image': {
+                  if (!block.imageUrl) return null;
+                  return (
+                    <figure key={block.id} className="my-6 space-y-2">
+                      <div className="rounded-2xl overflow-hidden border border-stone-200 bg-stone-100 shadow-sm">
+                        <img
+                          src={block.imageUrl}
+                          alt={block.imageAlt || post.title}
+                          className="w-full h-auto object-cover max-h-[500px]"
+                        />
+                      </div>
+                      {block.caption && (
+                        <figcaption className="text-center text-xs text-stone-500 italic">
+                          {block.caption}
+                        </figcaption>
+                      )}
+                    </figure>
+                  );
+                }
+
+                // 5. CALLOUT BOX
+                case 'callout': {
+                  const variant = block.calloutVariant || 'takeaway';
+                  const isWarning = variant === 'warning';
+                  const isTip = variant === 'tip';
+                  const isResearch = variant === 'research';
+
+                  return (
+                    <div
+                      key={block.id}
+                      className={`p-4 sm:p-5 rounded-xl border my-5 space-y-1.5 shadow-2xs ${
+                        isWarning
+                          ? 'bg-amber-50/90 border-amber-200 text-amber-950'
+                          : isTip
+                          ? 'bg-indigo-50/90 border-indigo-200 text-indigo-950'
+                          : isResearch
+                          ? 'bg-stone-100 border-stone-300 text-stone-900'
+                          : 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
+                        {isWarning ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        ) : isTip ? (
+                          <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
+                        ) : (
+                          <Lightbulb className="w-4 h-4 text-emerald-700 shrink-0" />
+                        )}
+                        <span>{block.calloutTitle || 'Clinical Insight'}</span>
+                      </div>
+                      {block.calloutText && (
+                        <p className="text-xs sm:text-sm leading-relaxed opacity-90 pl-6">
+                          {block.calloutText}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+
+                // 6. PULL QUOTE
+                case 'quote': {
+                  if (!block.quoteText) return null;
+                  return (
+                    <blockquote
+                      key={block.id}
+                      className="my-6 p-5 sm:p-6 bg-emerald-950 text-emerald-50 rounded-2xl border border-emerald-900 shadow-md space-y-3"
+                    >
+                      <Quote className="w-6 h-6 text-emerald-400 opacity-60" />
+                      <p className="font-serif italic text-base sm:text-lg leading-relaxed">
+                        "{block.quoteText}"
+                      </p>
+                      {block.quoteAuthor && (
+                        <div className="text-xs font-semibold text-emerald-300 uppercase tracking-wider">
+                          — {block.quoteAuthor}
+                        </div>
+                      )}
+                    </blockquote>
+                  );
+                }
+
+                // 7. MID-ARTICLE CTA CARD
+                case 'cta': {
+                  return (
+                    <div
+                      key={block.id}
+                      className="my-8 p-6 sm:p-7 rounded-2xl bg-stone-900 text-white border border-stone-800 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5"
+                    >
+                      <div className="space-y-1 text-center sm:text-left">
+                        <div className="flex items-center justify-center sm:justify-start gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                          <Target className="w-3.5 h-3.5" />
+                          <span>Direct Clinical Triage</span>
+                        </div>
+                        <h4 className="text-base sm:text-lg font-serif font-bold text-white">
+                          {block.ctaHeadline || 'Schedule Your Spinal Examination'}
+                        </h4>
+                        {block.ctaSubtitle && (
+                          <p className="text-xs text-stone-300 max-w-md">
+                            {block.ctaSubtitle}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={openBookingModal}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs tracking-wide transition shrink-0 shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>{block.ctaButtonText || 'Book Your First Visit'}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                }
+
+                default:
+                  return null;
+              }
+            })
+          ) : (
+            // Formatted Fallback for existing markdown text
+            (post.body || '').split('\n\n').filter(Boolean).map((block, i) => {
+              const trimmed = block.trim();
+              if (trimmed.startsWith('1.') || trimmed.startsWith('2.') || trimmed.startsWith('3.') || trimmed.startsWith('4.') || trimmed.startsWith('5.')) {
+                const lines = trimmed.split('\n');
+                const heading = lines[0];
+                const rest = lines.slice(1).join(' ');
+                return (
+                  <div key={i} className="p-4 sm:p-5 bg-white rounded-xl border border-stone-200/90 shadow-2xs space-y-2">
+                    <h3 className="font-serif font-bold text-stone-900 text-base">{heading}</h3>
+                    {rest && <p className="text-stone-600 text-sm leading-relaxed">{rest}</p>}
+                  </div>
+                );
+              }
+              if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+                const items = trimmed.split('\n').map((l) => l.replace(/^[-•]\s*/, ''));
+                return (
+                  <ul key={i} className="list-disc pl-5 space-y-1.5 text-stone-700 text-sm">
+                    {items.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                );
+              }
+              if (trimmed.startsWith('## ')) {
+                return (
+                  <h2 key={i} className="text-xl sm:text-2xl font-serif font-bold text-stone-900 pt-4 pb-1 border-b border-stone-200">
+                    {trimmed.replace(/^##\s*/, '')}
+                  </h2>
+                );
+              }
+              if (trimmed.startsWith('### ')) {
+                return (
+                  <h3 key={i} className="text-lg font-serif font-bold text-stone-900 pt-2">
+                    {trimmed.replace(/^###\s*/, '')}
+                  </h3>
+                );
+              }
+              return <p key={i} className="leading-relaxed text-sm sm:text-base">{trimmed}</p>;
+            })
+          )}
         </div>
 
         {/* Footer Medical Disclaimer */}
-        <div className="p-4 bg-stone-100/80 rounded-xl border border-stone-200 text-[11px] text-stone-500 space-y-1">
+        <div className="p-4 bg-stone-100/80 rounded-xl border border-stone-200 text-[11px] text-stone-500 space-y-1 mt-8">
           <span className="font-semibold text-stone-700 block">Clinical Disclaimer:</span>
           <p>
             The information contained in this guide is provided for educational and biomechanical insight purposes only and does not substitute formal medical or orthopedic diagnosis. Please consult directly with a certified healthcare practitioner before beginning new rehabilitation protocols.
           </p>
         </div>
 
-        {/* Consultation CTA Banner */}
+        {/* Bottom Consultation CTA Banner */}
         <div className="p-6 sm:p-8 rounded-2xl bg-stone-900 text-stone-50 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="space-y-1.5 text-center sm:text-left">
             <h3 className="text-lg font-serif font-bold text-white">

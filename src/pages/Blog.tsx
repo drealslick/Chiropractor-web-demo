@@ -10,10 +10,13 @@ export default function Blog() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const posts: ClinicPost[] =
+  const allPosts: ClinicPost[] =
     clinic.customPosts && clinic.customPosts.length > 0
       ? clinic.customPosts
       : defaultBlogPosts;
+
+  // Filter out drafts on public blog index
+  const posts = allPosts.filter((p) => p.status !== 'draft');
 
   const categories = ['all', ...Array.from(new Set(posts.map((p) => p.category).filter(Boolean))) as string[]];
 
