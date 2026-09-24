@@ -14,21 +14,24 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ clinic }) => {
   const directionsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
 
   return (
-    <section id="location" className="py-20 md:py-28 bg-stone-50 border-b border-stone-200 overflow-hidden">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="location" className="py-14 sm:py-18 md:py-24 bg-gradient-to-b from-stone-100/60 via-stone-50 to-stone-50 border-b border-stone-200 overflow-hidden relative">
+      {/* Subtle top transitional separator */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-stone-300/80 to-transparent" />
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-40px' }}
+          viewport={{ once: true, margin: '-30px' }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-xl mx-auto mb-14"
+          className="text-center max-w-xl mx-auto mb-10 sm:mb-14"
         >
-          <span className="text-xs font-semibold uppercase tracking-widest text-stone-500 block mb-2">
+          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full inline-block mb-2.5">
             {clinic.locationSectionSubtitle || "Find Us"}
           </span>
-          <h2 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
-            {clinic.locationSectionTitle || "Location"}
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-stone-900 tracking-tight">
+            {clinic.locationSectionTitle || "Location & Accessibility"}
           </h2>
         </motion.div>
 

@@ -39,9 +39,9 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
   ];
 
   return (
-    <section className="border-y border-stone-200/90 bg-stone-100/80 py-4 sm:py-5 overflow-hidden">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+    <section className="border-y border-stone-200/90 bg-stone-100/80 py-3.5 sm:py-5 overflow-hidden">
+      <div className="max-w-6xl mx-auto px-3.5 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
           {trustHighlights.map((item, idx) => {
             const Icon = item.icon;
             return (
@@ -51,27 +51,34 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.35, delay: idx * 0.06 }}
-                className="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-0 rounded-xl bg-white/50 sm:bg-transparent border border-stone-200/60 sm:border-0"
+                className="flex items-start sm:items-center gap-2.5 sm:gap-3 p-2.5 sm:p-0 rounded-xl bg-white/60 sm:bg-transparent border border-stone-200/60 sm:border-0 shadow-xs sm:shadow-none min-h-[56px] sm:min-h-0"
               >
-                <div className="w-8 h-8 rounded-lg bg-stone-200/80 text-emerald-800 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 sm:bg-stone-200/80 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                   <Icon className="w-4 h-4 text-emerald-800" />
                 </div>
-                <div className="text-left leading-tight min-w-0 flex-1">
+                <div className="text-left min-w-0 flex-1">
                   {item.link ? (
                     <a
                       href={item.link}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-bold text-xs sm:text-sm text-stone-900 hover:text-emerald-800 hover:underline truncate block"
+                      title={item.primary}
+                      className="font-bold text-xs sm:text-sm text-stone-900 hover:text-emerald-800 hover:underline break-words leading-snug block"
                     >
                       {item.primary}
                     </a>
                   ) : (
-                    <span className="font-bold text-xs sm:text-sm text-stone-900 truncate block">
+                    <span
+                      title={item.primary}
+                      className="font-bold text-xs sm:text-sm text-stone-900 break-words leading-snug block"
+                    >
                       {item.primary}
                     </span>
                   )}
-                  <span className="text-[10px] sm:text-[11px] text-stone-500 truncate block mt-0.5">
+                  <span
+                    title={item.secondary}
+                    className="text-[10px] sm:text-[11px] text-stone-500 break-words leading-tight block mt-0.5"
+                  >
                     {item.secondary}
                   </span>
                 </div>
