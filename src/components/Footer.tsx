@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Phone, MapPin, Clock, Mail, Instagram, Facebook, Globe } from 'lucide-react';
 import { ClinicInfo } from '../types';
 
@@ -132,11 +133,11 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
             © {currentYear} {clinic.name}. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-2">
-            <a href="#" className="hover:text-stone-400 transition-colors py-1">Privacy Policy</a>
+            <Link to="/privacy" className="hover:text-stone-300 transition-colors py-1">Privacy Policy</Link>
             <span className="text-stone-700">·</span>
-            <a href="#" className="hover:text-stone-400 transition-colors py-1">Terms of Service</a>
+            <Link to="/terms" className="hover:text-stone-300 transition-colors py-1">Terms of Service</Link>
             <span className="text-stone-700">·</span>
-            <a href="#" className="hover:text-stone-400 transition-colors py-1">HIPAA Compliance</a>
+            <Link to="/privacy" className="hover:text-stone-300 transition-colors py-1">HIPAA Compliance</Link>
           </div>
         </div>
 

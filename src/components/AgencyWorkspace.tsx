@@ -39,6 +39,9 @@ import {
   Phone,
   Mail,
   ExternalLink,
+  UploadCloud,
+  FileCheck,
+  Users,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -49,6 +52,9 @@ import { PracticeAudit } from './admin/PracticeAudit';
 import { BookingSettings } from './admin/BookingSettings';
 import { ExecutiveDashboard } from './admin/ExecutiveDashboard';
 import { BlogManager } from './admin/BlogManager';
+import { MediaManager } from './admin/MediaManager';
+import { TeamManager, UserRole } from './admin/TeamManager';
+import { LegalPolicyManager } from './admin/LegalPolicyManager';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -72,12 +78,14 @@ export type AdminTabId =
   // Website Content
   | 'copy'
   | 'blog'
+  | 'photos'
   | 'discomforts'
   | 'conditions'
   | 'why_us'
   | 'roadmap'
   | 'reviews'
   | 'faqs'
+  | 'legal'
   // Business Info
   | 'clinic_info'
   // Design & Style
@@ -87,6 +95,7 @@ export type AdminTabId =
   // Settings & Tools
   | 'seo'
   | 'announcement'
+  | 'users'
   | 'presets';
 
 export function AgencyWorkspace({
@@ -101,6 +110,7 @@ export function AgencyWorkspace({
 }: AgencyWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
   const [jsonCopied, setJsonCopied] = useState(false);
@@ -137,12 +147,13 @@ export function AgencyWorkspace({
   const bgVal = clinic.customBgColor || currentPalette.preview.bg;
   const textVal = clinic.customTextColor || currentPalette.variables['--theme-text'] || '#1C1917';
 
-  // Navigation Groups Definition for Single Clean Left Sidebar
-  const navGroups = [
+  // Navigation Groups Definition with Role-Based Access Control Filtering
+  const allNavGroups = [
     {
       group: 'DASHBOARD',
+      minRole: 'staff' as UserRole,
       items: [
-        { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: 'Live' },
+        { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: clinic.isProductionMode ? 'Live' : 'Demo' },
         { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles },
         { id: 'leads' as AdminTabId, label: 'Patient Inquiries', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
         { id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar },
@@ -150,8 +161,10 @@ export function AgencyWorkspace({
     },
     {
       group: 'WEBSITE CONTENT',
+      minRole: 'editor' as UserRole,
       items: [
         { id: 'copy' as AdminTabId, label: 'Headlines & Copy', icon: FileText, highlight: true },
+        { id: 'photos' as AdminTabId, label: 'Photos & Image URLs', icon: UploadCloud, badge: 'New' },
         { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
         { id: 'discomforts' as AdminTabId, label: 'Discomfort Selector', icon: Activity },
         { id: 'conditions' as AdminTabId, label: 'Conditions & Protocols', icon: Layers },
@@ -159,16 +172,19 @@ export function AgencyWorkspace({
         { id: 'roadmap' as AdminTabId, label: '3-Phase Roadmap', icon: Clock },
         { id: 'reviews' as AdminTabId, label: 'Patient Reviews', icon: MessageSquare },
         { id: 'faqs' as AdminTabId, label: 'FAQs & First Visit', icon: HelpCircle },
+        { id: 'legal' as AdminTabId, label: 'Legal Pages & Policies', icon: FileCheck },
       ],
     },
     {
       group: 'BUSINESS INFO',
+      minRole: 'admin' as UserRole,
       items: [
         { id: 'clinic_info' as AdminTabId, label: 'Clinic Info & Pricing', icon: Building2 },
       ],
     },
     {
       group: 'DESIGN & STYLE',
+      minRole: 'admin' as UserRole,
       items: [
         { id: 'themes' as AdminTabId, label: 'Themes & Colors', icon: Palette },
         { id: 'typography' as AdminTabId, label: 'Typography & Fonts', icon: Type },
@@ -177,13 +193,36 @@ export function AgencyWorkspace({
     },
     {
       group: 'SETTINGS & TOOLS',
+      minRole: 'admin' as UserRole,
       items: [
         { id: 'seo' as AdminTabId, label: 'SEO & Meta Tags', icon: Globe },
         { id: 'announcement' as AdminTabId, label: 'Announcement Alert', icon: Bell },
+        { id: 'users' as AdminTabId, label: 'Users & Team Roles', icon: Users, badge: (clinic.customTeamMembers?.length || 3).toString() },
         { id: 'presets' as AdminTabId, label: 'Presets & Backups', icon: Download },
       ],
     },
   ];
+
+  // Filter navigation groups based on active role preview
+  const navGroups = allNavGroups.filter((g) => {
+    if (activeRolePreview === 'staff') {
+      return g.minRole === 'staff';
+    }
+    if (activeRolePreview === 'editor') {
+      return g.minRole === 'staff' || g.minRole === 'editor';
+    }
+    return true; // admin sees everything
+  });
+
+  // Flat array of accessible tab IDs for quick lookup
+  const accessibleTabIds = navGroups.flatMap((g) => g.items.map((i) => i.id));
+
+  // If current active tab is inaccessible in the selected role preview, default to overview
+  useEffect(() => {
+    if (!accessibleTabIds.includes(activeTab)) {
+      setActiveTab('overview');
+    }
+  }, [activeRolePreview, accessibleTabIds, activeTab]);
 
   const handleExportBlueprint = () => {
     const jsonStr = JSON.stringify(clinic, null, 2);
@@ -283,6 +322,21 @@ export function AgencyWorkspace({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Quick Role Preview Switcher */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
+              <span className="text-[10px] uppercase font-bold text-stone-400">Role:</span>
+              <select
+                value={activeRolePreview}
+                onChange={(e) => setActiveRolePreview(e.target.value as UserRole)}
+                className="bg-transparent text-emerald-400 font-bold text-xs cursor-pointer outline-none capitalize"
+                title="Preview admin interface from perspective of staff, editor, or owner"
+              >
+                <option value="admin" className="bg-stone-900 text-stone-200">Admin (Full)</option>
+                <option value="editor" className="bg-stone-900 text-stone-200">Editor (Content)</option>
+                <option value="staff" className="bg-stone-900 text-stone-200">Staff (Front Desk)</option>
+              </select>
+            </div>
+
             <button
               onClick={onResetDefault}
               className="px-2.5 py-1 text-stone-400 hover:text-amber-400 transition hover:bg-stone-850 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-amber-900/50"
@@ -376,6 +430,32 @@ export function AgencyWorkspace({
 
           {/* Right Content Area */}
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-6 bg-stone-900">
+            {/* Mobile Tab Dropdown Selector */}
+            <div className="md:hidden pb-3 border-b border-stone-800 space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                  Navigation Section:
+                </label>
+                <span className="text-[10px] text-emerald-400 font-bold capitalize">
+                  Role: {activeRolePreview}
+                </span>
+              </div>
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value as AdminTabId)}
+                className="w-full bg-stone-850 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 font-bold cursor-pointer"
+              >
+                {navGroups.map((group) => (
+                  <optgroup key={group.group} label={group.group} className="bg-stone-900 text-stone-400 font-bold">
+                    {group.items.map((item) => (
+                      <option key={item.id} value={item.id} className="bg-stone-850 text-stone-200">
+                        {item.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
             {/* 1. OVERVIEW */}
             {activeTab === 'overview' && (
               <ExecutiveDashboard
@@ -638,39 +718,49 @@ export function AgencyWorkspace({
               </div>
             )}
 
-            {/* 6. BLOG & ARTICLES */}
+            {/* 6. PHOTOS & VISUAL ASSETS */}
+            {activeTab === 'photos' && (
+              <MediaManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+            )}
+
+            {/* 7. BLOG & ARTICLES */}
             {activeTab === 'blog' && (
               <BlogManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
-            {/* 7. DISCOMFORTS */}
+            {/* 8. DISCOMFORTS */}
             {activeTab === 'discomforts' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="triage" />
             )}
 
-            {/* 8. CONDITIONS & PROTOCOLS */}
+            {/* 9. CONDITIONS & PROTOCOLS */}
             {activeTab === 'conditions' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="conditions" />
             )}
 
-            {/* 9. WHY CHOOSE US */}
+            {/* 10. WHY CHOOSE US */}
             {activeTab === 'why_us' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="why-us" />
             )}
 
-            {/* 10. 3-PHASE ROADMAP */}
+            {/* 11. 3-PHASE ROADMAP */}
             {activeTab === 'roadmap' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="process" />
             )}
 
-            {/* 11. PATIENT REVIEWS */}
+            {/* 12. PATIENT REVIEWS */}
             {activeTab === 'reviews' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="reviews" />
             )}
 
-            {/* 12. FAQS & FIRST VISIT */}
+            {/* 13. FAQS & FIRST VISIT */}
             {activeTab === 'faqs' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="faqs" />
+            )}
+
+            {/* 14. LEGAL PAGES & POLICIES */}
+            {activeTab === 'legal' && (
+              <LegalPolicyManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
             {/* 13. CLINIC INFO & LOGISTICS (4 Distinct Subsections) */}
@@ -1263,7 +1353,17 @@ export function AgencyWorkspace({
               </div>
             )}
 
-            {/* 19. PRESETS & BACKUPS */}
+            {/* 19. USERS & TEAM ROLES */}
+            {activeTab === 'users' && (
+              <TeamManager
+                clinic={clinic}
+                onUpdateClinic={onUpdateClinic}
+                activeRolePreview={activeRolePreview}
+                onSelectRolePreview={setActiveRolePreview}
+              />
+            )}
+
+            {/* 20. PRESETS & BACKUPS */}
             {activeTab === 'presets' && (
               <div className="space-y-6">
                 <div className="border-b border-stone-800 pb-3">

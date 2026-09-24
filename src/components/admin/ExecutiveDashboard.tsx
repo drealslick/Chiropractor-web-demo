@@ -137,13 +137,46 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <div className="text-left sm:text-right">
-              <div className="text-xs font-bold text-emerald-400">{healthPercent}% Setup Health</div>
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            {/* Mode Switcher */}
+            <button
+              type="button"
+              onClick={() =>
+                onUpdateClinic({
+                  ...clinic,
+                  isProductionMode: !clinic.isProductionMode,
+                })
+              }
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                clinic.isProductionMode
+                  ? 'bg-emerald-950/80 border-emerald-700 text-emerald-300 hover:bg-emerald-900'
+                  : 'bg-amber-950/70 border-amber-700 text-amber-300 hover:bg-amber-900'
+              }`}
+              title="Toggle between Sandbox Demo mode and Live Production mode"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  clinic.isProductionMode ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
+                }`}
+              />
+              <span>{clinic.isProductionMode ? '🟢 Live Production' : '🧪 Demo Sandbox'}</span>
+            </button>
+
+            {/* Clickable Setup Health Badge */}
+            <button
+              type="button"
+              onClick={() => onNavigateTab('setup')}
+              className="text-left sm:text-right px-3 py-1.5 rounded-xl bg-stone-850 hover:bg-stone-800 border border-stone-750 hover:border-emerald-500/50 transition cursor-pointer group"
+              title="Click to view Setup & Launch Checklist"
+            >
+              <div className="text-xs font-bold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-1">
+                <span>{healthPercent}% Setup Health</span>
+                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
               <div className="text-[10px] text-stone-500 font-mono">
                 {hasSupabase ? (syncStatus === 'synced' ? 'Supabase Synced' : 'Syncing...') : 'Local Database'}
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -242,26 +275,43 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Action 1: Simulate Lead */}
-          <button
-            type="button"
-            onClick={handleSimulateLead}
-            className={`p-3 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
-              testLeadAdded
-                ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
-                : 'bg-stone-850 hover:bg-stone-800 border-stone-800 text-stone-200 hover:border-stone-700'
-            }`}
-          >
-            <div>
-              <div className="font-bold text-xs flex items-center gap-1.5">
-                <Inbox className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{testLeadAdded ? 'Test Inquiry Created!' : 'Simulate Patient Inquiry'}</span>
+          {clinic.isProductionMode ? (
+            <div className="p-3 rounded-xl bg-stone-850/60 border border-stone-800 text-left flex items-center justify-between opacity-80">
+              <div>
+                <div className="font-bold text-xs flex items-center gap-1.5 text-stone-400">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Production Safeguard Active</span>
+                </div>
+                <div className="text-[11px] text-stone-500 mt-0.5">
+                  Demo simulation paused in Live Production mode to protect CRM data.
+                </div>
               </div>
-              <div className="text-[11px] text-stone-400 mt-0.5">
-                Injects a realistic patient triage lead into the CRM.
-              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
+                Live Safe
+              </span>
             </div>
-            <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
-          </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSimulateLead}
+              className={`p-3 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
+                testLeadAdded
+                  ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300'
+                  : 'bg-stone-850 hover:bg-stone-800 border-stone-800 text-stone-200 hover:border-stone-700'
+              }`}
+            >
+              <div>
+                <div className="font-bold text-xs flex items-center gap-1.5">
+                  <Inbox className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{testLeadAdded ? 'Test Inquiry Created!' : 'Simulate Patient Inquiry'}</span>
+                </div>
+                <div className="text-[11px] text-stone-400 mt-0.5">
+                  Injects a realistic patient triage lead into the CRM.
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
+            </button>
+          )}
 
           {/* Action 2: Toggle Announcement Banner */}
           <button

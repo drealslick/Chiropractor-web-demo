@@ -12,7 +12,7 @@ export const FirstVisitSection: React.FC<FirstVisitSectionProps> = ({ clinic }) 
   const steps = clinic?.customFirstVisitSteps || firstVisitSteps;
 
   return (
-    <section className="py-12 sm:py-16 md:py-20 bg-stone-50 border-b border-stone-200 overflow-hidden">
+    <section className="py-10 sm:py-14 md:py-16 bg-stone-50 border-b border-stone-200 overflow-hidden">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <motion.div
@@ -20,9 +20,9 @@ export const FirstVisitSection: React.FC<FirstVisitSectionProps> = ({ clinic }) 
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-30px' }}
           transition={{ duration: 0.45 }}
-          className="text-center max-w-xl mx-auto mb-8 sm:mb-12"
+          className="text-center max-w-xl mx-auto mb-6 sm:mb-9"
         >
-          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full inline-block mb-2.5">
+          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full inline-block mb-2">
             {clinic?.firstVisitSubtitle || "What to Expect"}
           </span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-stone-900 tracking-tight">
@@ -30,7 +30,7 @@ export const FirstVisitSection: React.FC<FirstVisitSectionProps> = ({ clinic }) 
           </h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-3.5 sm:gap-6">
+        <div className="grid md:grid-cols-3 gap-3 sm:gap-4.5">
           {steps.map((step, index) => (
             <motion.div
               key={step.number}
@@ -38,9 +38,9 @@ export const FirstVisitSection: React.FC<FirstVisitSectionProps> = ({ clinic }) 
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-20px' }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
-              className="p-4 sm:p-6 rounded-2xl bg-white border border-stone-200/90 shadow-xs flex flex-col justify-start hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+              className="p-3.5 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs flex flex-col justify-start hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1.5">
                 <span className="text-2xl sm:text-3xl font-serif font-bold text-emerald-800/80 block">
                   {step.number}
                 </span>
@@ -48,10 +48,10 @@ export const FirstVisitSection: React.FC<FirstVisitSectionProps> = ({ clinic }) 
                   Step 0{index + 1}
                 </span>
               </div>
-              <h3 className="text-base sm:text-lg font-serif font-bold text-stone-900 mb-1.5 leading-snug">
+              <h3 className="text-sm sm:text-base font-serif font-bold text-stone-900 mb-1 leading-snug">
                 {step.title}
               </h3>
-              <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">
+              <p className="text-stone-600 text-xs leading-relaxed">
                 {step.description}
               </p>
             </motion.div>

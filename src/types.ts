@@ -129,6 +129,16 @@ export interface ClinicInfo {
   customTextColor?: string;
   announcementBanner?: AnnouncementBannerConfig;
   customPosts?: ClinicPost[];
+  customTeamMembers?: any[];
+  privacyPolicyText?: string;
+  termsOfServiceText?: string;
+  cancellationPolicyText?: string;
+  isProductionMode?: boolean;
+  heroImageAlt?: string;
+  doctorImageAlt?: string;
+  clinicImageAlt?: string;
+  patientImageAlt?: string;
+  logoUrlAlt?: string;
   examFee?: string;
   followUpFee?: string;
   aboutApproach?: string;
