@@ -3,7 +3,42 @@ import doctorImg from '../assets/images/doctor_portrait_1789573972470.jpg';
 import clinicRoomImg from '../assets/images/clinic_interior_room_1789573983752.jpg';
 import michaelImg from '../assets/images/patient_michael_tennis_1789573994707.jpg';
 
-import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem } from '../types';
+import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption } from '../types';
+
+export const defaultTriageOptions: HeroTriageOption[] = [
+  {
+    id: 'back',
+    label: 'Lower Back & Sciatica',
+    shortLabel: 'Lower Back',
+    summary: 'Lumbar facet restriction or disc decompression protocol.',
+    typicalVisits: '3–5 visits to lasting relief',
+    focus: 'Decompression & Spinal Alignment',
+  },
+  {
+    id: 'neck',
+    label: 'Neck & Desk Strain',
+    shortLabel: 'Neck & Desk',
+    summary: 'Cervical alignment, thoracic mobilization & ergonomic posture rehab.',
+    typicalVisits: '2–4 visits to full range',
+    focus: 'Cervical & Postural Correction',
+  },
+  {
+    id: 'headache',
+    label: 'Headaches & Migraines',
+    shortLabel: 'Headaches',
+    summary: 'Suboccipital tension release and upper cervical nerve pathway care.',
+    typicalVisits: 'Rapid relief in 1–3 visits',
+    focus: 'Cervicogenic Tension Release',
+  },
+  {
+    id: 'sports',
+    label: 'Athletic & Joint Injury',
+    shortLabel: 'Athletic Rehab',
+    summary: 'Functional biomechanics, extremity adjusting & kinetic chain rehab.',
+    typicalVisits: 'Custom return-to-sport arc',
+    focus: 'Sports Recovery & Performance',
+  },
+];
 
 export const defaultClinic: ClinicInfo = {
   name: "Vance Health Practice Architecture",

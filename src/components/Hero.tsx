@@ -1,50 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, ShieldCheck, ArrowRight, Activity, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ClinicInfo } from '../types';
+import { ClinicInfo, HeroTriageOption } from '../types';
+import { defaultTriageOptions } from '../data/clinicData';
 
 interface HeroProps {
   clinic: ClinicInfo;
   onBookClick: () => void;
 }
 
-const triageOptions = [
-  {
-    id: 'back',
-    label: 'Lower Back & Sciatica',
-    shortLabel: 'Lower Back',
-    summary: 'Lumbar facet restriction or disc decompression protocol.',
-    typicalVisits: '3–5 visits to lasting relief',
-    focus: 'Decompression & Spinal Alignment',
-  },
-  {
-    id: 'neck',
-    label: 'Neck & Desk Strain',
-    shortLabel: 'Neck & Desk',
-    summary: 'Cervical alignment, thoracic mobilization & ergonomic posture rehab.',
-    typicalVisits: '2–4 visits to full range',
-    focus: 'Cervical & Postural Correction',
-  },
-  {
-    id: 'headache',
-    label: 'Headaches & Migraines',
-    shortLabel: 'Headaches',
-    summary: 'Suboccipital tension release and upper cervical nerve pathway care.',
-    typicalVisits: 'Rapid relief in 1–3 visits',
-    focus: 'Cervicogenic Tension Release',
-  },
-  {
-    id: 'sports',
-    label: 'Athletic & Joint Injury',
-    shortLabel: 'Athletic Rehab',
-    summary: 'Functional biomechanics, extremity adjusting & kinetic chain rehab.',
-    typicalVisits: 'Custom return-to-sport arc',
-    focus: 'Sports Recovery & Performance',
-  },
-];
-
 export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
-  const [activeTriage, setActiveTriage] = useState(triageOptions[0]);
+  const isTriageEnabled = clinic.showHeroTriage !== false;
+  const triageList: HeroTriageOption[] =
+    clinic.customTriageOptions && clinic.customTriageOptions.length > 0
+      ? clinic.customTriageOptions
+      : defaultTriageOptions;
+
+  const [activeTriage, setActiveTriage] = useState<HeroTriageOption>(triageList[0] || defaultTriageOptions[0]);
+
+  // Keep active option in sync if list changes or item was removed in admin
+  useEffect(() => {
+    if (!triageList.some((t) => t.id === activeTriage.id)) {
+      setActiveTriage(triageList[0] || defaultTriageOptions[0]);
+    }
+  }, [triageList, activeTriage.id]);
+
+  const triageHeadline = clinic.heroTriageHeadline || 'Select Primary Discomfort:';
+  const triageSubheadline = clinic.heroTriageSubheadline || 'Personalized pathway';
 
   return (
     <section className="relative pt-6 pb-12 sm:pt-10 sm:pb-20 overflow-hidden bg-stone-50/50">
@@ -94,63 +76,77 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
               {clinic.heroSubheadline || `Personalized, root-cause chiropractic care in ${clinic.city || 'our practice'}. We find the biomechanical source of your discomfort and build a clear plan to restore natural mobility.`}
             </motion.p>
 
-            {/* Interactive Clinical Triage Preview Box */}
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="p-3.5 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-3"
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5 text-[11px] sm:text-xs">
-                  <Activity className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  Select Primary Discomfort:
-                </span>
-                <span className="text-[10px] sm:text-[11px] text-stone-400">Personalized pathway</span>
-              </div>
+            {/* Interactive Clinical Triage Preview Box (Toggleable via Admin) */}
+            {isTriageEnabled && triageList.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="p-3.5 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-3"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5 text-[11px] sm:text-xs">
+                    <Activity className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                    {triageHeadline}
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] text-stone-400">{triageSubheadline}</span>
+                </div>
 
-              {/* Triage Switcher Tabs */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-stone-100 rounded-xl">
-                {triageOptions.map((opt) => {
-                  const isActive = activeTriage.id === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setActiveTriage(opt)}
-                      className={`px-2 py-2 text-xs font-semibold rounded-lg transition-all text-center truncate cursor-pointer ${
-                        isActive
-                          ? 'bg-white text-stone-900 shadow-xs ring-1 ring-black/5 font-bold'
-                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-                      }`}
+                {/* Triage Switcher Tabs */}
+                <div className={`grid gap-1.5 p-1 bg-stone-100 rounded-xl ${
+                  triageList.length === 1
+                    ? 'grid-cols-1'
+                    : triageList.length === 2
+                    ? 'grid-cols-2'
+                    : triageList.length === 3
+                    ? 'grid-cols-3'
+                    : 'grid-cols-2 sm:grid-cols-4'
+                }`}>
+                  {triageList.map((opt) => {
+                    const isActive = activeTriage?.id === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setActiveTriage(opt)}
+                        className={`px-2 py-2 text-xs font-semibold rounded-lg transition-all text-center truncate cursor-pointer ${
+                          isActive
+                            ? 'bg-white text-stone-900 shadow-xs ring-1 ring-black/5 font-bold'
+                            : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                        }`}
+                      >
+                        <span className="sm:hidden">{opt.shortLabel || opt.label.split(' & ')[0]}</span>
+                        <span className="hidden sm:inline">{opt.label.split(' & ')[0]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dynamic Triage Output */}
+                {activeTriage && (
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeTriage.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2 }}
+                      className="pt-2 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                     >
-                      <span className="sm:hidden">{opt.shortLabel}</span>
-                      <span className="hidden sm:inline">{opt.label.split(' & ')[0]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Dynamic Triage Output */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTriage.id}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.2 }}
-                  className="pt-2 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-                >
-                  <div className="min-w-0">
-                    <div className="font-semibold text-stone-900">{activeTriage.focus}</div>
-                    <div className="text-stone-500 text-[11px] mt-0.5 leading-snug">{activeTriage.summary}</div>
-                  </div>
-                  <div className="shrink-0 font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md text-[11px] self-start sm:self-auto">
-                    {activeTriage.typicalVisits}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-stone-900">{activeTriage.focus}</div>
+                        <div className="text-stone-500 text-[11px] mt-0.5 leading-snug">{activeTriage.summary}</div>
+                      </div>
+                      {activeTriage.typicalVisits && (
+                        <div className="shrink-0 font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md text-[11px] self-start sm:self-auto">
+                          {activeTriage.typicalVisits}
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                )}
+              </motion.div>
+            )}
 
             {/* CTAs and Doctor Reassurance */}
             <motion.div

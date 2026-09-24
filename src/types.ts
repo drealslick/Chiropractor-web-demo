@@ -71,10 +71,21 @@ export interface ClinicPost {
   excerpt?: string;
   body?: string;
   author?: string;
+  category?: string;
+  readTime?: string;
 }
 
 export type BookingEmbedMode = 'triage_request' | 'iframe' | 'redirect';
 export type BookingPlatformPreset = 'jane' | 'calendly' | 'cliniko' | 'acuity' | 'custom';
+
+export interface HeroTriageOption {
+  id: string;
+  label: string;
+  shortLabel?: string;
+  summary: string;
+  typicalVisits: string;
+  focus: string;
+}
 
 export interface ClinicInfo {
   id?: string;
@@ -103,6 +114,10 @@ export interface ClinicInfo {
   heroBadge?: string;
   heroTitle?: string;
   heroSubtitle?: string;
+  showHeroTriage?: boolean;
+  heroTriageHeadline?: string;
+  heroTriageSubheadline?: string;
+  customTriageOptions?: HeroTriageOption[];
   offerHeadline?: string;
   offerPriceText?: string;
   showStickyBanner?: boolean;

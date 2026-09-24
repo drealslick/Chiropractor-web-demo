@@ -28,7 +28,9 @@ import { LeadsInbox } from './admin/LeadsInbox';
 import { PracticeAudit } from './admin/PracticeAudit';
 import { BookingSettings } from './admin/BookingSettings';
 import { ExecutiveDashboard } from './admin/ExecutiveDashboard';
+import { BlogManager } from './admin/BlogManager';
 import { getStoredLeads } from '../data/leadsStore';
+import { BookOpen } from 'lucide-react';
 
 interface AgencyWorkspaceProps {
   isOpen: boolean;
@@ -42,7 +44,7 @@ interface AgencyWorkspaceProps {
 }
 
 type MainTabType = 'overview' | 'leads' | 'booking' | 'site' | 'setup';
-type SiteSubTab = 'branding' | 'info' | 'lists' | 'copy' | 'sections' | 'seo';
+type SiteSubTab = 'branding' | 'info' | 'blog' | 'lists' | 'copy' | 'sections' | 'seo';
 type SetupSubTab = 'audit' | 'presets';
 
 export function AgencyWorkspace({
@@ -114,6 +116,7 @@ export function AgencyWorkspace({
   }[] = [
     { id: 'branding', label: 'Themes', icon: Palette },
     { id: 'info', label: 'Clinic Info', icon: Sliders },
+    { id: 'blog', label: 'Blog & Articles', icon: BookOpen },
     { id: 'lists', label: 'Content', icon: FileText },
     { id: 'copy', label: 'Copy', icon: FileText },
     { id: 'sections', label: 'Sections', icon: Layout },
@@ -694,6 +697,11 @@ export function AgencyWorkspace({
                 </div>
               )}
 
+              {/* SUB: BLOG & PATIENT GUIDES */}
+              {siteSubTab === 'blog' && (
+                <BlogManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+              )}
+
               {/* SUB: CONTENT & LISTS (With Category Pill Navigation) */}
               {siteSubTab === 'lists' && (
                 <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} />
@@ -840,6 +848,7 @@ export function AgencyWorkspace({
                   </div>
                   <div className="space-y-1.5 pt-1">
                     {[
+                      { key: 'showHeroTriage', label: 'Hero Discomfort Selector (Triage Widget)' },
                       { key: 'showTrustBar', label: 'Ratings Bar' },
                       { key: 'showConditions', label: 'Conditions Treated' },
                       { key: 'showWhyUs', label: 'Why Choose Us' },

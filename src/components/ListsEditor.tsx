@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { ClinicInfo, ProblemCondition, PatientTestimonial, ProcessStep } from '../types';
+import { ClinicInfo, ProblemCondition, PatientTestimonial, ProcessStep, HeroTriageOption, ClinicPost } from '../types';
 import {
   conditionsData,
   faqs,
   testimonials,
   processSteps,
   firstVisitSteps,
+  defaultTriageOptions,
 } from '../data/clinicData';
+import { defaultBlogPosts } from '../data/defaultPosts';
+import { BlogManager } from './admin/BlogManager';
 import {
   Activity,
   MessageSquare,
@@ -24,6 +27,12 @@ import {
   ShieldCheck,
   Star,
   Award,
+  ToggleLeft,
+  ToggleRight,
+  Plus,
+  Trash2,
+  RotateCcw,
+  BookOpen,
 } from 'lucide-react';
 
 type FaqRow = { q: string; a: string };
@@ -51,6 +60,16 @@ function seedProcess(clinic: ClinicInfo): ProcessStep[] {
 function seedFirstVisit(clinic: ClinicInfo): ProcessStep[] {
   if (clinic.customFirstVisitSteps && clinic.customFirstVisitSteps.length) return clinic.customFirstVisitSteps;
   return firstVisitSteps.map((s) => ({ ...s }));
+}
+
+function seedPosts(clinic: ClinicInfo): ClinicPost[] {
+  if (clinic.customPosts && clinic.customPosts.length) return clinic.customPosts;
+  return defaultBlogPosts;
+}
+
+function seedTriage(clinic: ClinicInfo): HeroTriageOption[] {
+  if (clinic.customTriageOptions && clinic.customTriageOptions.length) return clinic.customTriageOptions;
+  return defaultTriageOptions.map((t) => ({ ...t }));
 }
 
 function seedInsurances(clinic: ClinicInfo): string[] {
@@ -109,14 +128,18 @@ export function ListsEditor({
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
 }) {
-  const [activeCategory, setActiveCategory] = useState<string>('trust');
+  const [activeCategory, setActiveCategory] = useState<string>('triage');
 
+  const triageList = seedTriage(clinic);
   const faqList = seedFaqs(clinic);
   const condList = seedConditions(clinic);
   const reviewList = seedReviews(clinic);
   const processList = seedProcess(clinic);
   const firstVisitList = seedFirstVisit(clinic);
   const insuranceList = seedInsurances(clinic);
+
+  const isTriageEnabled = clinic.showHeroTriage !== false;
+  const postList = seedPosts(clinic);
 
   const extra = clinic as ClinicInfo & {
     firstVisitDuration?: string;
@@ -127,6 +150,8 @@ export function ListsEditor({
   };
 
   const categories = [
+    { id: 'triage', label: 'Discomfort Selector', icon: Activity, count: triageList.length },
+    { id: 'blog', label: 'Blog & Articles', icon: BookOpen, count: postList.length },
     { id: 'trust', label: 'Trust & Badges', icon: ShieldCheck, count: 4 },
     { id: 'conditions', label: 'Conditions & Protocols', icon: Activity, count: condList.length },
     { id: 'why-us', label: 'Care Contrast Matrix', icon: Heart, count: 4 },
@@ -171,6 +196,196 @@ export function ListsEditor({
           })}
         </div>
       </div>
+
+      {/* SECTION: BLOG & PATIENT GUIDES */}
+      {activeCategory === 'blog' && (
+        <BlogManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+      )}
+
+      {/* SECTION: HERO DISCOMFORT SELECTOR / CLINICAL TRIAGE (TOGGLEABLE & EDITABLE) */}
+      {activeCategory === 'triage' && (
+        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+            <div>
+              <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
+                <Activity className="w-4 h-4 text-emerald-400" />
+                <span>Hero Discomfort Selector & Clinical Triage ({triageList.length})</span>
+              </h3>
+              <p className="text-[11px] text-stone-400">
+                Interactive quick-triage widget on the hero section that diagnoses patient pain points.
+              </p>
+            </div>
+
+            {/* Master Visibility Toggle */}
+            <div className="flex items-center gap-2 bg-stone-900 px-3 py-1.5 rounded-xl border border-stone-750">
+              <span className="text-xs text-stone-300 font-medium">Show in Hero:</span>
+              <button
+                type="button"
+                onClick={() => onUpdateClinic({ ...clinic, showHeroTriage: !isTriageEnabled })}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  isTriageEnabled
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                }`}
+              >
+                {isTriageEnabled ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                <span>{isTriageEnabled ? 'Visible' : 'Hidden'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Headline & Eyebrow settings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-stone-900/70 border border-stone-800 rounded-xl">
+            <Field
+              label="Selector Box Title"
+              value={clinic.heroTriageHeadline || 'Select Primary Discomfort:'}
+              placeholder="Select Primary Discomfort:"
+              onChange={(v) => onUpdateClinic({ ...clinic, heroTriageHeadline: v })}
+            />
+            <Field
+              label="Subheadline / Eyebrow Tag"
+              value={clinic.heroTriageSubheadline || 'Personalized pathway'}
+              placeholder="Personalized pathway"
+              onChange={(v) => onUpdateClinic({ ...clinic, heroTriageSubheadline: v })}
+            />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs font-bold text-stone-300 uppercase tracking-wider">
+              Discomfort Options ({triageList.length})
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateClinic({
+                    ...clinic,
+                    customTriageOptions: defaultTriageOptions.map((t) => ({ ...t })),
+                  })
+                }
+                className="px-2.5 py-1 bg-stone-800 hover:bg-stone-750 text-stone-300 hover:text-white rounded-lg text-xs font-medium flex items-center gap-1 cursor-pointer transition"
+                title="Reset to default options"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset Defaults</span>
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition shadow-xs"
+                onClick={() =>
+                  onUpdateClinic({
+                    ...clinic,
+                    customTriageOptions: [
+                      ...triageList,
+                      {
+                        id: `triage-${Date.now()}`,
+                        label: 'Upper Back & Rib Pain',
+                        shortLabel: 'Upper Back',
+                        focus: 'Thoracic & Ribcage Mobilization',
+                        summary: 'Relieves mid-back postural burning and intercostal nerve tension.',
+                        typicalVisits: '2–4 visits to relief',
+                      },
+                    ],
+                  })
+                }
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Discomfort Option</span>
+              </button>
+            </div>
+          </div>
+
+          {/* List of Discomfort Items */}
+          <div className="space-y-3.5">
+            {triageList.map((item, idx) => (
+              <div key={item.id || idx} className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2.5">
+                <div className="flex items-center justify-between border-b border-stone-800/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 text-[11px] font-mono flex items-center justify-center font-bold">
+                      {idx + 1}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-400">
+                      {item.label || 'Untitled Discomfort Option'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
+                    onClick={() =>
+                      onUpdateClinic({
+                        ...clinic,
+                        customTriageOptions: triageList.filter((_, i) => i !== idx),
+                      })
+                    }
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Remove</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Field
+                    label="Full Tab Label (Desktop)"
+                    value={item.label || ''}
+                    placeholder="e.g. Lower Back & Sciatica"
+                    onChange={(v) => {
+                      const next = [...triageList];
+                      next[idx] = { ...item, label: v };
+                      onUpdateClinic({ ...clinic, customTriageOptions: next });
+                    }}
+                  />
+                  <Field
+                    label="Short Tab Label (Mobile Buttons)"
+                    value={item.shortLabel || ''}
+                    placeholder="e.g. Lower Back"
+                    onChange={(v) => {
+                      const next = [...triageList];
+                      next[idx] = { ...item, shortLabel: v };
+                      onUpdateClinic({ ...clinic, customTriageOptions: next });
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <Field
+                    label="Focus Area / Protocol Name"
+                    value={item.focus || ''}
+                    placeholder="e.g. Decompression & Spinal Alignment"
+                    onChange={(v) => {
+                      const next = [...triageList];
+                      next[idx] = { ...item, focus: v };
+                      onUpdateClinic({ ...clinic, customTriageOptions: next });
+                    }}
+                  />
+                  <Field
+                    label="Expected Recovery Timeline Badge"
+                    value={item.typicalVisits || ''}
+                    placeholder="e.g. 3–5 visits to lasting relief"
+                    onChange={(v) => {
+                      const next = [...triageList];
+                      next[idx] = { ...item, typicalVisits: v };
+                      onUpdateClinic({ ...clinic, customTriageOptions: next });
+                    }}
+                  />
+                </div>
+
+                <Field
+                  label="Clinical Summary / Protocol Description"
+                  textarea
+                  value={item.summary || ''}
+                  placeholder="e.g. Lumbar facet restriction or disc decompression protocol."
+                  onChange={(v) => {
+                    const next = [...triageList];
+                    next[idx] = { ...item, summary: v };
+                    onUpdateClinic({ ...clinic, customTriageOptions: next });
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* SECTION: TRUST & ACCREDITATION BAR */}
       {activeCategory === 'trust' && (

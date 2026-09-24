@@ -305,22 +305,28 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
           </button>
 
-          {/* Action 4: Load Archetype */}
+          {/* Action 4: Toggle Hero Discomfort Selector */}
           <button
             type="button"
-            onClick={() => onNavigateTab('setup', 'presets')}
+            onClick={() => onUpdateClinic({ ...clinic, showHeroTriage: clinic.showHeroTriage === false ? true : false })}
             className="p-3 rounded-xl bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-stone-700 text-left flex items-center justify-between transition cursor-pointer"
           >
             <div>
               <div className="font-bold text-xs flex items-center gap-1.5 text-stone-200">
-                <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Load Practice Archetype</span>
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <span>
+                  {clinic.showHeroTriage !== false ? 'Hero Discomfort: ON' : 'Hero Discomfort: OFF'}
+                </span>
               </div>
               <div className="text-[11px] text-stone-400 mt-0.5">
-                Switch demo presets (Sports, Family, Luxury, Rehab).
+                {clinic.showHeroTriage !== false ? 'Interactive triage widget visible on hero' : 'Hidden from hero section'}
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
+            <span
+              className={`w-2 h-2 rounded-full ${
+                clinic.showHeroTriage !== false ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-stone-600'
+              }`}
+            />
           </button>
         </div>
       </div>
@@ -331,6 +337,36 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           <Layers className="w-3.5 h-3.5 text-emerald-400" /> Content & Clinical Editors
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => onNavigateTab('site', 'blog')}
+            className="p-2.5 rounded-lg bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 flex items-center justify-between text-left transition cursor-pointer group"
+          >
+            <div>
+              <span className="font-medium text-stone-200 block group-hover:text-emerald-400 transition">
+                Blog & Patient Articles
+              </span>
+              <span className="text-[11px] text-stone-500">
+                {clinic.customPosts?.length ? `${clinic.customPosts.length} custom articles` : '4 clinical guides'} · SEO & recovery tips
+              </span>
+            </div>
+            <span className="text-emerald-400 text-xs font-semibold">Manage →</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigateTab('site', 'lists')}
+            className="p-2.5 rounded-lg bg-stone-850 hover:bg-stone-800 border border-stone-800 flex items-center justify-between text-left transition cursor-pointer"
+          >
+            <div>
+              <span className="font-medium text-stone-200 block">Hero Discomfort Selector</span>
+              <span className="text-[11px] text-stone-500">
+                {clinic.showHeroTriage !== false ? 'Visible' : 'Hidden'} · Triage options, timelines & protocols
+              </span>
+            </div>
+            <span className="text-emerald-400 text-xs font-semibold">Edit →</span>
+          </button>
+
           <button
             type="button"
             onClick={() => onNavigateTab('site', 'lists')}
