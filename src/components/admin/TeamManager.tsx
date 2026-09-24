@@ -93,7 +93,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
         'Manage Leads & EHR Booking Integrations',
         'Edit All Content, Blog & Discomfort Selector',
         'Add & Remove Team Accounts',
-        'Export & Restore Blueprints',
+        'Export & Restore Site Backups',
       ],
     },
     editor: {

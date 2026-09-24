@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Download,
   Upload,
@@ -10,8 +10,10 @@ import {
   Plus,
   Clock,
   ShieldCheck,
+  ShieldAlert,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Calendar,
   Layers,
   Archive,
@@ -21,7 +23,9 @@ import {
   Zap,
   Tag,
   FileCode,
+  FileCheck,
   Info,
+  X,
 } from 'lucide-react';
 import { ClinicInfo } from '../../types';
 import { agencyDemoPresets } from '../../data/presets';
@@ -46,7 +50,7 @@ export interface ClinicSnapshot {
   data: ClinicInfo;
 }
 
-export interface PracticeArchetype {
+export interface StarterTemplate {
   id: string;
   name: string;
   tagline?: string;
@@ -56,11 +60,14 @@ export interface PracticeArchetype {
   data: Partial<ClinicInfo>;
 }
 
+// Backward-compatibility alias
+export type PracticeArchetype = StarterTemplate;
+
 const STORAGE_SNAPSHOTS_KEY = 'clinic_site_snapshots_v1';
 const STORAGE_TEMPLATES_KEY = 'clinic_custom_archetypes_v1';
 
-// Convert factory agencyDemoPresets to initial array of archetypes
-const getFactoryTemplates = (): PracticeArchetype[] => {
+// Convert factory agencyDemoPresets to initial array of starter templates
+const getFactoryTemplates = (): StarterTemplate[] => {
   return Object.entries(agencyDemoPresets).map(([key, data]) => ({
     id: key,
     name: data.name || key,
@@ -76,7 +83,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
   clinic,
   onUpdateClinic,
 }) => {
-  // 1. Snapshots State
+  // 1. Snapshots State (Live Rollback Savers)
   const [snapshots, setSnapshots] = useState<ClinicSnapshot[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_SNAPSHOTS_KEY);
@@ -90,8 +97,8 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
     return [];
   });
 
-  // 2. Archetypes/Templates State (Deletable!)
-  const [archetypes, setArchetypes] = useState<PracticeArchetype[]>(() => {
+  // 2. Starter Templates State (Deletable!)
+  const [templates, setTemplates] = useState<StarterTemplate[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_TEMPLATES_KEY);
       if (saved) {
@@ -104,20 +111,25 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
     return getFactoryTemplates();
   });
 
+  // Safety confirmation modal state for Applying a Template
+  const [templateToApply, setTemplateToApply] = useState<StarterTemplate | null>(null);
+
+  // Safety confirmation modal state for Redeploying a Snapshot
+  const [snapshotToRedeploy, setSnapshotToRedeploy] = useState<ClinicSnapshot | null>(null);
+
   // Form state for creating a new snapshot
   const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
   const [snapshotName, setSnapshotName] = useState('');
   const [snapshotNote, setSnapshotNote] = useState('');
 
-  // Form state for saving current site as a reusable template
+  // Form state for saving current site as a reusable starter template
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateTagline, setTemplateTagline] = useState('');
 
-  // JSON Blueprint Export/Import state
+  // Site Data Export/Import state (Plain English for clinic owners, JSON for developers)
   const [jsonCopied, setJsonCopied] = useState(false);
   const [importJsonText, setImportJsonText] = useState('');
-  const [importError, setImportError] = useState('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Sync snapshots to localStorage
@@ -132,15 +144,91 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
   // Sync templates to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(archetypes));
+      localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(templates));
     } catch (e) {
-      console.error('Failed to save archetypes to localStorage', e);
+      console.error('Failed to save templates to localStorage', e);
     }
-  }, [archetypes]);
+  }, [templates]);
 
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3500);
+  };
+
+  // --- Real-time JSON Paste Validation ---
+  const jsonValidation = useMemo(() => {
+    const trimmed = importJsonText.trim();
+    if (!trimmed) return null;
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return {
+          isValid: false,
+          error: 'Data must be a valid key-value configuration object (not an array or plain text).',
+          data: null,
+        };
+      }
+
+      const keys = Object.keys(parsed);
+      if (keys.length === 0) {
+        return {
+          isValid: false,
+          error: 'JSON object is empty. Please provide a valid site configuration.',
+          data: null,
+        };
+      }
+
+      const clinicName = parsed.name || parsed.clinicName || '';
+      const doctorName = parsed.doctorName || '';
+      const hasRecognizedField = keys.some((k) =>
+        ['name', 'tagline', 'phone', 'email', 'colorPalette', 'doctorName', 'services', 'customPosts'].includes(k)
+      );
+
+      return {
+        isValid: true,
+        error: null,
+        keyCount: keys.length,
+        clinicName,
+        doctorName,
+        hasRecognizedField,
+        data: parsed,
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Invalid JSON syntax';
+      return {
+        isValid: false,
+        error: msg,
+        data: null,
+      };
+    }
+  }, [importJsonText]);
+
+  // Helper to create a snapshot
+  const createSnapshotRecord = (name: string, description?: string): ClinicSnapshot => {
+    const now = new Date();
+    const formattedDate = now.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    return {
+      id: `snapshot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name,
+      description,
+      createdAt: now.toISOString(),
+      formattedDate,
+      clinicName: clinic.name || 'Untitled Practice',
+      doctorName: clinic.doctorName,
+      colorPalette: clinic.colorPalette || 'bone-charcoal',
+      cityState: clinic.cityState || clinic.city || '',
+      blogPostsCount: clinic.customPosts ? clinic.customPosts.length : 4,
+      data: JSON.parse(JSON.stringify(clinic)), // deep clone
+    };
   };
 
   // --- Snapshot Management ---
@@ -158,20 +246,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
     });
 
     const finalName = snapshotName.trim() || `Snapshot – ${formattedDate}`;
-
-    const newSnapshot: ClinicSnapshot = {
-      id: `snapshot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      name: finalName,
-      description: snapshotNote.trim() || undefined,
-      createdAt: now.toISOString(),
-      formattedDate,
-      clinicName: clinic.name || 'Untitled Practice',
-      doctorName: clinic.doctorName,
-      colorPalette: clinic.colorPalette || 'bone-charcoal',
-      cityState: clinic.cityState || clinic.city || '',
-      blogPostsCount: clinic.customPosts ? clinic.customPosts.length : 4,
-      data: JSON.parse(JSON.stringify(clinic)), // deep clone
-    };
+    const newSnapshot = createSnapshotRecord(finalName, snapshotNote.trim() || undefined);
 
     setSnapshots([newSnapshot, ...snapshots]);
     setSnapshotName('');
@@ -180,15 +255,11 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
     showNotification(`Saved snapshot "${newSnapshot.name}". You can redeploy to this state anytime.`);
   };
 
-  const handleRedeploySnapshot = (snap: ClinicSnapshot) => {
-    if (
-      window.confirm(
-        `Are you sure you want to redeploy to "${snap.name}"? This will replace current site data with this saved snapshot.`
-      )
-    ) {
-      onUpdateClinic({ ...snap.data });
-      showNotification(`Site successfully redeployed to "${snap.name}"!`);
-    }
+  const handleConfirmRedeploySnapshot = () => {
+    if (!snapshotToRedeploy) return;
+    onUpdateClinic({ ...snapshotToRedeploy.data });
+    showNotification(`Site successfully redeployed to "${snapshotToRedeploy.name}"!`);
+    setSnapshotToRedeploy(null);
   };
 
   const handleDeleteSnapshot = (id: string, name: string) => {
@@ -204,36 +275,53 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${snap.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-snapshot.json`;
+    a.download = `${snap.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-site-backup.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  // --- Template Archetype Management ---
-  const handleDeployTemplate = (template: PracticeArchetype) => {
-    if (
-      window.confirm(
-        `Apply "${template.name}" template? This replaces current practice theme and copy with the template's settings.`
-      )
-    ) {
-      onUpdateClinic({ ...clinic, ...template.data });
-      showNotification(`Applied "${template.name}" template!`);
-    }
+  // --- Starter Template Management & Safety Confirmation ---
+  const handleInitiateApplyTemplate = (template: StarterTemplate) => {
+    setTemplateToApply(template);
+  };
+
+  // Action 1: Save Snapshot First, then Apply
+  const handleSaveSnapshotAndApplyTemplate = () => {
+    if (!templateToApply) return;
+    const now = new Date();
+    const autoSnapName = `Auto-Backup before applying ${templateToApply.name}`;
+    const autoSnapshot = createSnapshotRecord(
+      autoSnapName,
+      `Automatic safety backup captured before applying the "${templateToApply.name}" starter template on ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
+    );
+    setSnapshots([autoSnapshot, ...snapshots]);
+
+    onUpdateClinic({ ...clinic, ...templateToApply.data });
+    showNotification(`Snapshot saved and "${templateToApply.name}" template applied!`);
+    setTemplateToApply(null);
+  };
+
+  // Action 2: Apply Directly Without Saving Snapshot
+  const handleApplyTemplateDirectly = () => {
+    if (!templateToApply) return;
+    onUpdateClinic({ ...clinic, ...templateToApply.data });
+    showNotification(`Applied "${templateToApply.name}" template.`);
+    setTemplateToApply(null);
   };
 
   const handleDeleteTemplate = (id: string, name: string) => {
-    if (window.confirm(`Delete template "${name}" from your presets library?`)) {
-      setArchetypes(archetypes.filter((t) => t.id !== id));
-      showNotification(`Deleted template "${name}".`);
+    if (window.confirm(`Delete "${name}" from your starter templates library?`)) {
+      setTemplates(templates.filter((t) => t.id !== id));
+      showNotification(`Deleted "${name}" template.`);
     }
   };
 
   const handleRestoreDefaultTemplates = () => {
-    if (window.confirm('Restore all factory demo templates (Austin, Denver, Preston, etc.)?')) {
+    if (window.confirm('Restore all factory starter templates (Austin, Denver, Preston, etc.)?')) {
       const factory = getFactoryTemplates();
-      setArchetypes(factory);
+      setTemplates(factory);
       showNotification('Restored all factory starter templates.');
     }
   };
@@ -241,58 +329,58 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
   const handleSaveCurrentAsTemplate = (e: React.FormEvent) => {
     e.preventDefault();
     const finalName = templateName.trim() || `${clinic.name || 'Practice'} Template`;
-    const newTemplate: PracticeArchetype = {
-      id: `custom_archetype_${Date.now()}`,
+    const newTemplate: StarterTemplate = {
+      id: `custom_template_${Date.now()}`,
       name: finalName,
-      tagline: templateTagline.trim() || clinic.tagline || 'Custom clinic archetype',
+      tagline: templateTagline.trim() || clinic.tagline || 'Custom starter template',
       cityState: clinic.cityState || clinic.city || '',
       colorPalette: clinic.colorPalette,
       isCustom: true,
       data: JSON.parse(JSON.stringify(clinic)),
     };
-    setArchetypes([newTemplate, ...archetypes]);
+    setTemplates([newTemplate, ...templates]);
     setTemplateName('');
     setTemplateTagline('');
     setIsCreatingTemplate(false);
-    showNotification(`Saved "${finalName}" to template library.`);
+    showNotification(`Saved "${finalName}" to starter templates library.`);
   };
 
-  // --- Blueprint JSON Export/Import ---
-  const handleExportBlueprint = () => {
+  // --- Export Site Data & File Backup (Plain English for clinic owners) ---
+  const handleExportSiteData = () => {
     const jsonStr = JSON.stringify(clinic, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(clinic.name || 'clinic').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-blueprint.json`;
+    a.download = `${(clinic.name || 'clinic').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-site-backup.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showNotification('Downloaded site blueprint JSON backup.');
+    showNotification('Downloaded site data backup (.json).');
   };
 
-  const handleCopyJson = () => {
+  const handleCopySiteData = () => {
     navigator.clipboard.writeText(JSON.stringify(clinic, null, 2));
     setJsonCopied(true);
     setTimeout(() => setJsonCopied(false), 2000);
-    showNotification('Copied site blueprint JSON to clipboard.');
+    showNotification('Copied site data to clipboard.');
+  };
+
+  const handleFormatJson = () => {
+    if (jsonValidation?.isValid && jsonValidation.data) {
+      setImportJsonText(JSON.stringify(jsonValidation.data, null, 2));
+      showNotification('Formatted JSON data.');
+    }
   };
 
   const handleImportJson = () => {
-    try {
-      const parsed = JSON.parse(importJsonText);
-      if (typeof parsed !== 'object' || !parsed) {
-        setImportError('Invalid JSON format.');
-        return;
-      }
-      onUpdateClinic({ ...clinic, ...parsed });
-      setImportJsonText('');
-      setImportError('');
-      showNotification('Blueprint successfully applied and site redeployed!');
-    } catch {
-      setImportError('Failed to parse JSON. Please verify syntax.');
+    if (!jsonValidation?.isValid || !jsonValidation.data) {
+      return;
     }
+    onUpdateClinic({ ...clinic, ...jsonValidation.data });
+    setImportJsonText('');
+    showNotification('Site data successfully applied and site redeployed!');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,12 +391,14 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
       try {
         const text = event.target?.result as string;
         const parsed = JSON.parse(text);
-        if (typeof parsed === 'object' && parsed) {
+        if (typeof parsed === 'object' && parsed && !Array.isArray(parsed)) {
           onUpdateClinic({ ...clinic, ...parsed });
-          showNotification('Blueprint backup successfully loaded from file!');
+          showNotification('Site backup successfully loaded from file!');
+        } else {
+          alert('Could not import file: File contents must be a valid site data JSON object.');
         }
       } catch {
-        alert('Could not parse imported JSON file. Please ensure it is valid JSON.');
+        alert('Could not parse imported file. Please ensure it is valid JSON.');
       }
     };
     reader.readAsText(file);
@@ -350,10 +440,10 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
           <div>
             <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
               <Archive className="w-5 h-5 text-emerald-400" />
-              <span>Snapshots, Backups & Presets</span>
+              <span>Snapshots, Backups & Starter Templates</span>
             </h3>
             <p className="text-xs text-stone-400 mt-0.5">
-              Save current site versions to safely redeploy anytime major changes occur, manage archetypes, or export JSON backups.
+              Save current site versions to safely redeploy anytime major changes occur, manage starter templates, or export data backups.
             </p>
           </div>
 
@@ -497,7 +587,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
                     <span className="font-bold text-xs text-stone-100 group-hover:text-emerald-400 transition">
                       {snap.name}
                     </span>
-                    <span className="text-[10px] text-stone-400 bg-stone-800 px-2 py-0.5 rounded font-mono flex items-center gap-1">
+                    <span className="text-[10px] text-stone-400 bg-stone-850 px-2 py-0.5 rounded font-mono flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-stone-500" />
                       {snap.formattedDate}
                     </span>
@@ -535,7 +625,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
                 <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
                   <button
                     type="button"
-                    onClick={() => handleRedeploySnapshot(snap)}
+                    onClick={() => setSnapshotToRedeploy(snap)}
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-sm"
                     title="Deploy this snapshot to the live website"
                   >
@@ -547,7 +637,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
                     type="button"
                     onClick={() => handleExportSingleSnapshot(snap)}
                     className="p-1.5 bg-stone-800 hover:bg-stone-750 text-stone-300 hover:text-white rounded-lg transition cursor-pointer border border-stone-700"
-                    title="Export this snapshot to a JSON file"
+                    title="Export this snapshot to a file"
                   >
                     <Download className="w-3.5 h-3.5" />
                   </button>
@@ -555,7 +645,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => handleDeleteSnapshot(snap.id, snap.name)}
-                    className="p-1.5 bg-stone-800 hover:bg-red-950/40 text-stone-400 hover:text-red-400 rounded-lg transition cursor-pointer border border-stone-700 hover:border-red-800/50"
+                    className="p-1.5 bg-stone-800 hover:bg-red-950/40 text-stone-400 hover:text-red-400 rounded-lg transition cursor-pointer border border-stone-750 hover:border-red-800/50"
                     title="Delete this snapshot"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -567,13 +657,13 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
         )}
       </div>
 
-      {/* SECTION 2: DELETABLE PRACTICE ARCHETYPES / TEMPLATES */}
+      {/* SECTION 2: DELETABLE STARTER TEMPLATES / CLINIC PRESETS */}
       <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-800 pb-3">
           <div>
             <h4 className="font-bold text-xs text-stone-200 uppercase tracking-wider text-emerald-400 flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              <span>Practice Archetypes & Starter Templates (Deletable)</span>
+              <span>Starter Templates & Clinic Presets (Deletable)</span>
             </h4>
             <p className="text-xs text-stone-400 mt-0.5">
               Load ready-made clinic styles or delete templates you don't need from your library.
@@ -587,7 +677,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
               className="px-2.5 py-1 bg-stone-800 hover:bg-stone-750 text-stone-300 hover:text-white text-xs font-semibold rounded-lg transition cursor-pointer border border-stone-700 flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Save Current as Template</span>
+              <span>Save Current as Starter Template</span>
             </button>
             <button
               type="button"
@@ -596,7 +686,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
               title="Reset starter templates to original factory presets"
             >
               <RotateCcw className="w-3 h-3 text-stone-400" />
-              <span>Reset Factory Archetypes</span>
+              <span>Reset Factory Templates</span>
             </button>
           </div>
         </div>
@@ -607,7 +697,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
             onSubmit={handleSaveCurrentAsTemplate}
             className="p-3.5 bg-stone-900 border border-stone-750 rounded-xl space-y-3 animate-fade-in"
           >
-            <h5 className="text-xs font-bold text-stone-200">Save Current Site as Archetype</h5>
+            <h5 className="text-xs font-bold text-stone-200">Save Current Site as Starter Template</h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 type="text"
@@ -637,16 +727,16 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
                 type="submit"
                 className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold cursor-pointer"
               >
-                Save to Archetypes
+                Save to Starter Templates
               </button>
             </div>
           </form>
         )}
 
-        {/* Archetypes Grid */}
-        {archetypes.length === 0 ? (
+        {/* Starter Templates Grid */}
+        {templates.length === 0 ? (
           <div className="py-6 text-center bg-stone-900/60 border border-dashed border-stone-800 rounded-xl p-4 space-y-2">
-            <p className="text-xs text-stone-400">All templates have been deleted from your library.</p>
+            <p className="text-xs text-stone-400">All starter templates have been deleted from your library.</p>
             <button
               type="button"
               onClick={handleRestoreDefaultTemplates}
@@ -657,7 +747,7 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {archetypes.map((tpl) => (
+            {templates.map((tpl) => (
               <div
                 key={tpl.id}
                 className="p-3.5 bg-stone-900 hover:bg-stone-800/90 border border-stone-800 hover:border-stone-700 rounded-xl transition flex flex-col justify-between gap-2.5 group relative"
@@ -693,9 +783,9 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => handleDeployTemplate(tpl)}
+                      onClick={() => handleInitiateApplyTemplate(tpl)}
                       className="px-2.5 py-1 bg-stone-800 hover:bg-emerald-600 text-stone-300 hover:text-white text-xs font-semibold rounded-lg transition cursor-pointer flex items-center gap-1"
-                      title="Load this template onto the site"
+                      title="Load this starter template onto the site"
                     >
                       <Zap className="w-3 h-3 text-emerald-400 group-hover:text-white" />
                       <span>Apply</span>
@@ -717,30 +807,30 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
         )}
       </div>
 
-      {/* SECTION 3: BLUEPRINT JSON EXPORT & IMPORT */}
+      {/* SECTION 3: EXPORT SITE DATA & BACKUP TO FILE */}
       <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
         <div>
           <h4 className="font-bold text-xs text-stone-200 uppercase tracking-wider text-emerald-400 flex items-center gap-2">
             <FileCode className="w-4 h-4" />
-            <span>Blueprint JSON File Export & Restore</span>
+            <span>Export Site Data & Backup to File</span>
           </h4>
           <p className="text-xs text-stone-400 mt-0.5">
-            Export complete site configuration file for external backup or migration to another domain.
+            Export a complete site data backup file for safe keeping, or migrate your settings to another domain. Developers can inspect the raw JSON format.
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5">
           <button
             type="button"
-            onClick={handleExportBlueprint}
+            onClick={handleExportSiteData}
             className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-stone-700"
           >
             <Download className="w-4 h-4 text-emerald-400" />
-            <span>Download Complete Blueprint (.json)</span>
+            <span>Download Site Backup (.json)</span>
           </button>
           <button
             type="button"
-            onClick={handleCopyJson}
+            onClick={handleCopySiteData}
             className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-stone-700"
           >
             {jsonCopied ? (
@@ -748,40 +838,301 @@ export const PresetBackupManager: React.FC<PresetBackupManagerProps> = ({
             ) : (
               <Copy className="w-4 h-4 text-stone-400" />
             )}
-            <span>{jsonCopied ? 'Copied to Clipboard!' : 'Copy Raw Blueprint JSON'}</span>
+            <span>{jsonCopied ? 'Copied to Clipboard!' : 'Copy Site Data (JSON)'}</span>
           </button>
         </div>
 
-        <div className="pt-3 border-t border-stone-800 space-y-2.5">
-          <label className="block text-xs font-medium text-stone-300">
-            Restore / Redeploy from JSON File or Paste
-          </label>
+        <div className="pt-3 border-t border-stone-800 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-stone-300">
+              Restore / Redeploy from File or Pasted Data
+            </label>
+            <p className="text-[11px] text-stone-500 mt-0.5">
+              Select a previously saved backup file (.json) or paste raw site configuration text below.
+            </p>
+          </div>
+
           <input
             type="file"
             accept=".json"
             onChange={handleFileUpload}
             className="block w-full text-xs text-stone-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-stone-750 file:text-stone-200 hover:file:bg-stone-700 cursor-pointer"
           />
-          <textarea
-            rows={2}
-            placeholder="Or paste raw JSON string here to redeploy..."
-            value={importJsonText}
-            onChange={(e) => setImportJsonText(e.target.value)}
-            className="w-full bg-stone-900 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 font-mono"
-          />
-          {importError && <p className="text-xs text-red-400">{importError}</p>}
-          {importJsonText && (
-            <button
-              type="button"
-              onClick={handleImportJson}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl cursor-pointer transition shadow-xs flex items-center gap-1.5"
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-stone-400">Or paste raw site data string (JSON):</span>
+              {importJsonText && (
+                <div className="flex items-center gap-2">
+                  {jsonValidation?.isValid && (
+                    <button
+                      type="button"
+                      onClick={handleFormatJson}
+                      className="text-stone-400 hover:text-emerald-400 cursor-pointer underline text-[10px]"
+                    >
+                      Format JSON
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setImportJsonText('')}
+                    className="text-stone-500 hover:text-stone-300 cursor-pointer text-[10px]"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <textarea
+              rows={3}
+              placeholder='{"name": "Cedar Creek Chiropractic", "doctorName": "Dr. Sarah Jenkins", ...}'
+              value={importJsonText}
+              onChange={(e) => setImportJsonText(e.target.value)}
+              className={`w-full bg-stone-900 border rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none font-mono transition ${
+                jsonValidation === null
+                  ? 'border-stone-750 focus:border-emerald-500'
+                  : jsonValidation.isValid
+                  ? 'border-emerald-500/80 focus:border-emerald-500 ring-1 ring-emerald-500/30'
+                  : 'border-red-500/80 focus:border-red-500 ring-1 ring-red-500/30'
+              }`}
+            />
+          </div>
+
+          {/* Real-time JSON Paste Validation Indicator */}
+          {jsonValidation !== null && (
+            <div
+              className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 transition animate-fade-in ${
+                jsonValidation.isValid
+                  ? 'bg-emerald-950/40 border-emerald-500/60 text-emerald-200'
+                  : 'bg-red-950/40 border-red-500/60 text-red-200'
+              }`}
             >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Apply & Redeploy Site From JSON</span>
-            </button>
+              {jsonValidation.isValid ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              )}
+              <div className="space-y-0.5 text-[11px] flex-1">
+                {jsonValidation.isValid ? (
+                  <>
+                    <p className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                      <span>Valid Site Data JSON</span>
+                      <span className="font-mono text-[10px] text-emerald-400 bg-emerald-900/60 px-1.5 py-0.2 rounded border border-emerald-700/50">
+                        {jsonValidation.keyCount} properties
+                      </span>
+                    </p>
+                    <p className="text-stone-300">
+                      Ready to apply.
+                      {jsonValidation.clinicName && (
+                        <span> Practice name: <strong className="text-white">{jsonValidation.clinicName}</strong></span>
+                      )}
+                      {jsonValidation.doctorName && (
+                        <span> • Clinician: <strong className="text-white">{jsonValidation.doctorName}</strong></span>
+                      )}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-red-300">Malformed JSON</p>
+                    <p className="text-red-200/90 font-mono text-[10px] break-all">
+                      {jsonValidation.error}
+                    </p>
+                    <p className="text-stone-400 text-[10px] mt-0.5">
+                      Please check for missing braces, unquoted keys, or trailing commas before applying.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Action button */}
+          {importJsonText && (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleImportJson}
+                disabled={!jsonValidation?.isValid}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  jsonValidation?.isValid
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-md shadow-emerald-950'
+                    : 'bg-stone-800 text-stone-500 cursor-not-allowed border border-stone-750'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>
+                  {jsonValidation?.isValid
+                    ? 'Apply & Redeploy Site From Data'
+                    : 'Fix JSON Errors to Apply'}
+                </span>
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      {/* SAFETY CONFIRMATION MODAL ON "APPLY" (Template) */}
+      {templateToApply && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-stone-900 border border-stone-750 max-w-lg w-full rounded-2xl p-6 shadow-2xl space-y-5 text-stone-100 relative animate-scale-up">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-stone-100">
+                    Apply Starter Template?
+                  </h3>
+                  <p className="text-xs text-amber-400/90 font-medium mt-0.5">
+                    Template: {templateToApply.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTemplateToApply(null)}
+                className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 cursor-pointer transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Warning Callout */}
+            <div className="p-3.5 bg-amber-950/40 border border-amber-500/40 rounded-xl space-y-1.5 text-xs">
+              <div className="flex items-center gap-2 font-bold text-amber-300">
+                <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Warning: Potential Content Overwrite</span>
+              </div>
+              <p className="text-stone-300 text-[11px] leading-relaxed">
+                Applying this starter template will overwrite your current design, copy, services, and images with the template's settings.
+              </p>
+              <p className="text-stone-400 text-[11px] leading-relaxed">
+                We highly recommend saving a <strong className="text-emerald-400 font-semibold">Snapshot</strong> first so you can instantly roll back at any time.
+              </p>
+            </div>
+
+            {/* Template Summary Preview */}
+            <div className="p-3 bg-stone-950/80 border border-stone-800 rounded-xl space-y-1 text-xs">
+              <div className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">
+                Template Details
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                <div>
+                  <span className="text-stone-500">Practice: </span>
+                  <span className="text-stone-200 font-medium">
+                    {templateToApply.data.name || templateToApply.name}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-stone-500">Color Theme: </span>
+                  <span className="text-stone-200 font-medium">
+                    {templateToApply.colorPalette || templateToApply.data.colorPalette || 'Standard'}
+                  </span>
+                </div>
+                {templateToApply.cityState && (
+                  <div className="col-span-2">
+                    <span className="text-stone-500">Location: </span>
+                    <span className="text-stone-200 font-medium">
+                      {templateToApply.cityState}
+                    </span>
+                  </div>
+                )}
+                {templateToApply.tagline && (
+                  <div className="col-span-2">
+                    <span className="text-stone-500">Tagline: </span>
+                    <span className="text-stone-300 italic">
+                      "{templateToApply.tagline}"
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={handleSaveSnapshotAndApplyTemplate}
+                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-200" />
+                <span>Save Snapshot & Apply</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleApplyTemplateDirectly}
+                className="py-2.5 px-3 bg-stone-800 hover:bg-amber-900/40 text-stone-300 hover:text-amber-200 border border-stone-700 hover:border-amber-700/50 rounded-xl text-xs font-medium transition cursor-pointer"
+              >
+                Apply Without Saving
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTemplateToApply(null)}
+                className="py-2.5 px-3 bg-stone-850 hover:bg-stone-800 text-stone-400 hover:text-stone-200 rounded-xl text-xs font-medium transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SAFETY CONFIRMATION MODAL ON "REDEPLOY SNAPSHOT" */}
+      {snapshotToRedeploy && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-stone-900 border border-stone-750 max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4 text-stone-100 relative animate-scale-up">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                  <Zap className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-stone-100">
+                    Redeploy Saved Snapshot?
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Rollback to: <strong className="text-emerald-400">{snapshotToRedeploy.name}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSnapshotToRedeploy(null)}
+                className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 cursor-pointer transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-300 leading-relaxed">
+              This will restore all content, sections, colors, team profiles, and settings to the exact state captured on <strong>{snapshotToRedeploy.formattedDate}</strong>.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSnapshotToRedeploy(null)}
+                className="px-3.5 py-2 bg-stone-800 hover:bg-stone-750 text-stone-300 rounded-xl text-xs font-medium cursor-pointer transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRedeploySnapshot}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-md shadow-emerald-950"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Confirm & Redeploy</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
