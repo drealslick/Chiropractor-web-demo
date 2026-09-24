@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
 import { defaultBlogPosts } from '../data/defaultPosts';
+import { resolvePalette } from '../data/colorPalettes';
 import { ClinicPost, BlogBlock } from '../types';
 import {
   ArrowLeft,
@@ -64,6 +65,14 @@ export default function BlogPost() {
   const hasBlocks = post.blocks && post.blocks.length > 0;
   const isDropCapEnabled = post.enableDropCap !== false && clinic.globalDropCap !== false;
   let firstParagraphRendered = false;
+
+  // Resolve palette accent color (falls back to site accent or vibrant emerald)
+  const activePalette = resolvePalette(clinic.colorPalette);
+  const accentColor =
+    clinic.customAccentColor ||
+    activePalette?.preview?.accent ||
+    activePalette?.variables?.['--theme-accent'] ||
+    '#059669';
 
   return (
     <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -197,9 +206,10 @@ export default function BlogPost() {
                         className="text-sm sm:text-base leading-relaxed text-stone-700 clear-both"
                       >
                         <span
-                          className="float-left text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-emerald-800 leading-none mr-2.5 sm:mr-3.5 mt-1 select-none drop-shadow-2xs"
+                          className="float-left text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-emerald-600 leading-[0.85] mr-2.5 sm:mr-3.5 select-none drop-shadow-2xs"
                           style={{
-                            color: clinic.customPrimaryColor || undefined,
+                            color: accentColor,
+                            paddingTop: '3px',
                           }}
                         >
                           {firstChar}
@@ -411,8 +421,11 @@ export default function BlogPost() {
                 return (
                   <p key={i} className="leading-relaxed text-sm sm:text-base text-stone-700 clear-both">
                     <span
-                      className="float-left text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-emerald-800 leading-none mr-2.5 sm:mr-3.5 mt-1 select-none drop-shadow-2xs"
-                      style={{ color: clinic.customPrimaryColor || undefined }}
+                      className="float-left text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-emerald-600 leading-[0.85] mr-2.5 sm:mr-3.5 select-none drop-shadow-2xs"
+                      style={{
+                        color: accentColor,
+                        paddingTop: '3px',
+                      }}
                     >
                       {firstChar}
                     </span>
