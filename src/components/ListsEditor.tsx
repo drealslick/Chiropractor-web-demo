@@ -21,6 +21,7 @@ import { defaultBlogPosts } from '../data/defaultPosts';
 import { defaultPricingFees, defaultFinancingOption } from '../data/defaultPricingFees';
 import { BlogManager } from './admin/BlogManager';
 import { ConditionManager } from './admin/ConditionManager';
+import { FirstVisitManager } from './admin/FirstVisitManager';
 import {
   Activity,
   MessageSquare,
@@ -1028,47 +1029,9 @@ export function ListsEditor({
         </div>
       )}
 
-      {/* SECTION: FIRST VISIT */}
+      {/* SECTION: FIRST VISIT (DYNAMIC STEPS & CHECKLIST BUILDER) */}
       {activeCategory === 'first-visit' && (
-        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
-          <div className="border-b border-stone-800 pb-2">
-            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
-              <FileText className="w-4 h-4 text-emerald-400" />
-              <span>First Visit Guide (/first-visit)</span>
-            </h3>
-            <p className="text-[11px] text-stone-400">Step-by-step walkthrough of what new patients experience.</p>
-          </div>
-
-          <Field
-            label="Page Headline"
-            value={clinic.firstVisitTitle || ''}
-            helperText="Main header on the /first-visit page."
-            onChange={(v) => onUpdateClinic({ ...clinic, firstVisitTitle: v })}
-          />
-          <Field
-            label="Visit Duration"
-            value={extra.firstVisitDuration || ''}
-            placeholder="45–60 minutes"
-            helperText="Expected total appointment time."
-            onChange={(v) => onUpdateClinic({ ...clinic, firstVisitDuration: v } as ClinicInfo)}
-          />
-          <Field
-            label="What to Bring"
-            textarea
-            value={extra.firstVisitBring || ''}
-            placeholder="Photo ID, list of medications, previous imaging reports if available."
-            helperText="Items new patients should bring to their initial appointment."
-            onChange={(v) => onUpdateClinic({ ...clinic, firstVisitBring: v } as ClinicInfo)}
-          />
-          <Field
-            label="What to Wear"
-            textarea
-            value={extra.firstVisitWear || ''}
-            placeholder="Comfortable, loose-fitting athletic or casual clothing."
-            helperText="Guidance on comfortable attire for movement assessment."
-            onChange={(v) => onUpdateClinic({ ...clinic, firstVisitWear: v } as ClinicInfo)}
-          />
-        </div>
+        <FirstVisitManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
       )}
 
       {/* SECTION: INSURANCE */}

@@ -3,6 +3,8 @@ import doctorImg from '../assets/images/doctor_portrait_1789573972470.jpg';
 import clinicRoomImg from '../assets/images/clinic_interior_room_1789573983752.jpg';
 import michaelImg from '../assets/images/patient_michael_tennis_1789573994707.jpg';
 
+export { heroImg, doctorImg, clinicRoomImg, michaelImg };
+
 import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption } from '../types';
 
 export const defaultTriageOptions: HeroTriageOption[] = [
@@ -308,17 +310,38 @@ export const firstVisitSteps: ProcessStep[] = [
   {
     number: "01",
     title: "Consultation",
-    description: "We talk about your pain, history, and goals."
+    duration: "15 mins",
+    icon: "chat",
+    description: "We listen carefully to your health history, previous treatments, pain triggers, and everyday mobility goals.",
+    details: [
+      "Detailed medical & symptom history deep-dive",
+      "Postural habits & workday ergonomic review",
+      "Clarifying your personal return-to-activity goals"
+    ]
   },
   {
     number: "02",
-    title: "Assessment",
-    description: "Full exam to understand what's actually going on."
+    title: "Assessment & Exam",
+    duration: "20 mins",
+    icon: "search",
+    description: "Comprehensive orthopedic, neurological, and biomechanical movement examination to pinpoint restricted vertebral segments.",
+    details: [
+      "Active & passive spinal range of motion testing",
+      "Dermatome sensory & deep tendon reflex checks",
+      "Motion palpation of spinal facet joints & nerve pathways"
+    ]
   },
   {
     number: "03",
-    title: "Treatment Plan",
-    description: "You leave knowing exactly what happens next, how long it takes, and what it costs."
+    title: "Treatment Plan & First Adjustment",
+    duration: "15 mins",
+    icon: "clipboard",
+    description: "You leave knowing exactly what is causing your symptoms, how long recovery takes, and what it costs—with your first gentle treatment if indicated.",
+    details: [
+      "Report of findings explained clearly with zero medical jargon",
+      "Co-created care schedule with clear recovery milestones",
+      "Initial gentle spinal decompression or targeted adjustment"
+    ]
   }
 ];
 

@@ -60,6 +60,7 @@ import { TeamManager, UserRole } from './admin/TeamManager';
 import { LegalPolicyManager } from './admin/LegalPolicyManager';
 import { ConditionManager } from './admin/ConditionManager';
 import { HomepageConditionsEditor } from './admin/HomepageConditionsEditor';
+import { FirstVisitManager } from './admin/FirstVisitManager';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -91,6 +92,7 @@ export type AdminTabId =
   | 'roadmap'
   | 'reviews'
   | 'faqs'
+  | 'first_visit'
   | 'legal'
   | 'pricing'
   | 'insurance'
@@ -181,7 +183,8 @@ export function AgencyWorkspace({
         { id: 'why_us' as AdminTabId, label: 'Why Choose Us', icon: Heart },
         { id: 'roadmap' as AdminTabId, label: '3-Phase Roadmap', icon: Clock },
         { id: 'reviews' as AdminTabId, label: 'Patient Reviews', icon: MessageSquare },
-        { id: 'faqs' as AdminTabId, label: 'FAQs & First Visit', icon: HelpCircle },
+        { id: 'faqs' as AdminTabId, label: 'Patient FAQs', icon: HelpCircle },
+        { id: 'first_visit' as AdminTabId, label: 'First Visit Guide', icon: FileText, badge: 'Guide' },
         { id: 'pricing' as AdminTabId, label: 'Pricing & Fees', icon: DollarSign, badge: (clinic.customFeeItems?.length || 2).toString() },
         { id: 'insurance' as AdminTabId, label: 'Insurance Partners', icon: Shield, badge: (clinic.customInsurances?.length || 6).toString() },
         { id: 'financing' as AdminTabId, label: 'Financing Plans', icon: CreditCard },
@@ -775,9 +778,14 @@ export function AgencyWorkspace({
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="reviews" />
             )}
 
-            {/* 13. FAQS & FIRST VISIT */}
+            {/* 13. PATIENT FAQS */}
             {activeTab === 'faqs' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="faqs" />
+            )}
+
+            {/* 13b. FIRST VISIT GUIDE */}
+            {activeTab === 'first_visit' && (
+              <FirstVisitManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
             {/* 14. LEGAL PAGES & POLICIES */}

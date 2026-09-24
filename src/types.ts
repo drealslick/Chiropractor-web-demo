@@ -40,6 +40,9 @@ export interface ProcessStep {
   number?: number | string;
   title?: string;
   description?: string;
+  duration?: string;
+  icon?: string;
+  details?: string[];
   [key: string]: any;
 }
 
