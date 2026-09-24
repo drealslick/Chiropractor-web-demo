@@ -57,6 +57,29 @@ export interface PatientTestimonial {
   [key: string]: any;
 }
 
+export interface AboutPhilosophyPillar {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface AboutGalleryImage {
+  id: string;
+  url: string;
+  caption: string;
+  alt?: string;
+  tag?: string;
+}
+
+export interface AboutAssociation {
+  id: string;
+  name: string;
+  abbreviation: string;
+  role?: string;
+  verified?: boolean;
+}
+
 export interface FeaturedStory {
   id?: string;
   title?: string;

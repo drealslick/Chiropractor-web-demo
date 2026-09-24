@@ -45,6 +45,7 @@ import {
   CreditCard,
   Plus,
   Stethoscope,
+  User,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -61,6 +62,7 @@ import { LegalPolicyManager } from './admin/LegalPolicyManager';
 import { ConditionManager } from './admin/ConditionManager';
 import { HomepageConditionsEditor } from './admin/HomepageConditionsEditor';
 import { FirstVisitManager } from './admin/FirstVisitManager';
+import { AboutManager } from './admin/AboutManager';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -84,6 +86,7 @@ export type AdminTabId =
   // Website Content
   | 'copy'
   | 'blog'
+  | 'about'
   | 'photos'
   | 'discomforts'
   | 'conditions'
@@ -175,6 +178,7 @@ export function AgencyWorkspace({
       minRole: 'editor' as UserRole,
       items: [
         { id: 'copy' as AdminTabId, label: 'Headlines & Copy', icon: FileText, highlight: true },
+        { id: 'about' as AdminTabId, label: 'About & Clinician', icon: User, badge: 'Page' },
         { id: 'photos' as AdminTabId, label: 'Photos & Image URLs', icon: UploadCloud, badge: 'New' },
         { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
         { id: 'discomforts' as AdminTabId, label: 'Discomfort Selector', icon: Activity },
@@ -732,6 +736,11 @@ export function AgencyWorkspace({
                   />
                 </div>
               </div>
+            )}
+
+            {/* 5b. ABOUT PAGE & CLINICIAN PROFILE */}
+            {activeTab === 'about' && (
+              <AboutManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
             {/* 6. PHOTOS & VISUAL ASSETS */}
