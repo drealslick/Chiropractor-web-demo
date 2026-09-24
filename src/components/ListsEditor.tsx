@@ -18,6 +18,11 @@ import {
   Image as ImageIcon,
   DollarSign,
   Layers,
+  Sparkles,
+  CheckCircle2,
+  Sliders,
+  VolumeX,
+  Wind,
 } from 'lucide-react';
 
 type FaqRow = { q: string; a: string };
@@ -65,25 +70,29 @@ function Field({
   value,
   onChange,
   textarea,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   textarea?: boolean;
+  placeholder?: string;
 }) {
   return (
     <label className="block mb-2">
-      <span className="block text-[11px] text-stone-500 mb-1">{label}</span>
+      <span className="block text-[11px] text-stone-400 mb-1">{label}</span>
       {textarea ? (
         <textarea
           rows={2}
-          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+          placeholder={placeholder}
+          className="w-full bg-stone-900 border border-stone-750 rounded-lg p-2 text-xs text-stone-200 focus:outline-none focus:border-emerald-500"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
       ) : (
         <input
-          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
+          placeholder={placeholder}
+          className="w-full bg-stone-900 border border-stone-750 rounded-lg p-2 text-xs text-stone-200 focus:outline-none focus:border-emerald-500"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -99,7 +108,7 @@ export function ListsEditor({
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
 }) {
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('conditions');
 
   const faqList = seedFaqs(clinic);
   const condList = seedConditions(clinic);
@@ -117,17 +126,16 @@ export function ListsEditor({
   };
 
   const categories = [
-    { id: 'all', label: 'All Content', icon: Layers, count: undefined },
-    { id: 'conditions', label: 'Conditions', icon: Activity, count: condList.length },
-    { id: 'reviews', label: 'Reviews', icon: MessageSquare, count: reviewList.length },
+    { id: 'conditions', label: 'Conditions & Protocols', icon: Activity, count: condList.length },
+    { id: 'why-us', label: 'Care Contrast Matrix', icon: Heart, count: 4 },
+    { id: 'process', label: '3-Phase Journey', icon: Clock, count: processList.length },
+    { id: 'reviews', label: 'Case Studies & Reviews', icon: MessageSquare, count: reviewList.length },
+    { id: 'sanctuary', label: 'Sanctuary Standards', icon: Sparkles, count: 3 },
     { id: 'faqs', label: 'FAQs', icon: HelpCircle, count: faqList.length },
-    { id: 'process', label: '3-Step Process', icon: Clock, count: processList.length },
     { id: 'first-visit', label: 'First Visit Page', icon: FileText, count: firstVisitList.length },
     { id: 'insurance', label: 'Insurances', icon: Shield, count: insuranceList.length },
-    { id: 'why-us', label: 'Why Choose Us', icon: Heart, count: 3 },
     { id: 'pricing', label: 'Pricing & Fees', icon: DollarSign, count: undefined },
     { id: 'images', label: 'Photos & URLs', icon: ImageIcon, count: undefined },
-    { id: 'blog', label: 'Blog Posts', icon: FileText, count: ((clinic as ClinicInfo & { customPosts?: unknown[] }).customPosts || []).length },
   ];
 
   return (
@@ -152,7 +160,7 @@ export function ListsEditor({
                 <Icon className="w-3 h-3" />
                 <span>{cat.label}</span>
                 {cat.count !== undefined && (
-                  <span className={`text-[10px] px-1 py-0.2 rounded-full ${isSelected ? 'bg-emerald-900 text-emerald-100' : 'bg-stone-800 text-stone-400'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-emerald-900 text-emerald-100' : 'bg-stone-800 text-stone-400'}`}>
                     {cat.count}
                   </span>
                 )}
@@ -162,16 +170,16 @@ export function ListsEditor({
         </div>
       </div>
 
-      {/* SECTION: CONDITIONS TREATED */}
-      {(activeCategory === 'all' || activeCategory === 'conditions') && (
+      {/* SECTION: CONDITIONS TREATED & PROTOCOLS */}
+      {activeCategory === 'conditions' && (
         <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
           <div className="flex items-center justify-between border-b border-stone-800 pb-2">
             <div>
               <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
                 <Activity className="w-4 h-4 text-emerald-400" />
-                <span>Conditions Treated ({condList.length})</span>
+                <span>Clinical Conditions & Diagnostic Protocols ({condList.length})</span>
               </h3>
-              <p className="text-[11px] text-stone-400">Shown in the hero diagnosis picker and Conditions section.</p>
+              <p className="text-[11px] text-stone-400">Controls the interactive master-detail diagnosis explorer.</p>
             </div>
             <button
               type="button"
@@ -181,7 +189,13 @@ export function ListsEditor({
                   ...clinic,
                   customConditions: [
                     ...condList,
-                    { id: `cond-${Date.now()}`, title: 'New condition', description: 'Short description', symptoms: [] },
+                    {
+                      id: `cond-${Date.now()}`,
+                      title: 'New Condition',
+                      description: 'Concise biomechanical summary.',
+                      symptoms: ['Symptom 1', 'Symptom 2'],
+                      approach: 'Gentle spinal adjustments and kinetic chain stabilization.',
+                    },
                   ],
                 })
               }
@@ -190,11 +204,13 @@ export function ListsEditor({
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {condList.map((c, i) => (
-              <div key={c.id || i} className="p-3 bg-stone-900 border border-stone-800 rounded-lg space-y-2">
+              <div key={c.id || i} className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400">#{i + 1} {c.title || 'Untitled'}</span>
+                  <span className="text-xs font-bold text-emerald-400">
+                    #{i + 1} {c.title || 'Untitled Condition'}
+                  </span>
                   <button
                     type="button"
                     className="text-[11px] text-red-400 hover:text-red-300 cursor-pointer"
@@ -209,7 +225,7 @@ export function ListsEditor({
                   </button>
                 </div>
                 <Field
-                  label="Title"
+                  label="Condition Title"
                   value={c.title || ''}
                   onChange={(v) => {
                     const next = [...condList];
@@ -218,7 +234,7 @@ export function ListsEditor({
                   }}
                 />
                 <Field
-                  label="Short Description"
+                  label="Short Description / Subtitle"
                   textarea
                   value={c.description || ''}
                   onChange={(v) => {
@@ -228,17 +244,17 @@ export function ListsEditor({
                   }}
                 />
                 <Field
-                  label="How We Help"
+                  label="Our Gentle Clinical Protocol (What We Do on Table)"
                   textarea
-                  value={c.howWeHelp || ''}
+                  value={c.approach || c.howWeHelp || ''}
                   onChange={(v) => {
                     const next = [...condList];
-                    next[i] = { ...c, howWeHelp: v };
+                    next[i] = { ...c, approach: v, howWeHelp: v };
                     onUpdateClinic({ ...clinic, customConditions: next });
                   }}
                 />
                 <Field
-                  label="Symptoms (comma separated)"
+                  label="Common Symptoms (comma separated)"
                   value={(c.symptoms || []).join(', ')}
                   onChange={(v) => {
                     const next = [...condList];
@@ -255,16 +271,123 @@ export function ListsEditor({
         </div>
       )}
 
-      {/* SECTION: PATIENT REVIEWS & TESTIMONIALS */}
-      {(activeCategory === 'all' || activeCategory === 'reviews') && (
+      {/* SECTION: CARE CONTRAST MATRIX (WHY US) */}
+      {activeCategory === 'why-us' && (
+        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
+          <div className="border-b border-stone-800 pb-2">
+            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
+              <Heart className="w-4 h-4 text-emerald-400" />
+              <span>Care Contrast Matrix (Standard Care vs. Your Protocol)</span>
+            </h3>
+            <p className="text-[11px] text-stone-400">
+              The high-conviction side-by-side comparison table that breaks assembly-line healthcare stereotypes.
+            </p>
+          </div>
+
+          <Field
+            label="Section Headline"
+            value={clinic.whyUsTitle || ''}
+            placeholder="A Deliberate Departure from Assembly-Line Healthcare."
+            onChange={(v) => onUpdateClinic({ ...clinic, whyUsTitle: v })}
+          />
+          <Field
+            label="Section Subtitle / Eyebrow"
+            value={clinic.whyUsSubtitle || ''}
+            placeholder="The Vance Philosophy"
+            onChange={(v) => onUpdateClinic({ ...clinic, whyUsSubtitle: v })}
+          />
+
+          <div className="pt-2 border-t border-stone-800 space-y-3">
+            <h4 className="text-xs font-bold text-stone-300">Pillar Proof Callouts</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="p-2.5 bg-stone-900 rounded-lg border border-stone-800 space-y-1">
+                <span className="text-[10px] font-bold text-emerald-400">Pillar 1: Time</span>
+                <input
+                  className="w-full bg-stone-800 text-xs text-stone-200 p-1.5 rounded"
+                  value={clinic.whyUsPillar1Title || '45-Minute Initial Exams'}
+                  onChange={(e) => onUpdateClinic({ ...clinic, whyUsPillar1Title: e.target.value })}
+                />
+              </div>
+              <div className="p-2.5 bg-stone-900 rounded-lg border border-stone-800 space-y-1">
+                <span className="text-[10px] font-bold text-emerald-400">Pillar 2: Discharge</span>
+                <input
+                  className="w-full bg-stone-800 text-xs text-stone-200 p-1.5 rounded"
+                  value={clinic.whyUsPillar2Title || 'Discharge-Focused Care'}
+                  onChange={(e) => onUpdateClinic({ ...clinic, whyUsPillar2Title: e.target.value })}
+                />
+              </div>
+              <div className="p-2.5 bg-stone-900 rounded-lg border border-stone-800 space-y-1">
+                <span className="text-[10px] font-bold text-emerald-400">Pillar 3: Technique</span>
+                <input
+                  className="w-full bg-stone-800 text-xs text-stone-200 p-1.5 rounded"
+                  value={clinic.whyUsPillar3Title || 'Gentle & Precision Techniques'}
+                  onChange={(e) => onUpdateClinic({ ...clinic, whyUsPillar3Title: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION: 3-PHASE PATIENT JOURNEY */}
+      {activeCategory === 'process' && (
+        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
+          <div className="border-b border-stone-800 pb-2">
+            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              <span>3-Phase Patient Care Roadmap</span>
+            </h3>
+            <p className="text-[11px] text-stone-400">
+              Interactive timeline detailing how patients progress from pain to freedom.
+            </p>
+          </div>
+
+          <Field
+            label="Section Headline"
+            value={clinic.processSectionTitle || ''}
+            placeholder="From First Exam to Long-Term Freedom"
+            onChange={(v) => onUpdateClinic({ ...clinic, processSectionTitle: v })}
+          />
+
+          <div className="space-y-3">
+            {processList.map((s, i) => (
+              <div key={i} className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+                <div className="text-xs font-bold text-emerald-400">Phase 0{s.number || i + 1}</div>
+                <Field
+                  label="Phase Title"
+                  value={s.title || ''}
+                  onChange={(v) => {
+                    const next = [...processList];
+                    next[i] = { ...s, title: v };
+                    onUpdateClinic({ ...clinic, customProcessSteps: next });
+                  }}
+                />
+                <Field
+                  label="Phase Description & Outcomes"
+                  textarea
+                  value={s.description || ''}
+                  onChange={(v) => {
+                    const next = [...processList];
+                    next[i] = { ...s, description: v };
+                    onUpdateClinic({ ...clinic, customProcessSteps: next });
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SECTION: PATIENT REVIEWS & FEATURED CASE STUDY */}
+      {activeCategory === 'reviews' && (
         <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
           <div className="flex items-center justify-between border-b border-stone-800 pb-2">
             <div>
               <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-emerald-400" />
-                <span>Patient Reviews & Testimonials ({reviewList.length})</span>
+                <span>Verified Patient Case Studies & Reviews ({reviewList.length})</span>
               </h3>
-              <p className="text-[11px] text-stone-400">Social proof quotes displayed across the homepage.</p>
+              <p className="text-[11px] text-stone-400">Filterable review cards and featured patient comeback story.</p>
             </div>
             <button
               type="button"
@@ -272,12 +395,38 @@ export function ListsEditor({
               onClick={() =>
                 onUpdateClinic({
                   ...clinic,
-                  customTestimonials: [...reviewList, { quote: 'New review quote', author: 'Patient Name', rating: 5 }],
+                  customTestimonials: [
+                    ...reviewList,
+                    { quote: 'New patient recovery quote', author: 'Patient Name', condition: 'Lower Back', rating: 5 },
+                  ],
                 })
               }
             >
               + Add Review
             </button>
+          </div>
+
+          {/* Featured Case Study Hero Dossier */}
+          <div className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+            <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> Featured Spotlight Case Story
+            </div>
+            <Field
+              label="Patient Name"
+              value={clinic.patientStoryName || 'Michael Vance'}
+              onChange={(v) => onUpdateClinic({ ...clinic, patientStoryName: v })}
+            />
+            <Field
+              label="Patient Demographic / Activity (e.g. Tennis Player & Architect)"
+              value={clinic.patientStoryRole || 'Tennis Player & Architect'}
+              onChange={(v) => onUpdateClinic({ ...clinic, patientStoryRole: v })}
+            />
+            <Field
+              label="Direct Quote on Recovery"
+              textarea
+              value={clinic.patientStoryQuote || ''}
+              onChange={(v) => onUpdateClinic({ ...clinic, patientStoryQuote: v })}
+            />
           </div>
 
           <div className="space-y-3">
@@ -308,32 +457,68 @@ export function ListsEditor({
                     onUpdateClinic({ ...clinic, customTestimonials: next });
                   }}
                 />
-                <Field
-                  label="Patient Name / Author"
-                  value={r.author || ''}
-                  onChange={(v) => {
-                    const next = [...reviewList];
-                    next[i] = { ...r, author: v };
-                    onUpdateClinic({ ...clinic, customTestimonials: next });
-                  }}
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <Field
+                    label="Patient Name / Author"
+                    value={r.author || ''}
+                    onChange={(v) => {
+                      const next = [...reviewList];
+                      next[i] = { ...r, author: v };
+                      onUpdateClinic({ ...clinic, customTestimonials: next });
+                    }}
+                  />
+                  <Field
+                    label="Condition Tag (e.g. Sciatica, Desk Posture)"
+                    value={r.condition || ''}
+                    onChange={(v) => {
+                      const next = [...reviewList];
+                      next[i] = { ...r, condition: v };
+                      onUpdateClinic({ ...clinic, customTestimonials: next });
+                    }}
+                  />
+                </div>
               </div>
             ))}
-          </div>
-
-          {/* Featured Case Study */}
-          <div className="pt-3 border-t border-stone-800 space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400">Featured Case Study Card</h4>
-            <Field label="Patient Name" value={clinic.patientStoryName || ''} onChange={(v) => onUpdateClinic({ ...clinic, patientStoryName: v })} />
-            <Field label="Condition Summary" textarea value={clinic.patientStorySummary || ''} onChange={(v) => onUpdateClinic({ ...clinic, patientStorySummary: v })} />
-            <Field label="Treatment Timeline" textarea value={clinic.patientStoryTimeline || ''} onChange={(v) => onUpdateClinic({ ...clinic, patientStoryTimeline: v })} />
-            <Field label="Outcome" value={clinic.patientStoryOutcome || ''} onChange={(v) => onUpdateClinic({ ...clinic, patientStoryOutcome: v })} />
           </div>
         </div>
       )}
 
+      {/* SECTION: SANCTUARY ENVIRONMENT STANDARDS */}
+      {activeCategory === 'sanctuary' && (
+        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
+          <div className="border-b border-stone-800 pb-2">
+            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span>Practice Environment & Sanctuary Standards</span>
+            </h3>
+            <p className="text-[11px] text-stone-400">Highlight your clinic's acoustic suites, air purification, and calm vibe.</p>
+          </div>
+
+          <Field
+            label="Section Title"
+            value={clinic.clinicSectionTitle || ''}
+            placeholder="A Sanctuary Designed for Focused Healing"
+            onChange={(v) => onUpdateClinic({ ...clinic, clinicSectionTitle: v })}
+          />
+          <Field
+            label="Doctor Environmental Quote"
+            textarea
+            value={clinic.clinicQuote || ''}
+            placeholder="The clinical environment directly affects the nervous system."
+            onChange={(v) => onUpdateClinic({ ...clinic, clinicQuote: v })}
+          />
+          <Field
+            label="Quote Description"
+            textarea
+            value={clinic.clinicQuoteDescription || ''}
+            placeholder="A calm, quiet clinic environment designed for focused diagnostic assessment..."
+            onChange={(v) => onUpdateClinic({ ...clinic, clinicQuoteDescription: v })}
+          />
+        </div>
+      )}
+
       {/* SECTION: FREQUENTLY ASKED QUESTIONS */}
-      {(activeCategory === 'all' || activeCategory === 'faqs') && (
+      {activeCategory === 'faqs' && (
         <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
           <div className="flex items-center justify-between border-b border-stone-800 pb-2">
             <div>
@@ -341,7 +526,6 @@ export function ListsEditor({
                 <HelpCircle className="w-4 h-4 text-emerald-400" />
                 <span>Frequently Asked Questions ({faqList.length})</span>
               </h3>
-              <p className="text-[11px] text-stone-400">Answers to common patient objections and questions.</p>
             </div>
             <button
               type="button"
@@ -390,55 +574,14 @@ export function ListsEditor({
         </div>
       )}
 
-      {/* SECTION: 3-STEP PROCESS */}
-      {(activeCategory === 'all' || activeCategory === 'process') && (
-        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
-          <div className="border-b border-stone-800 pb-2">
-            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              <span>3-Step Patient Process</span>
-            </h3>
-            <p className="text-[11px] text-stone-400">Explain how simple it is to get started at the clinic.</p>
-          </div>
-
-          <div className="space-y-3">
-            {processList.map((s, i) => (
-              <div key={i} className="p-3 bg-stone-900 border border-stone-800 rounded-lg space-y-2">
-                <div className="text-xs font-bold text-emerald-400">Step {s.number || i + 1}</div>
-                <Field
-                  label="Title"
-                  value={s.title || ''}
-                  onChange={(v) => {
-                    const next = [...processList];
-                    next[i] = { ...s, title: v };
-                    onUpdateClinic({ ...clinic, customProcessSteps: next });
-                  }}
-                />
-                <Field
-                  label="Description"
-                  textarea
-                  value={s.description || ''}
-                  onChange={(v) => {
-                    const next = [...processList];
-                    next[i] = { ...s, description: v };
-                    onUpdateClinic({ ...clinic, customProcessSteps: next });
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* SECTION: FIRST VISIT PAGE & PROTOCOL */}
-      {(activeCategory === 'all' || activeCategory === 'first-visit') && (
+      {/* SECTION: FIRST VISIT */}
+      {activeCategory === 'first-visit' && (
         <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
           <div className="border-b border-stone-800 pb-2">
             <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-400" />
               <span>First Visit Guide (/first-visit)</span>
             </h3>
-            <p className="text-[11px] text-stone-400">Detailed onboarding copy to remove anxiety before appointment.</p>
           </div>
 
           <Field
@@ -463,50 +606,11 @@ export function ListsEditor({
             value={extra.firstVisitWear || ''}
             onChange={(v) => onUpdateClinic({ ...clinic, firstVisitWear: v } as ClinicInfo)}
           />
-          <Field
-            label="Intake & Forms Notice"
-            textarea
-            value={extra.firstVisitForms || ''}
-            onChange={(v) => onUpdateClinic({ ...clinic, firstVisitForms: v } as ClinicInfo)}
-          />
-          <Field
-            label="What Happens After First Visit"
-            textarea
-            value={extra.firstVisitAfter || ''}
-            onChange={(v) => onUpdateClinic({ ...clinic, firstVisitAfter: v } as ClinicInfo)}
-          />
-
-          <div className="pt-2 border-t border-stone-800 space-y-3">
-            <h4 className="text-xs font-bold text-stone-300">First Visit 3-Step Cards</h4>
-            {firstVisitList.map((s, i) => (
-              <div key={i} className="p-3 bg-stone-900 border border-stone-800 rounded-lg space-y-2">
-                <Field
-                  label="Step Title"
-                  value={s.title || ''}
-                  onChange={(v) => {
-                    const next = [...firstVisitList];
-                    next[i] = { ...s, title: v };
-                    onUpdateClinic({ ...clinic, customFirstVisitSteps: next });
-                  }}
-                />
-                <Field
-                  label="Step Description"
-                  textarea
-                  value={s.description || ''}
-                  onChange={(v) => {
-                    const next = [...firstVisitList];
-                    next[i] = { ...s, description: v };
-                    onUpdateClinic({ ...clinic, customFirstVisitSteps: next });
-                  }}
-                />
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* SECTION: INSURANCE & PAYMENT */}
-      {(activeCategory === 'all' || activeCategory === 'insurance') && (
+      {/* SECTION: INSURANCE */}
+      {activeCategory === 'insurance' && (
         <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
           <div className="flex items-center justify-between border-b border-stone-800 pb-2">
             <div>
@@ -514,7 +618,6 @@ export function ListsEditor({
                 <Shield className="w-4 h-4 text-emerald-400" />
                 <span>Accepted Insurances ({insuranceList.length})</span>
               </h3>
-              <p className="text-[11px] text-stone-400">List of insurance providers and payment policies.</p>
             </div>
             <button
               type="button"
@@ -524,18 +627,6 @@ export function ListsEditor({
               + Add Insurer
             </button>
           </div>
-
-          <Field
-            label="Section Title"
-            value={clinic.insuranceTitle || ''}
-            onChange={(v) => onUpdateClinic({ ...clinic, insuranceTitle: v })}
-          />
-          <Field
-            label="Subtitle / Insurance Policy Note"
-            textarea
-            value={clinic.insuranceSubtitle || ''}
-            onChange={(v) => onUpdateClinic({ ...clinic, insuranceSubtitle: v })}
-          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {insuranceList.map((name, i) => (
@@ -567,27 +658,8 @@ export function ListsEditor({
         </div>
       )}
 
-      {/* SECTION: WHY CHOOSE US & PILLARS */}
-      {(activeCategory === 'all' || activeCategory === 'why-us') && (
-        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-3">
-          <div className="border-b border-stone-800 pb-2">
-            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
-              <Heart className="w-4 h-4 text-emerald-400" />
-              <span>Why Choose Us Pillars</span>
-            </h3>
-          </div>
-          <Field label="Section title" value={clinic.whyUsTitle || ''} onChange={(v) => onUpdateClinic({ ...clinic, whyUsTitle: v })} />
-          <Field label="Pillar 1 title" value={clinic.whyUsPillar1Title || ''} onChange={(v) => onUpdateClinic({ ...clinic, whyUsPillar1Title: v })} />
-          <Field label="Pillar 1 text" textarea value={clinic.whyUsPillar1Desc || ''} onChange={(v) => onUpdateClinic({ ...clinic, whyUsPillar1Desc: v })} />
-          <Field label="Pillar 2 title" value={clinic.whyUsPillar2Title || ''} onChange={(v) => onUpdateClinic({ ...clinic, whyUsPillar2Title: v })} />
-          <Field label="Pillar 2 text" textarea value={clinic.whyUsPillar2Desc || ''} onChange={(v) => onUpdateClinic({ ...clinic, whyUsPillar2Desc: v })} />
-          <Field label="Pillar 3 title" value={clinic.whyUsPillar3Title || ''} onChange={(v) => onUpdateClinic({ ...clinic, whyUsPillar3Title: v })} />
-          <Field label="Pillar 3 text" textarea value={clinic.whyUsPillar3Desc || ''} onChange={(v) => onUpdateClinic({ ...clinic, whyUsPillar3Desc: v })} />
-        </div>
-      )}
-
-      {/* SECTION: PRICING & FEES */}
-      {(activeCategory === 'all' || activeCategory === 'pricing') && (
+      {/* SECTION: PRICING */}
+      {activeCategory === 'pricing' && (
         <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-3">
           <div className="border-b border-stone-800 pb-2">
             <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
@@ -598,126 +670,45 @@ export function ListsEditor({
           <Field
             label="New Patient Exam Fee (e.g. $49 Initial Exam)"
             value={(clinic as ClinicInfo & { examFee?: string }).examFee || ''}
-            onChange={(v) => onUpdateClinic({ ...clinic, examFee: v } as ClinicInfo)}
+            onChange={(v) => onUpdateClinic({ ...clinic, examFee: v })}
           />
           <Field
             label="Follow-up Visit Fee (e.g. $45 Follow-up)"
             value={(clinic as ClinicInfo & { followUpFee?: string }).followUpFee || ''}
-            onChange={(v) => onUpdateClinic({ ...clinic, followUpFee: v } as ClinicInfo)}
+            onChange={(v) => onUpdateClinic({ ...clinic, followUpFee: v })}
           />
         </div>
       )}
 
-      {/* SECTION: DIRECT PHOTO URLS */}
-      {(activeCategory === 'all' || activeCategory === 'images') && (
+      {/* SECTION: IMAGES */}
+      {activeCategory === 'images' && (
         <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-3">
           <div className="border-b border-stone-800 pb-2">
             <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-emerald-400" />
-              <span>Direct Photo URLs</span>
+              <span>Photos & Image URLs</span>
             </h3>
           </div>
           <Field
-            label="Hero Background Image URL"
-            value={typeof clinic.heroImage === 'string' ? clinic.heroImage : ''}
+            label="Hero Background Photo URL"
+            value={clinic.heroImage || ''}
             onChange={(v) => onUpdateClinic({ ...clinic, heroImage: v })}
           />
           <Field
-            label="Doctor Portrait Image URL"
-            value={typeof clinic.doctorImage === 'string' ? clinic.doctorImage : ''}
+            label="Lead Doctor Portrait Photo URL"
+            value={clinic.doctorImage || ''}
             onChange={(v) => onUpdateClinic({ ...clinic, doctorImage: v })}
           />
           <Field
-            label="Clinic Interior Photo URL"
-            value={typeof clinic.clinicImage === 'string' ? clinic.clinicImage : ''}
+            label="Clinic Room / Sanctuary Photo URL"
+            value={clinic.clinicImage || ''}
             onChange={(v) => onUpdateClinic({ ...clinic, clinicImage: v })}
           />
-        </div>
-      )}
-
-      {/* SECTION: BLOG POSTS */}
-      {(activeCategory === 'all' || activeCategory === 'blog') && (
-        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-stone-800 pb-2">
-            <div>
-              <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-400" />
-                <span>Practice Blog & Patient Education</span>
-              </h3>
-            </div>
-            <button
-              type="button"
-              className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
-              onClick={() => {
-                const posts =
-                  ((clinic as ClinicInfo & { customPosts?: { slug: string; title: string; body?: string }[] }).customPosts) ||
-                  [];
-                onUpdateClinic({
-                  ...clinic,
-                  customPosts: [
-                    ...posts,
-                    { slug: `post-${Date.now()}`, title: 'New Article', excerpt: '', body: 'Write the post content here.' },
-                  ],
-                } as ClinicInfo);
-              }}
-            >
-              + Add Post
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {(((clinic as ClinicInfo & { customPosts?: { slug: string; title: string; date?: string; excerpt?: string; body?: string }[] }).customPosts) || []).map((p, i) => {
-              const posts = ((clinic as ClinicInfo & { customPosts?: typeof p[] }).customPosts) || [];
-              return (
-                <div key={p.slug || i} className="p-3 bg-stone-900 border border-stone-800 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-300">Article #{i + 1}</span>
-                    <button
-                      type="button"
-                      className="text-[11px] text-red-400 hover:text-red-300 cursor-pointer"
-                      onClick={() =>
-                        onUpdateClinic({
-                          ...clinic,
-                          customPosts: posts.filter((_, idx) => idx !== i),
-                        } as ClinicInfo)
-                      }
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <Field
-                    label="Article Title"
-                    value={p.title}
-                    onChange={(title) => {
-                      const next = [...posts];
-                      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || p.slug;
-                      next[i] = { ...p, title, slug };
-                      onUpdateClinic({ ...clinic, customPosts: next } as ClinicInfo);
-                    }}
-                  />
-                  <Field
-                    label="Excerpt"
-                    value={p.excerpt || ''}
-                    onChange={(excerpt) => {
-                      const next = [...posts];
-                      next[i] = { ...p, excerpt };
-                      onUpdateClinic({ ...clinic, customPosts: next } as ClinicInfo);
-                    }}
-                  />
-                  <Field
-                    label="Full Body"
-                    textarea
-                    value={p.body || ''}
-                    onChange={(body) => {
-                      const next = [...posts];
-                      next[i] = { ...p, body };
-                      onUpdateClinic({ ...clinic, customPosts: next } as ClinicInfo);
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <Field
+            label="Patient Comeback Story Photo URL"
+            value={clinic.patientImage || ''}
+            onChange={(v) => onUpdateClinic({ ...clinic, patientImage: v })}
+          />
         </div>
       )}
     </div>

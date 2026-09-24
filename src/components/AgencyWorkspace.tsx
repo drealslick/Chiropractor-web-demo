@@ -18,6 +18,7 @@ import {
   CloudCheck,
   AlertCircle,
   Calendar,
+  Zap,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -26,6 +27,7 @@ import { ListsEditor } from './ListsEditor';
 import { LeadsInbox } from './admin/LeadsInbox';
 import { PracticeAudit } from './admin/PracticeAudit';
 import { BookingSettings } from './admin/BookingSettings';
+import { ExecutiveGodsEye } from './admin/ExecutiveGodsEye';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -39,7 +41,7 @@ interface AgencyWorkspaceProps {
   hasSupabase?: boolean;
 }
 
-type MainTabType = 'leads' | 'booking' | 'site' | 'setup';
+type MainTabType = 'overview' | 'leads' | 'booking' | 'site' | 'setup';
 type SiteSubTab = 'branding' | 'info' | 'lists' | 'copy' | 'sections' | 'seo';
 type SetupSubTab = 'audit' | 'presets';
 
@@ -53,7 +55,7 @@ export function AgencyWorkspace({
   lastSaved = null,
   hasSupabase = false,
 }: AgencyWorkspaceProps) {
-  const [mainTab, setMainTab] = useState<MainTabType>('leads');
+  const [mainTab, setMainTab] = useState<MainTabType>('overview');
   const [siteSubTab, setSiteSubTab] = useState<SiteSubTab>('branding');
   const [setupSubTab, setSetupSubTab] = useState<SetupSubTab>('audit');
 
@@ -98,6 +100,7 @@ export function AgencyWorkspace({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number | string;
   }[] = [
+    { id: 'overview', label: "God's Eye", icon: Zap, badge: 'Live' },
     { id: 'leads', label: 'Leads', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
     { id: 'booking', label: 'Booking', icon: Calendar },
     { id: 'site', label: 'Site', icon: Layout },
@@ -226,8 +229,8 @@ export function AgencyWorkspace({
           </div>
         </div>
 
-        {/* Primary 4 Tab Strip */}
-        <div className="grid grid-cols-4 border-b border-stone-800 bg-stone-950/80 text-xs font-semibold px-2">
+        {/* Primary 5 Tab Strip */}
+        <div className="grid grid-cols-5 border-b border-stone-800 bg-stone-950/80 text-xs font-semibold px-2">
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = mainTab === tab.id;
@@ -235,16 +238,16 @@ export function AgencyWorkspace({
               <button
                 key={tab.id}
                 onClick={() => setMainTab(tab.id)}
-                className={`py-3 px-2 flex items-center justify-center gap-1.5 border-b-2 transition cursor-pointer ${
+                className={`py-3 px-1.5 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 border-b-2 transition cursor-pointer ${
                   isActive
                     ? 'border-emerald-500 text-emerald-400 bg-stone-900 shadow-inner'
                     : 'border-transparent text-stone-400 hover:text-stone-200 hover:bg-stone-900/40'
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate text-[11px] sm:text-xs">{tab.label}</span>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                <span className="truncate text-[10px] sm:text-xs">{tab.label}</span>
                 {tab.badge !== undefined && (
-                  <span className="ml-0.5 px-1.5 py-0.2 bg-emerald-500 text-stone-950 font-bold text-[10px] rounded-full">
+                  <span className="hidden sm:inline ml-0.5 px-1.5 py-0.2 bg-emerald-500 text-stone-950 font-bold text-[10px] rounded-full">
                     {tab.badge}
                   </span>
                 )}
@@ -303,6 +306,21 @@ export function AgencyWorkspace({
 
         {/* Tab Content Panel */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          {/* TAB GROUP 0: GOD'S EYE COMMAND CONSOLE */}
+          {mainTab === 'overview' && (
+            <ExecutiveGodsEye
+              clinic={clinic}
+              onUpdateClinic={onUpdateClinic}
+              onNavigateTab={(tab, subTab) => {
+                setMainTab(tab as MainTabType);
+                if (tab === 'site' && subTab) setSiteSubTab(subTab as SiteSubTab);
+                if (tab === 'setup' && subTab) setSetupSubTab(subTab as SetupSubTab);
+              }}
+              hasSupabase={hasSupabase}
+              syncStatus={syncStatus}
+            />
+          )}
+
           {/* TAB GROUP 1: LEADS / REQUESTS INBOX */}
           {mainTab === 'leads' && (
             <LeadsInbox clinicName={clinic.name || 'Clinic'} />
