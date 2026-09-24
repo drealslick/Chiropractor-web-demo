@@ -12,9 +12,26 @@ export interface BookingFormData {
 export interface ProblemCondition {
   id?: string;
   title?: string;
+  slug?: string;
   description?: string;
   icon?: string;
+  heroImage?: string;
+  heroImageAlt?: string;
   symptoms?: string[];
+  // How We Treat It detailed clinical sections
+  ourApproach?: string;
+  carePlan?: string[];
+  homeCareAdvice?: string;
+  homeCareQuoteAuthor?: string;
+  // Legacy / fallback fields
+  approach?: string;
+  howWeHelp?: string;
+  // Mini-page builder blog blocks
+  blocks?: BlogBlock[];
+  // Cross-linking
+  relatedBlogSlugs?: string[];
+  showPricingLink?: boolean;
+  pricingNote?: string;
   [key: string]: any;
 }
 

@@ -57,6 +57,7 @@ import { BlogManager } from './admin/BlogManager';
 import { MediaManager } from './admin/MediaManager';
 import { TeamManager, UserRole } from './admin/TeamManager';
 import { LegalPolicyManager } from './admin/LegalPolicyManager';
+import { ConditionManager } from './admin/ConditionManager';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -743,7 +744,7 @@ export function AgencyWorkspace({
 
             {/* 9. CONDITIONS & PROTOCOLS */}
             {activeTab === 'conditions' && (
-              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="conditions" />
+              <ConditionManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
             {/* 10. WHY CHOOSE US */}

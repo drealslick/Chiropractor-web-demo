@@ -94,37 +94,175 @@ export const conditionsData: ProblemCondition[] = [
   {
     id: "back-pain",
     title: "Back & Lower Back Pain",
+    slug: "back-lower-back-pain",
     description: "Personalized care designed around your symptoms, movement, and goals.",
-    symptoms: ["Sciatica & radiating leg pain", "Lumbar disc decompression", "Postural spasm & acute flare-ups"],
-    approach: "Gentle spinal adjustments, targeted decompression, and core stabilization routines to unload disc pressure and restore lumbar flexibility."
+    icon: "lumbar",
+    heroImage: clinicRoomImg,
+    heroImageAlt: "Spinal decompression and lumbar examination suite",
+    symptoms: [
+      "Sciatica & sharp shooting pain down the leg or foot",
+      "Dull, persistent ache in the lumbar spine after prolonged sitting",
+      "Acute muscular spasm and difficulty straightening upright",
+      "Morning lower back stiffness lasting more than 20 minutes"
+    ],
+    ourApproach: "Lower back pain is almost never an isolated muscular issue. In the vast majority of cases, it results from prolonged axial compression of intervertebral discs (L4-L5 and L5-S1) combined with restricted facet joint motion and pelvic compensation. Our clinical approach isolates the exact mechanical restriction, restores normal vertebral articulation through gentle spinal adjustments, and unloads posterior disc pressure before strengthening your deep core kinetic chain.",
+    carePlan: [
+      "Phase 1: Precision spinal manipulation to unlock restricted facet joints and relieve nerve impingement",
+      "Phase 2: Targeted flexion-distraction and manual soft tissue therapy to decompress intervertebral discs",
+      "Phase 3: Pelvic girdle and sacroiliac (SI) joint re-alignment to eliminate asymmetric weight distribution",
+      "Phase 4: Progressive core stabilization protocols (McGill Big 3) to prevent recurring disc flare-ups"
+    ],
+    homeCareAdvice: "Avoid sitting for longer than 30 continuous minutes during acute flare-ups. Perform gentle standing lumbar extensions (hands on hips, arching backward 5 times) and use cold therapy over the lumbosacral junction for 15 minutes twice daily.",
+    homeCareQuoteAuthor: "Clinical Home Care Protocol",
+    approach: "Gentle spinal adjustments, targeted decompression, and core stabilization routines to unload disc pressure and restore lumbar flexibility.",
+    howWeHelp: "Comprehensive lumbar motion analysis, gentle joint mobilization, and decompression therapies to relieve sciatic nerve pressure and restore pain-free movement.",
+    relatedBlogSlugs: ["decompression-habits-for-desk-workers", "sciatica-vs-piriformis-syndrome"],
+    showPricingLink: true,
+    blocks: [
+      {
+        id: "block_back_1",
+        type: "callout",
+        calloutVariant: "takeaway",
+        calloutTitle: "Clinical Takeaway: Disc Unloading vs Muscle Relaxers",
+        calloutText: "Medications may dull the sensation of pain, but they cannot physically widen a narrowed neural foramen or reduce mechanical disc protrusion. Restoring joint biomechanics addresses the physical cause directly."
+      },
+      {
+        id: "block_back_2",
+        type: "quote",
+        quoteText: "When the lumbar joints move normally, the surrounding musculature can finally relax without perpetual protective spasm.",
+        quoteAuthor: "Lead Chiropractic Biomechanist"
+      }
+    ]
   },
   {
     id: "neck-pain",
     title: "Neck & Shoulder Pain",
+    slug: "neck-shoulder-pain",
     description: "Address discomfort and movement limitations affecting your everyday life.",
-    symptoms: ["Desk posture & tech-neck stiffness", "Cervical facet joint restriction", "Trapezius muscle tightness"],
-    approach: "Precise cervical mobilization, soft tissue release, and ergonomic guidance to eliminate nerve impingement and ease chronic tension."
+    icon: "cervical",
+    heroImage: clinicRoomImg,
+    heroImageAlt: "Cervical spine alignment and posture treatment",
+    symptoms: [
+      "Chronic tension at the base of the skull and upper trapezius",
+      "Forward head posture ('text neck') causing upper back fatigue",
+      "Sharp pinching pain when turning head while driving or looking over shoulder",
+      "Occasional numbness, tingling, or radiating warmth down the arm"
+    ],
+    ourApproach: "For every inch your head shifts forward past your center of gravity, your cervical spine must support an extra 10 to 12 pounds of mechanical weight. Over time, this leads to chronic suboccipital compression, cervical facet joint irritation, and upper cross syndrome. Our clinical protocol releases hypertonic neck muscles, mobilizes restricted cervical vertebrae (C2-C7), and restores natural cervical lordosis.",
+    carePlan: [
+      "Phase 1: Gentle cervical spine mobilization to restore smooth rotation and side-bending kinematics",
+      "Phase 2: Suboccipital myofascial release and trigger point therapy to alleviate upper shoulder tightness",
+      "Phase 3: Thoracic spine extension mobilization to correct compensatory hunching and round shoulders",
+      "Phase 4: Deep cervical flexor neuromuscular re-education to maintain upright posture effortlessly"
+    ],
+    homeCareAdvice: "Position your computer monitor so your eye line meets the top third of the screen. Implement chin tucks (retraction exercises) holding for 5 seconds, repeated 10 times throughout the workday.",
+    homeCareQuoteAuthor: "Cervical Ergonomics Advisory",
+    approach: "Precise cervical mobilization, soft tissue release, and ergonomic guidance to eliminate nerve impingement and ease chronic tension.",
+    howWeHelp: "Targeted cervical adjustments, myofascial release of tight trapezius bands, and ergonomic coaching to permanently eliminate postural neck pain.",
+    relatedBlogSlugs: ["decompression-habits-for-desk-workers", "neck-tension-and-headaches"],
+    showPricingLink: true,
+    blocks: [
+      {
+        id: "block_neck_1",
+        type: "callout",
+        calloutVariant: "tip",
+        calloutTitle: "The 20-20-20 Posture Rule",
+        calloutText: "Every 20 minutes of screen work, look at an object 20 feet away for 20 seconds, and roll your shoulders gently backward down into your back pockets."
+      }
+    ]
   },
   {
     id: "sports-activity",
     title: "Sports & Activity",
+    slug: "sports-activity",
     description: "Support for active patients looking to move, perform, and recover.",
-    symptoms: ["Joint impingement & biomechanical imbalance", "Runner's knee & hip tightness", "Rotator cuff rehabilitation"],
-    approach: "Functional movement screening, joint manipulation, and dynamic rehab exercises to return you to training safely."
+    icon: "sports",
+    heroImage: michaelImg,
+    heroImageAlt: "Athletic rehab and kinetic performance",
+    symptoms: [
+      "Asymmetric hip or knee tightness during running and cycling",
+      "Rotator cuff impingement or shoulder restriction during overhead lifts",
+      "Recurrent hamstring, calf, or Achilles tendon strains",
+      "Suboptimal athletic power output and prolonged post-workout soreness"
+    ],
+    ourApproach: "Athletic injuries rarely occur in a vacuum; an issue in the knee or ankle often stems from a restricted sacroiliac joint or inhibited gluteal firing in the pelvis. We evaluate the entire functional kinetic chain, identifying compensations and micro-instabilities that compromise performance and increase injury risk.",
+    carePlan: [
+      "Phase 1: Comprehensive joint-by-joint movement screening to identify rotational deficiencies",
+      "Phase 2: High-velocity low-amplitude (HVLA) extremity and spinal manipulation to restore joint mechanics",
+      "Phase 3: Instrument-assisted soft tissue mobilization (IASTM) to break down fascial adhesions and scar tissue",
+      "Phase 4: Sport-specific dynamic neuromuscular stabilization and progressive load management"
+    ],
+    homeCareAdvice: "Incorporate dynamic warm-up drills prioritizing thoracic rotation and hip mobility prior to training. Emphasize eccentric tendon loading exercises for chronic tendon stiffness.",
+    homeCareQuoteAuthor: "Sports Recovery Protocol",
+    approach: "Functional movement screening, joint manipulation, and dynamic rehab exercises to return you to training safely.",
+    howWeHelp: "Full kinetic chain assessment, extremity joint manipulation, and functional rehab drills to keep you competing without downtime.",
+    relatedBlogSlugs: ["what-happens-during-first-visit", "decompression-habits-for-desk-workers"],
+    showPricingLink: true
   },
   {
     id: "mobility-stiffness",
     title: "Mobility & Stiffness",
+    slug: "mobility-stiffness",
     description: "Restore range of motion so daily movement stops feeling like a negotiation.",
-    symptoms: ["Morning spinal rigidity", "Limited torso rotation", "Hip & pelvic misalignment"],
-    approach: "Passive and active spinal traction, myofascial release, and mobility protocols to keep your joints moving freely every day."
+    icon: "mobility",
+    heroImage: clinicRoomImg,
+    heroImageAlt: "Full body mobility and spinal articulation suite",
+    symptoms: [
+      "Generalized morning stiffness that requires an hour to 'warm up'",
+      "Difficulty checking blind spots while driving or reaching overhead",
+      "Feeling locked up in the mid-back and ribs after sitting",
+      "Crepitus (cracking/grinding sensations) and restricted joint movement"
+    ],
+    ourApproach: "Joint stiffness is the brain's protective response to perceived instability or chronic immobility. When spinal segments lose their normal micro-gliding motion, joint fluid circulates poorly and surrounding tissues tighten. We systematically restore segmental motion to every restricted vertebra and rib head, allowing fluid nutrition to return to articular cartilage.",
+    carePlan: [
+      "Phase 1: Gentle multi-segmental spinal traction and rib cage mobilization to enhance thoracic breathing",
+      "Phase 2: Full-spine chiropractic adjustments tailored to your comfort and bone density tolerance",
+      "Phase 3: Passive and active range of motion stretching to lengthen chronically shortened hip flexors",
+      "Phase 4: Daily movement 'hygiene' routines that take under 5 minutes to maintain joint longevity"
+    ],
+    homeCareAdvice: "Adopt the 'cat-cow' spinal flexion-extension sequence for 2 minutes upon waking, followed by 10 deep belly breaths to expand your costovertebral joints.",
+    homeCareQuoteAuthor: "Active Longevity Directive",
+    approach: "Passive and active spinal traction, myofascial release, and mobility protocols to keep your joints moving freely every day.",
+    howWeHelp: "Gentle segmental mobilization, assisted stretching, and rib joint alignment to restore effortless fluidity to your daily routine.",
+    relatedBlogSlugs: ["decompression-habits-for-desk-workers"],
+    showPricingLink: true
   },
   {
     id: "headaches-tension",
     title: "Headaches & Tension",
+    slug: "headaches-tension",
     description: "Find the root cause, not just temporary relief.",
-    symptoms: ["Cervicogenic headaches", "Tension headaches from desk work", "Upper cervical subluxation"],
-    approach: "Pinpoint upper neck misalignments that cause referral pain patterns, combining gentle manipulation with postural retraining."
+    icon: "headache",
+    heroImage: doctorImg,
+    heroImageAlt: "Cervicogenic headache evaluation and diagnosis",
+    symptoms: [
+      "Pain starting at the base of skull radiating like a 'ram horn' behind one eye",
+      "Band-like pressure wrapping around the forehead and temples",
+      "Headaches triggered or worsened by desk work, stress, or driving",
+      "Associated jaw (TMJ) clenching and neck stiffness"
+    ],
+    ourApproach: "Over 80% of persistent non-migraine headaches have a direct biomechanical cervical component. The upper three cervical spinal nerves converge with the cranial trigeminal sensory nerve in the brainstem. When the C1 (Atlas) or C2 (Axis) vertebrae are restricted, pain is referred straight into the head, brow, and temples. Correcting this misalignment relieves the nerve irritation at its physical source.",
+    carePlan: [
+      "Phase 1: Precise, ultra-gentle upper cervical manipulation (C1-C3) without harsh twisting",
+      "Phase 2: Suboccipital muscle decompression using ischemic pressure and gentle traction",
+      "Phase 3: Temporomandibular joint (TMJ) assessment to address compensatory jaw clenching",
+      "Phase 4: Ergonomic and blue-light screen habit optimization to decrease ocular-cervical fatigue"
+    ],
+    homeCareAdvice: "Place a small cervical towel roll beneath the hollow of your neck while lying flat on your back for 10 minutes to re-establish the cervical curve and decompress the occiput.",
+    homeCareQuoteAuthor: "Headache Relief Protocol",
+    approach: "Pinpoint upper neck misalignments that cause referral pain patterns, combining gentle manipulation with postural retraining.",
+    howWeHelp: "Specialized upper cervical adjustments and suboccipital release to eliminate the nerve irritation causing recurrent tension headaches.",
+    relatedBlogSlugs: ["neck-tension-and-headaches", "decompression-habits-for-desk-workers"],
+    showPricingLink: true,
+    blocks: [
+      {
+        id: "block_head_1",
+        type: "callout",
+        calloutVariant: "research",
+        calloutTitle: "Clinical Evidence: Cervicogenic Mechanism",
+        calloutText: "Peer-reviewed neuro-anatomy confirms that sensory afferents from C1-C3 nerves share interneurons with the trigeminal nerve. Restoring normal upper neck motion provides statistically significant relief in headache frequency and severity."
+      }
+    ]
   }
 ];
 

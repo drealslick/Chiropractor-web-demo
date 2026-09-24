@@ -20,6 +20,7 @@ import {
 import { defaultBlogPosts } from '../data/defaultPosts';
 import { defaultPricingFees, defaultFinancingOption } from '../data/defaultPricingFees';
 import { BlogManager } from './admin/BlogManager';
+import { ConditionManager } from './admin/ConditionManager';
 import {
   Activity,
   MessageSquare,
@@ -702,109 +703,9 @@ export function ListsEditor({
         </div>
       )}
 
-      {/* SECTION: CONDITIONS TREATED & PROTOCOLS */}
+      {/* SECTION: CONDITIONS TREATED & PROTOCOLS (MINI-PAGE BUILDER) */}
       {activeCategory === 'conditions' && (
-        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-stone-800 pb-2">
-            <div>
-              <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span>Clinical Conditions & Diagnostic Protocols ({condList.length})</span>
-              </h3>
-              <p className="text-[11px] text-stone-400">Controls the interactive master-detail diagnosis explorer on /conditions.</p>
-            </div>
-            <button
-              type="button"
-              className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
-              onClick={() =>
-                onUpdateClinic({
-                  ...clinic,
-                  customConditions: [
-                    ...condList,
-                    {
-                      id: `cond-${Date.now()}`,
-                      title: 'New Condition',
-                      description: 'Concise biomechanical summary.',
-                      symptoms: ['Symptom 1', 'Symptom 2'],
-                      approach: 'Gentle spinal adjustments and kinetic chain stabilization.',
-                    },
-                  ],
-                })
-              }
-            >
-              + Add Condition
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {condList.map((c, i) => (
-              <div key={c.id || i} className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400">
-                    #{i + 1} {c.title || 'Untitled Condition'}
-                  </span>
-                  <button
-                    type="button"
-                    className="text-[11px] text-red-400 hover:text-red-300 cursor-pointer"
-                    onClick={() =>
-                      onUpdateClinic({
-                        ...clinic,
-                        customConditions: condList.filter((_, idx) => idx !== i),
-                      })
-                    }
-                  >
-                    Remove
-                  </button>
-                </div>
-                <Field
-                  label="Condition Title"
-                  value={c.title || ''}
-                  helperText="Primary diagnosis name."
-                  onChange={(v) => {
-                    const next = [...condList];
-                    next[i] = { ...c, title: v };
-                    onUpdateClinic({ ...clinic, customConditions: next });
-                  }}
-                />
-                <Field
-                  label="Short Description / Subtitle"
-                  textarea
-                  value={c.description || ''}
-                  helperText="Summary of how symptoms present."
-                  onChange={(v) => {
-                    const next = [...condList];
-                    next[i] = { ...c, description: v };
-                    onUpdateClinic({ ...clinic, customConditions: next });
-                  }}
-                />
-                <Field
-                  label="Our Gentle Clinical Protocol (What We Do on Table)"
-                  textarea
-                  value={c.approach || c.howWeHelp || ''}
-                  helperText="Specific adjustments, soft tissue release, and movement rehab."
-                  onChange={(v) => {
-                    const next = [...condList];
-                    next[i] = { ...c, approach: v, howWeHelp: v };
-                    onUpdateClinic({ ...clinic, customConditions: next });
-                  }}
-                />
-                <Field
-                  label="Common Symptoms (comma separated)"
-                  value={(c.symptoms || []).join(', ')}
-                  helperText="List 3-5 typical patient symptoms separated by commas."
-                  onChange={(v) => {
-                    const next = [...condList];
-                    next[i] = {
-                      ...c,
-                      symptoms: v.split(',').map((s) => s.trim()).filter(Boolean),
-                    };
-                    onUpdateClinic({ ...clinic, customConditions: next });
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <ConditionManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
       )}
 
       {/* SECTION: CARE CONTRAST MATRIX (WHY US) */}
