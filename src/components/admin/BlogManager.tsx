@@ -113,6 +113,7 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ clinic, onUpdateClinic
       excerpt: '',
       body: '',
       status: 'published',
+      enableDropCap: clinic.globalDropCap !== false,
       blocks: initialBlocks,
     });
     setCustomCategoryInput(false);
@@ -143,6 +144,7 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ clinic, onUpdateClinic
       ...post,
       date: dateVal,
       status: post.status || 'published',
+      enableDropCap: post.enableDropCap !== undefined ? post.enableDropCap : (clinic.globalDropCap !== false),
       blocks: initialBlocks,
     });
 
@@ -218,6 +220,7 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ clinic, onUpdateClinic
       author: formData.author?.trim() || clinic.doctorName || 'Clinical Team',
       date: displayDate,
       status: statusToSave,
+      enableDropCap: formData.enableDropCap !== false,
       excerpt: formData.excerpt?.trim() || formData.body?.slice(0, 150) + '...',
       body: formData.body || serializeBlocksToBody(formData.blocks || []),
       blocks: formData.blocks || [],
@@ -657,6 +660,47 @@ export const BlogManager: React.FC<BlogManagerProps> = ({ clinic, onUpdateClinic
                 onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
                 className="w-full bg-stone-900 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 leading-relaxed"
               />
+            </div>
+
+            {/* Editorial Drop Cap Toggle Card */}
+            <div className="p-3.5 rounded-xl bg-stone-900 border border-stone-750 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-inner">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-950 border border-emerald-800 text-emerald-400 flex items-center justify-center font-serif font-bold text-lg shadow-xs shrink-0">
+                  D
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-stone-200 flex items-center gap-2">
+                    <span>Apply Editorial Drop Cap to First Paragraph</span>
+                    {formData.enableDropCap !== false ? (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+                        Drop Cap Active
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-750">
+                        Standard Paragraph
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-stone-400 mt-0.5 leading-relaxed">
+                    Formats the first letter in the clinic's editorial serif font & brand accent color (scaled down on mobile screens).
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, enableDropCap: formData.enableDropCap === false })}
+                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                  formData.enableDropCap !== false ? 'bg-emerald-600' : 'bg-stone-800 border border-stone-700'
+                }`}
+                title="Toggle Drop Cap"
+              >
+                <span
+                  className={`block w-4 h-4 rounded-full bg-white transition-transform ${
+                    formData.enableDropCap !== false ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
 
             {/* STRUCTURED BLOCK EDITOR */}

@@ -62,6 +62,8 @@ export default function BlogPost() {
 
   const isDraft = post.status === 'draft';
   const hasBlocks = post.blocks && post.blocks.length > 0;
+  const isDropCapEnabled = post.enableDropCap !== false && clinic.globalDropCap !== false;
+  let firstParagraphRendered = false;
 
   return (
     <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -177,6 +179,36 @@ export default function BlogPost() {
                 // 2. PARAGRAPH
                 case 'paragraph': {
                   if (!block.content) return null;
+                  const trimmed = block.content.trim();
+                  if (!trimmed) return null;
+
+                  const isFirstP = !firstParagraphRendered;
+                  if (isFirstP) {
+                    firstParagraphRendered = true;
+                  }
+
+                  if (isFirstP && isDropCapEnabled && trimmed.length > 20) {
+                    const firstChar = trimmed.charAt(0);
+                    const restOfText = trimmed.slice(1);
+
+                    return (
+                      <p
+                        key={block.id}
+                        className="text-sm sm:text-base leading-relaxed text-stone-700 clear-both"
+                      >
+                        <span
+                          className="float-left text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-emerald-800 leading-none mr-2.5 sm:mr-3.5 mt-1 select-none drop-shadow-2xs"
+                          style={{
+                            color: clinic.customPrimaryColor || undefined,
+                          }}
+                        >
+                          {firstChar}
+                        </span>
+                        {restOfText}
+                      </p>
+                    );
+                  }
+
                   return (
                     <p
                       key={block.id}
@@ -370,6 +402,25 @@ export default function BlogPost() {
                   </h3>
                 );
               }
+              const isFirstP = !firstParagraphRendered;
+              if (isFirstP) firstParagraphRendered = true;
+
+              if (isFirstP && isDropCapEnabled && trimmed.length > 20) {
+                const firstChar = trimmed.charAt(0);
+                const restOfText = trimmed.slice(1);
+                return (
+                  <p key={i} className="leading-relaxed text-sm sm:text-base text-stone-700 clear-both">
+                    <span
+                      className="float-left text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-emerald-800 leading-none mr-2.5 sm:mr-3.5 mt-1 select-none drop-shadow-2xs"
+                      style={{ color: clinic.customPrimaryColor || undefined }}
+                    >
+                      {firstChar}
+                    </span>
+                    {restOfText}
+                  </p>
+                );
+              }
+
               return <p key={i} className="leading-relaxed text-sm sm:text-base">{trimmed}</p>;
             })
           )}

@@ -1171,6 +1171,35 @@ export function AgencyWorkspace({
                     </button>
                   ))}
                 </div>
+
+                {/* Global Editorial Drop Cap Toggle */}
+                <div className="p-4 rounded-xl bg-stone-850 border border-stone-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-stone-100 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Enable Editorial Drop Caps on Blog Posts</span>
+                      </div>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
+                        Default setting for new clinical articles. Renders an oversized, primary-brand-colored serif initial letter on opening paragraphs.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateClinic({ ...clinic, globalDropCap: clinic.globalDropCap === false })}
+                      className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer shrink-0 ${
+                        clinic.globalDropCap !== false ? 'bg-emerald-600' : 'bg-stone-700'
+                      }`}
+                      title="Toggle Global Drop Cap"
+                    >
+                      <span
+                        className={`block w-4 h-4 rounded-full bg-white transition-transform ${
+                          clinic.globalDropCap !== false ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

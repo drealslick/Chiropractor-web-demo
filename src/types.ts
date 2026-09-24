@@ -111,6 +111,7 @@ export interface ClinicPost {
   category?: string;
   readTime?: string;
   status?: 'published' | 'draft';
+  enableDropCap?: boolean;
   blocks?: BlogBlock[];
 }
 
@@ -150,6 +151,7 @@ export interface ClinicInfo {
   selectedPaletteId?: ColorPaletteId;
   colorPalette?: string;
   fontPairing?: string;
+  globalDropCap?: boolean;
   heroBadge?: string;
   heroTitle?: string;
   heroSubtitle?: string;
