@@ -111,11 +111,12 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
               Quick Links
             </span>
             <ul className="space-y-2 text-sm text-stone-400">
-              <li><a href="#about" className="hover:text-white transition-colors">{clinic.navLink1 || "About"}</a></li>
-              <li><a href="#care" className="hover:text-white transition-colors">{clinic.navLink2 || "Care"} & Conditions</a></li>
-              <li><a href="#results" className="hover:text-white transition-colors">Patient {clinic.navLink3 || "Results"}</a></li>
-              <li><a href="#faq" className="hover:text-white transition-colors">Frequently Asked</a></li>
-              <li><a href="#location" className="hover:text-white transition-colors">Location & Parking</a></li>
+              <li><Link to="/about" className="hover:text-white transition-colors">{clinic.navLink1 || "About"}</Link></li>
+              <li><Link to="/team" className="hover:text-white transition-colors">Our Clinical Team</Link></li>
+              <li><Link to="/conditions" className="hover:text-white transition-colors">{clinic.navLink2 || "Care"} & Conditions</Link></li>
+              <li><Link to="/first-visit" className="hover:text-white transition-colors">First Visit Guide</Link></li>
+              <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing & Fees</Link></li>
+              <li><Link to="/blog" className="hover:text-white transition-colors">Clinical Blog</Link></li>
             </ul>
           </div>
 

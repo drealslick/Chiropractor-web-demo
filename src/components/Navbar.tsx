@@ -71,6 +71,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           {clinic.showNavAbout !== false && (
             <Link to="/about" className="hover:text-stone-900 transition-colors">About</Link>
           )}
+          {clinic.showNavTeam !== false && (
+            <Link to="/team" className="hover:text-stone-900 transition-colors">Team</Link>
+          )}
           {clinic.showNavPricing !== false && (
             <Link to="/pricing" className="hover:text-stone-900 transition-colors">Pricing</Link>
           )}
@@ -168,6 +171,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
           >
             About
+          </Link>
+          )}
+          {clinic.showNavTeam !== false && (
+          <Link
+            to="/team"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
+          >
+            Our Team
           </Link>
           )}
           <Link

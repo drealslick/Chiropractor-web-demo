@@ -63,6 +63,7 @@ import { ConditionManager } from './admin/ConditionManager';
 import { HomepageConditionsEditor } from './admin/HomepageConditionsEditor';
 import { FirstVisitManager } from './admin/FirstVisitManager';
 import { AboutManager } from './admin/AboutManager';
+import { OurTeamManager } from './admin/OurTeamManager';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -87,6 +88,7 @@ export type AdminTabId =
   | 'copy'
   | 'blog'
   | 'about'
+  | 'our_team'
   | 'photos'
   | 'discomforts'
   | 'conditions'
@@ -179,6 +181,7 @@ export function AgencyWorkspace({
       items: [
         { id: 'copy' as AdminTabId, label: 'Headlines & Copy', icon: FileText, highlight: true },
         { id: 'about' as AdminTabId, label: 'About & Clinician', icon: User, badge: 'Page' },
+        { id: 'our_team' as AdminTabId, label: 'Our Team & Clinicians', icon: Users, badge: (clinic.publicTeamMembers?.length || 3).toString() },
         { id: 'photos' as AdminTabId, label: 'Photos & Image URLs', icon: UploadCloud, badge: 'New' },
         { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
         { id: 'discomforts' as AdminTabId, label: 'Discomfort Selector', icon: Activity },
@@ -741,6 +744,11 @@ export function AgencyWorkspace({
             {/* 5b. ABOUT PAGE & CLINICIAN PROFILE */}
             {activeTab === 'about' && (
               <AboutManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+            )}
+
+            {/* 5c. OUR TEAM & DOCTORS */}
+            {activeTab === 'our_team' && (
+              <OurTeamManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
             {/* 6. PHOTOS & VISUAL ASSETS */}

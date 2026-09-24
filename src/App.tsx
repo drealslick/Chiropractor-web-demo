@@ -20,6 +20,8 @@ import Terms from './pages/Terms';
 import Pricing from './pages/Pricing';
 import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
+import Team from './pages/Team';
+import TeamMemberDetail from './pages/TeamMemberDetail';
 import NotFound from './pages/NotFound';
 
 function AppShell() {
@@ -57,6 +59,8 @@ function AppShell() {
             <Route path="/conditions/:conditionId" element={<ConditionDetail />} />
             <Route path="/first-visit" element={<FirstVisit />} />
             <Route path="/about" element={<About />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/team/:memberSlug" element={<TeamMemberDetail />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />

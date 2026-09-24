@@ -4,6 +4,7 @@ import { useClinic } from '../data/ClinicContext';
 import { conditionsData } from '../data/clinicData';
 import { defaultBlogPosts } from '../data/defaultPosts';
 import { defaultPricingFees } from '../data/defaultPricingFees';
+import { defaultPublicTeamMembers } from '../data/defaultTeamData';
 import {
   ConditionIconBadge,
   ConditionAnatomyDiagram,
@@ -26,7 +27,7 @@ import {
   CreditCard,
   ExternalLink,
 } from 'lucide-react';
-import { ClinicPost, BlogBlock } from '../types';
+import { ClinicPost, BlogBlock, PublicTeamMember } from '../types';
 import { usePageMeta } from '../data/usePageMeta';
 
 function slugify(title: string) {
@@ -147,6 +148,24 @@ export default function ConditionDetail() {
     feeItems.find((f) => f.title.toLowerCase().includes('follow') || f.title.toLowerCase().includes('adjustment')) ||
     feeItems[1] ||
     feeItems[0];
+
+  // Resolve specialists treating this condition
+  const allTeamMembers: PublicTeamMember[] =
+    clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
+      ? clinic.publicTeamMembers.filter((m) => m.showOnWebsite !== false)
+      : defaultPublicTeamMembers;
+
+  const currentConditionSlug = condition.slug || condition.id;
+  const specialists = allTeamMembers.filter((m) => {
+    if (!m.assignedConditionSlugs || m.assignedConditionSlugs.length === 0) {
+      return m.role.toLowerCase().includes('lead') || m.order === 1;
+    }
+    return (
+      m.assignedConditionSlugs.includes(currentConditionSlug) ||
+      m.assignedConditionSlugs.includes(condition.id)
+    );
+  });
+  const displaySpecialists = specialists.length > 0 ? specialists : allTeamMembers.slice(0, 2);
 
   return (
     <div className="min-h-screen bg-stone-50/60 py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
@@ -622,6 +641,83 @@ export default function ConditionDetail() {
             </div>
           )}
         </section>
+
+        {/* 3. MEET THE SPECIALISTS WHO TREAT THIS CONDITION (SEO CROSS-LINKING) */}
+        {displaySpecialists.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                  Targeted Clinical Care
+                </span>
+                <h3 className="text-xl sm:text-2xl font-serif font-bold text-stone-900">
+                  Meet the Specialists Who Treat {condition.title}
+                </h3>
+              </div>
+              <Link
+                to="/team"
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+              >
+                <span>All Clinicians</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {displaySpecialists.map((spec) => (
+                <div
+                  key={spec.id}
+                  className="p-5 bg-white border border-stone-200/90 rounded-2xl hover:border-emerald-500/70 hover:shadow-md transition group flex flex-col justify-between space-y-4"
+                >
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0">
+                      <img
+                        src={spec.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400'}
+                        alt={spec.name}
+                        className="w-full h-full object-cover object-top"
+                      />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <h4 className="text-base font-serif font-bold text-stone-900 leading-tight">
+                        {spec.name}
+                      </h4>
+                      <p className="text-xs text-emerald-700 font-medium">
+                        {spec.role}
+                      </p>
+                      {spec.credentials && (
+                        <p className="text-[11px] text-stone-400 font-sans">
+                          {spec.credentials}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                    {spec.shortSummary}
+                  </p>
+
+                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2 text-xs">
+                    <Link
+                      to={`/team/${spec.slug}`}
+                      className="font-bold text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                    >
+                      <span>Read Dr. Bio</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => openBookingModal(`Consultation with ${spec.name} for ${condition.title}`)}
+                      className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-emerald-900 text-white font-semibold transition cursor-pointer"
+                    >
+                      Book Consultation
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* The CTA: The Dark "Start with an Exam" Card (Kept exactly as requested) */}
         <section className="p-8 sm:p-10 bg-stone-900 text-white rounded-3xl text-center space-y-4 shadow-xl border border-stone-800">

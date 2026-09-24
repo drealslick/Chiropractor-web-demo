@@ -72,6 +72,35 @@ export interface AboutGalleryImage {
   tag?: string;
 }
 
+export interface PublicTeamMember {
+  id: string;
+  slug: string;
+  name: string;
+  credentials?: string;
+  role: string;
+  photoUrl?: string;
+  photoAlt?: string;
+  shortSummary: string;
+  bioBlocks?: BlogBlock[];
+  areasOfFocus: string[];
+  assignedConditionSlugs?: string[];
+  showOnWebsite: boolean;
+  order?: number;
+  email?: string;
+  phone?: string;
+  quote?: string;
+  education?: string;
+  registrationNumber?: string;
+}
+
+export interface SupportStaffMember {
+  id: string;
+  name: string;
+  role: string;
+  photoUrl?: string;
+  bio?: string;
+}
+
 export interface AboutAssociation {
   id: string;
   name: string;
