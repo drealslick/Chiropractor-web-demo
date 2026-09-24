@@ -19,6 +19,26 @@ import {
   AlertCircle,
   Calendar,
   Zap,
+  BookOpen,
+  Activity,
+  Heart,
+  Clock,
+  MessageSquare,
+  HelpCircle,
+  Building2,
+  DollarSign,
+  Star,
+  Type,
+  Eye,
+  Info,
+  ChevronRight,
+  Menu,
+  Shield,
+  Layers,
+  MapPin,
+  Phone,
+  Mail,
+  ExternalLink,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -30,7 +50,6 @@ import { BookingSettings } from './admin/BookingSettings';
 import { ExecutiveDashboard } from './admin/ExecutiveDashboard';
 import { BlogManager } from './admin/BlogManager';
 import { getStoredLeads } from '../data/leadsStore';
-import { BookOpen } from 'lucide-react';
 
 interface AgencyWorkspaceProps {
   isOpen: boolean;
@@ -43,9 +62,32 @@ interface AgencyWorkspaceProps {
   hasSupabase?: boolean;
 }
 
-type MainTabType = 'overview' | 'leads' | 'booking' | 'site' | 'setup';
-type SiteSubTab = 'branding' | 'info' | 'blog' | 'lists' | 'copy' | 'sections' | 'seo';
-type SetupSubTab = 'audit' | 'presets';
+// Single Sidebar Navigation IDs
+export type AdminTabId =
+  // Dashboard
+  | 'overview'
+  | 'checklist'
+  | 'leads'
+  | 'booking'
+  // Website Content
+  | 'copy'
+  | 'blog'
+  | 'discomforts'
+  | 'conditions'
+  | 'why_us'
+  | 'roadmap'
+  | 'reviews'
+  | 'faqs'
+  // Business Info
+  | 'clinic_info'
+  // Design & Style
+  | 'themes'
+  | 'typography'
+  | 'sections'
+  // Settings & Tools
+  | 'seo'
+  | 'announcement'
+  | 'presets';
 
 export function AgencyWorkspace({
   isOpen,
@@ -57,9 +99,8 @@ export function AgencyWorkspace({
   lastSaved = null,
   hasSupabase = false,
 }: AgencyWorkspaceProps) {
-  const [mainTab, setMainTab] = useState<MainTabType>('overview');
-  const [siteSubTab, setSiteSubTab] = useState<SiteSubTab>('branding');
-  const [setupSubTab, setSetupSubTab] = useState<SetupSubTab>('audit');
+  const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
   const [jsonCopied, setJsonCopied] = useState(false);
@@ -96,40 +137,52 @@ export function AgencyWorkspace({
   const bgVal = clinic.customBgColor || currentPalette.preview.bg;
   const textVal = clinic.customTextColor || currentPalette.variables['--theme-text'] || '#1C1917';
 
-  const mainTabs: {
-    id: MainTabType;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: number | string;
-  }[] = [
-    { id: 'overview', label: 'Overview', icon: Layout, badge: 'Live' },
-    { id: 'leads', label: 'Leads', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
-    { id: 'booking', label: 'Booking', icon: Calendar },
-    { id: 'site', label: 'Site', icon: Palette },
-    { id: 'setup', label: 'Setup', icon: Sparkles },
-  ];
-
-  const siteSubTabs: {
-    id: SiteSubTab;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[] = [
-    { id: 'branding', label: 'Themes', icon: Palette },
-    { id: 'info', label: 'Clinic Info', icon: Sliders },
-    { id: 'blog', label: 'Blog & Articles', icon: BookOpen },
-    { id: 'lists', label: 'Content', icon: FileText },
-    { id: 'copy', label: 'Copy', icon: FileText },
-    { id: 'sections', label: 'Sections', icon: Layout },
-    { id: 'seo', label: 'SEO & Alert', icon: Bell },
-  ];
-
-  const setupSubTabs: {
-    id: SetupSubTab;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[] = [
-    { id: 'audit', label: 'Checklist & Audit', icon: Sparkles },
-    { id: 'presets', label: 'Presets & Backup', icon: Globe },
+  // Navigation Groups Definition for Single Clean Left Sidebar
+  const navGroups = [
+    {
+      group: 'DASHBOARD',
+      items: [
+        { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: 'Live' },
+        { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles },
+        { id: 'leads' as AdminTabId, label: 'Patient Inquiries', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
+        { id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar },
+      ],
+    },
+    {
+      group: 'WEBSITE CONTENT',
+      items: [
+        { id: 'copy' as AdminTabId, label: 'Headlines & Copy', icon: FileText, highlight: true },
+        { id: 'blog' as AdminTabId, label: 'Blog & Articles', icon: BookOpen, badge: clinic.customPosts?.length || 4 },
+        { id: 'discomforts' as AdminTabId, label: 'Discomfort Selector', icon: Activity },
+        { id: 'conditions' as AdminTabId, label: 'Conditions & Protocols', icon: Layers },
+        { id: 'why_us' as AdminTabId, label: 'Why Choose Us', icon: Heart },
+        { id: 'roadmap' as AdminTabId, label: '3-Phase Roadmap', icon: Clock },
+        { id: 'reviews' as AdminTabId, label: 'Patient Reviews', icon: MessageSquare },
+        { id: 'faqs' as AdminTabId, label: 'FAQs & First Visit', icon: HelpCircle },
+      ],
+    },
+    {
+      group: 'BUSINESS INFO',
+      items: [
+        { id: 'clinic_info' as AdminTabId, label: 'Clinic Info & Pricing', icon: Building2 },
+      ],
+    },
+    {
+      group: 'DESIGN & STYLE',
+      items: [
+        { id: 'themes' as AdminTabId, label: 'Themes & Colors', icon: Palette },
+        { id: 'typography' as AdminTabId, label: 'Typography & Fonts', icon: Type },
+        { id: 'sections' as AdminTabId, label: 'Section Visibility', icon: Eye },
+      ],
+    },
+    {
+      group: 'SETTINGS & TOOLS',
+      items: [
+        { id: 'seo' as AdminTabId, label: 'SEO & Meta Tags', icon: Globe },
+        { id: 'announcement' as AdminTabId, label: 'Announcement Alert', icon: Bell },
+        { id: 'presets' as AdminTabId, label: 'Presets & Backups', icon: Download },
+      ],
+    },
   ];
 
   const handleExportBlueprint = () => {
@@ -190,910 +243,1137 @@ export function AgencyWorkspace({
   return (
     <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
       <div
-        className="w-full max-w-xl bg-stone-900 text-stone-100 h-full flex flex-col shadow-2xl border-l border-stone-800 overflow-hidden"
+        className="w-full md:w-[860px] lg:w-[980px] xl:w-[1080px] max-w-full bg-stone-900 text-stone-100 h-full flex flex-col shadow-2xl border-l border-stone-800 overflow-hidden"
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-stone-800 flex items-center justify-between bg-stone-950">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+        {/* Persistent Top Header with Save Status */}
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-b border-stone-800 flex items-center justify-between bg-stone-950 shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-1.5 rounded-lg bg-stone-900 text-stone-300 hover:text-white"
+              aria-label="Toggle navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <div>
-              <h2 className="font-bold text-base text-white tracking-tight flex items-center gap-2">
-                {clinic.name || 'Noir Labs'} Admin
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-sm sm:text-base text-white tracking-tight">
+                  {clinic.name || 'Private Practice'} Admin
+                </h2>
+                <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-stone-800 text-stone-300 border border-stone-700">
+                  Site Editor
+                </span>
+              </div>
               <div className="flex items-center gap-2 text-[11px] text-stone-400 mt-0.5">
-                <span>{clinic.name || 'Private Practice'}</span>
-                <span>•</span>
                 <span className="text-emerald-400 font-medium">
                   {hasSupabase ? (syncStatus === 'synced' ? '🟢 Cloud Synced' : '🔄 Syncing...') : '💾 Local Storage'}
                 </span>
-                {lastSaved && <span className="text-stone-500">Saved {lastSaved}</span>}
+                {lastSaved && (
+                  <>
+                    <span>•</span>
+                    <span className="text-stone-400 font-mono">Saved {lastSaved}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={onResetDefault}
-              className="p-1.5 text-stone-400 hover:text-amber-400 transition hover:bg-stone-800 rounded-lg text-xs flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1 text-stone-400 hover:text-amber-400 transition hover:bg-stone-850 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-amber-900/50"
               title="Reset to Factory Defaults"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline text-[11px]">Reset</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-xs font-medium">Reset Defaults</span>
             </button>
             <button
               onClick={onClose}
               className="p-1.5 text-stone-400 hover:text-white transition hover:bg-stone-800 rounded-lg cursor-pointer"
-              aria-label="Close suite"
+              aria-label="Close admin panel"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Primary 5 Tab Strip */}
-        <div className="grid grid-cols-5 border-b border-stone-800 bg-stone-950/80 text-xs font-semibold px-2">
-          {mainTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = mainTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setMainTab(tab.id)}
-                className={`py-3 px-1.5 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 border-b-2 transition cursor-pointer ${
-                  isActive
-                    ? 'border-emerald-500 text-emerald-400 bg-stone-900 shadow-inner'
-                    : 'border-transparent text-stone-400 hover:text-stone-200 hover:bg-stone-900/40'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                <span className="truncate text-[10px] sm:text-xs">{tab.label}</span>
-                {tab.badge !== undefined && (
-                  <span className="hidden sm:inline ml-0.5 px-1.5 py-0.2 bg-emerald-500 text-stone-950 font-bold text-[10px] rounded-full">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Secondary Sub-navigation for Site Design & Content */}
-        {mainTab === 'site' && (
-          <div className="flex border-b border-stone-800 bg-stone-900/90 text-xs font-medium overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-1.5 gap-1.5">
-            {siteSubTabs.map((sub) => {
-              const Icon = sub.icon;
-              const isActive = siteSubTab === sub.id;
-              return (
-                <button
-                  key={sub.id}
-                  onClick={() => setSiteSubTab(sub.id)}
-                  className={`px-3 py-1 rounded-lg flex items-center gap-1.5 text-xs transition cursor-pointer ${
-                    isActive
-                      ? 'bg-emerald-800 text-white font-semibold'
-                      : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{sub.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Secondary Sub-navigation for Setup & Agency */}
-        {mainTab === 'setup' && (
-          <div className="flex border-b border-stone-800 bg-stone-900/90 text-xs font-medium overflow-x-auto no-scrollbar whitespace-nowrap px-3 py-1.5 gap-1.5">
-            {setupSubTabs.map((sub) => {
-              const Icon = sub.icon;
-              const isActive = setupSubTab === sub.id;
-              return (
-                <button
-                  key={sub.id}
-                  onClick={() => setSetupSubTab(sub.id)}
-                  className={`px-3 py-1 rounded-lg flex items-center gap-1.5 text-xs transition cursor-pointer ${
-                    isActive
-                      ? 'bg-emerald-800 text-white font-semibold'
-                      : 'text-stone-400 hover:text-stone-200 hover:bg-stone-800/60'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{sub.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Tab Content Panel */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {/* TAB GROUP 0: EXECUTIVE PRACTICE OVERVIEW */}
-          {mainTab === 'overview' && (
-            <ExecutiveDashboard
-              clinic={clinic}
-              onUpdateClinic={onUpdateClinic}
-              onNavigateTab={(tab, subTab) => {
-                setMainTab(tab as MainTabType);
-                if (tab === 'site' && subTab) setSiteSubTab(subTab as SiteSubTab);
-                if (tab === 'setup' && subTab) setSetupSubTab(subTab as SetupSubTab);
-              }}
-              hasSupabase={hasSupabase}
-              syncStatus={syncStatus}
-            />
-          )}
-
-          {/* TAB GROUP 1: LEADS / REQUESTS INBOX */}
-          {mainTab === 'leads' && (
-            <LeadsInbox clinicName={clinic.name || 'Clinic'} />
-          )}
-
-          {/* TAB GROUP 2: EXTERNAL BOOKING SETTINGS */}
-          {mainTab === 'booking' && (
-            <BookingSettings />
-          )}
-
-          {/* TAB GROUP 3: SITE DESIGN & CONTENT */}
-          {mainTab === 'site' && (
-            <>
-              {/* SUB: THEMES & BRANDING */}
-              {siteSubTab === 'branding' && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold text-stone-200 text-sm">Theme</h3>
-                    <p className="text-xs text-stone-400">Select active color palette.</p>
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      {Object.values(colorPalettes).map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() =>
-                            onUpdateClinic({
-                              ...clinic,
-                              colorPalette: p.id,
-                              customPrimaryColor: undefined,
-                              customAccentColor: undefined,
-                              customBgColor: undefined,
-                              customTextColor: undefined,
-                            })
-                          }
-                          className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition cursor-pointer ${
-                            clinic.colorPalette === p.id && !hasCustomColors
-                              ? 'border-emerald-500 bg-emerald-950/40 text-emerald-300 ring-1 ring-emerald-500/50'
-                              : 'border-stone-800 bg-stone-850 hover:border-stone-700'
-                          }`}
-                        >
-                          <div className="flex -space-x-1 shrink-0">
-                            <span
-                              className="w-4 h-4 rounded-full border border-stone-800"
-                              style={{ backgroundColor: p.preview.primary }}
-                            />
-                            <span
-                              className="w-4 h-4 rounded-full border border-stone-800"
-                              style={{ backgroundColor: p.preview.accent }}
-                            />
-                          </div>
-                          <div>
-                            <div className="font-medium text-xs text-stone-100">{p.name}</div>
-                            <div className="text-[10px] text-stone-400 capitalize">{p.category || 'Theme'}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+        {/* Main Body: Clean Left Sidebar + Right Content Area */}
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Left Sidebar Navigation */}
+          <aside
+            className={`
+              absolute md:relative z-30 md:z-auto inset-y-0 left-0
+              w-64 md:w-56 lg:w-60 shrink-0 bg-stone-950 border-r border-stone-800/90
+              flex flex-col justify-between overflow-y-auto no-scrollbar
+              transition-transform duration-200 ease-in-out
+              ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}
+            `}
+          >
+            <div className="p-3 space-y-4">
+              {navGroups.map((group) => (
+                <div key={group.group} className="space-y-1">
+                  <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-stone-500 uppercase">
+                    {group.group}
                   </div>
-
-                  {/* Custom Hex Overrides */}
-                  <div className="border-t border-stone-800 pt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="font-medium text-xs text-stone-200 flex items-center gap-1.5">
-                          <Paintbrush className="w-3.5 h-3.5 text-emerald-400" /> Custom Hex Colors
-                        </h4>
-                        <p className="text-[11px] text-stone-400">Fine-tune brand colors directly.</p>
-                      </div>
-                      {hasCustomColors && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onUpdateClinic({
-                              ...clinic,
-                              customPrimaryColor: undefined,
-                              customAccentColor: undefined,
-                              customBgColor: undefined,
-                              customTextColor: undefined,
-                            })
-                          }
-                          className="text-[10px] text-amber-400 hover:underline cursor-pointer"
-                        >
-                          Reset to palette
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="block text-[11px] text-stone-400 mb-1">Primary Color</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={primaryVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
-                            className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={primaryVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
-                            className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-stone-400 mb-1">Accent / CTA</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={accentVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
-                            className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={accentVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
-                            className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-stone-400 mb-1">Background</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={bgVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
-                            className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={bgVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
-                            className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] text-stone-400 mb-1">Text Color</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={textVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
-                            className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={textVal}
-                            onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
-                            className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Font Pairings */}
-                  <div>
-                    <h3 className="font-semibold text-stone-200 text-sm">Font Pairings</h3>
-                    <div className="grid grid-cols-1 gap-2 mt-2">
-                      {[
-                        { id: 'classic-editorial', name: 'Playfair Display + Plus Jakarta', style: 'Serif / Sans' },
-                        { id: 'modern-sans', name: 'Inter + Montserrat', style: 'Clean Sans' },
-                        { id: 'warm-editorial', name: 'Lora + Inter', style: 'Editorial Serif' },
-                        { id: 'bold-contemporary', name: 'Syne + Space Grotesk', style: 'Display Sans' },
-                        { id: 'refined-elegance', name: 'Cinzel + Plus Jakarta', style: 'Formal Serif' },
-                      ].map((fp) => (
-                        <button
-                          key={fp.id}
-                          onClick={() => onUpdateClinic({ ...clinic, fontPairing: fp.id })}
-                          className={`p-2.5 rounded-lg border text-left transition cursor-pointer ${
-                            (clinic.fontPairing || 'classic-editorial') === fp.id
-                              ? 'border-emerald-500 bg-emerald-950/30 text-emerald-300'
-                              : 'border-stone-800 bg-stone-850 hover:border-stone-700'
-                          }`}
-                        >
-                          <div className="font-medium text-xs text-stone-100">{fp.name}</div>
-                          <div className="text-[11px] text-stone-400">{fp.style}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SUB: CLINIC INFO & LOGISTICS */}
-              {siteSubTab === 'info' && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-stone-200 text-sm">Clinic Details & Logistics</h3>
-                    <p className="text-xs text-stone-400">Core contact info, address, hours, and fees.</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Clinic Name</label>
-                      <input
-                        type="text"
-                        value={clinic.name || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, name: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Tagline</label>
-                      <input
-                        type="text"
-                        value={clinic.tagline || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, tagline: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Lead Doctor Name & Credentials</label>
-                      <input
-                        type="text"
-                        value={clinic.doctorName || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, doctorName: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Phone (Display)</label>
-                      <input
-                        type="text"
-                        value={clinic.phone || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, phone: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Phone (Dialing Format)</label>
-                      <input
-                        type="text"
-                        value={clinic.phoneRaw || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, phoneRaw: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Email Address</label>
-                      <input
-                        type="email"
-                        value={clinic.email || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, email: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Street Address</label>
-                      <input
-                        type="text"
-                        value={clinic.address || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, address: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">City, State</label>
-                        <input
-                          type="text"
-                          value={clinic.cityState || clinic.city || ''}
-                          onChange={(e) =>
-                            onUpdateClinic({ ...clinic, cityState: e.target.value, city: e.target.value })
-                          }
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">Postal / Zip Code</label>
-                        <input
-                          type="text"
-                          value={clinic.zip || ''}
-                          onChange={(e) => onUpdateClinic({ ...clinic, zip: e.target.value })}
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">Weekday Hours</label>
-                        <input
-                          type="text"
-                          value={clinic.hoursWeekday || ''}
-                          onChange={(e) => onUpdateClinic({ ...clinic, hoursWeekday: e.target.value })}
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">Saturday Hours</label>
-                        <input
-                          type="text"
-                          value={clinic.hoursSaturday || ''}
-                          onChange={(e) => onUpdateClinic({ ...clinic, hoursSaturday: e.target.value })}
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">Google Rating</label>
-                        <input
-                          type="text"
-                          placeholder="4.9"
-                          value={clinic.googleRating || ''}
-                          onChange={(e) => onUpdateClinic({ ...clinic, googleRating: e.target.value })}
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">Verified Review Count</label>
-                        <input
-                          type="text"
-                          placeholder="140+"
-                          value={clinic.googleReviewCount || ''}
-                          onChange={(e) => onUpdateClinic({ ...clinic, googleReviewCount: e.target.value })}
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="bg-stone-850 border border-stone-800 rounded-xl p-3 flex items-center justify-between">
-                      <div className="pr-2">
-                        <span className="text-xs font-semibold text-stone-200 block">Booking Integration</span>
-                        <span className="text-[11px] text-stone-400">
-                          {clinic.externalBookingUrl
-                            ? `Connected (${clinic.bookingEmbedMode || 'iframe'} mode)`
-                            : 'Using 3-step triage request'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setMainTab('booking')}
-                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:underline shrink-0 cursor-pointer"
-                      >
-                        Manage Settings →
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">Exam Price</label>
-                        <input
-                          type="text"
-                          placeholder="$49 exam"
-                          value={clinic.examFee || ''}
-                          onChange={(e) => onUpdateClinic({ ...clinic, examFee: e.target.value })}
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-stone-400 mb-1">Follow-up Price</label>
-                        <input
-                          type="text"
-                          placeholder="$45 visit"
-                          value={clinic.followUpFee || ''}
-                          onChange={(e) => onUpdateClinic({ ...clinic, followUpFee: e.target.value })}
-                          className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SUB: BLOG & PATIENT GUIDES */}
-              {siteSubTab === 'blog' && (
-                <BlogManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
-              )}
-
-              {/* SUB: CONTENT & LISTS (With Category Pill Navigation) */}
-              {siteSubTab === 'lists' && (
-                <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} />
-              )}
-
-              {/* SUB: COPY & HEADLINES */}
-              {siteSubTab === 'copy' && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-stone-200 text-sm">Site Copy</h3>
-                    <p className="text-xs text-stone-400">Headlines and doctor profile text.</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Hero Badge</label>
-                      <input
-                        type="text"
-                        value={clinic.heroBadge || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, heroBadge: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Hero Hook (Main Headline)</label>
-                      <textarea
-                        rows={2}
-                        value={clinic.heroHook || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, heroHook: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Urgent Pain Line (Sub-hook)</label>
-                      <input
-                        type="text"
-                        value={clinic.heroUrgentPain || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, heroUrgentPain: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Hero Subheadline</label>
-                      <textarea
-                        rows={2}
-                        value={clinic.heroSubhead || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, heroSubhead: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Offer Main Value Prop</label>
-                      <input
-                        type="text"
-                        value={clinic.offerTitle || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, offerTitle: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Offer Subtext / Urgency</label>
-                      <input
-                        type="text"
-                        value={clinic.offerSubtext || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, offerSubtext: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Booking Button Text</label>
-                      <input
-                        type="text"
-                        value={clinic.offerCtaText || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, offerCtaText: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Hero Trust Line</label>
-                      <input
-                        type="text"
-                        value={clinic.heroTrustLine || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, heroTrustLine: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Doctor Bio</label>
-                      <textarea
-                        rows={3}
-                        value={clinic.doctorBio || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, doctorBio: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Doctor Philosophy</label>
-                      <textarea
-                        rows={2}
-                        value={clinic.doctorPhilosophy || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, doctorPhilosophy: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Guarantee Headline</label>
-                      <input
-                        type="text"
-                        value={clinic.guaranteeTitle || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, guaranteeTitle: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs text-stone-400 mb-1">Guarantee Description</label>
-                      <textarea
-                        rows={2}
-                        value={clinic.guaranteeDesc || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, guaranteeDesc: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:border-emerald-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* SUB: SECTIONS & NAVIGATION */}
-              {siteSubTab === 'sections' && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-stone-200 text-sm">Sections & Navigation</h3>
-                    <p className="text-xs text-stone-400">Toggle sections and pages on the website.</p>
-                  </div>
-                  <div className="space-y-1.5 pt-1">
-                    {[
-                      { key: 'showHeroTriage', label: 'Hero Discomfort Selector (Triage Widget)' },
-                      { key: 'showTrustBar', label: 'Ratings Bar' },
-                      { key: 'showConditions', label: 'Conditions Treated' },
-                      { key: 'showWhyUs', label: 'Why Choose Us' },
-                      { key: 'showTheProcess', label: '3-Step Process' },
-                      { key: 'showTheDoctor', label: 'Doctor Profile' },
-                      { key: 'showPatients', label: 'Patient Reviews' },
-                      { key: 'showTheClinic', label: 'Clinic Gallery' },
-                      { key: 'showInsurancePayment', label: 'Insurance & Payment' },
-                      { key: 'showFAQ', label: 'FAQs' },
-                      { key: 'showNavConditions', label: 'Page: Conditions' },
-                      { key: 'showNavFirstVisit', label: 'Page: First Visit' },
-                      { key: 'showNavAbout', label: 'Page: About' },
-                      { key: 'showNavPricing', label: 'Page: Pricing' },
-                      { key: 'showNavBlog', label: 'Page: Blog' },
-                    ].map(({ key, label }) => {
-                      const isVisible = clinic[key as keyof ClinicInfo] !== false;
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
                       return (
-                        <label
-                          key={key}
-                          className="flex items-center justify-between p-2.5 bg-stone-850 border border-stone-800 rounded-lg cursor-pointer hover:border-stone-700 transition"
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setMobileMenuOpen(false);
+                          }}
+                          className={`w-full px-2.5 py-2 rounded-xl text-xs font-medium flex items-center justify-between transition cursor-pointer text-left ${
+                            isActive
+                              ? 'bg-emerald-800 text-white font-semibold shadow-xs'
+                              : 'text-stone-400 hover:text-stone-100 hover:bg-stone-900'
+                          }`}
                         >
-                          <span className="text-xs text-stone-300">{label}</span>
-                          <input
-                            type="checkbox"
-                            checked={isVisible}
-                            onChange={(e) => onUpdateClinic({ ...clinic, [key]: e.target.checked })}
-                            className="w-4 h-4 accent-emerald-500 rounded"
-                          />
-                        </label>
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-200' : 'text-stone-400'}`} />
+                            <span className="truncate">{item.label}</span>
+                          </div>
+                          {item.badge !== undefined && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                                isActive
+                                  ? 'bg-emerald-950 text-emerald-200 border border-emerald-700'
+                                  : 'bg-stone-850 text-stone-400 border border-stone-750'
+                              }`}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
                 </div>
-              )}
+              ))}
+            </div>
 
-              {/* SUB: SEO & EMERGENCY ANNOUNCEMENT */}
-              {siteSubTab === 'seo' && (
-                <div className="space-y-6">
-                  {/* Emergency Alert Banner System */}
-                  <div className="p-3.5 bg-stone-850 border border-stone-800 rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-xs text-stone-200 flex items-center gap-1.5">
-                        <Bell className="w-3.5 h-3.5 text-amber-400" /> Announcement Banner
-                      </h4>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <span className="text-xs text-stone-400">Enabled</span>
-                        <input
-                          type="checkbox"
-                          checked={banner.enabled}
-                          onChange={(e) =>
-                            onUpdateClinic({
-                              ...clinic,
-                              announcementBanner: { ...banner, enabled: e.target.checked },
-                            })
-                          }
-                          className="w-4 h-4 accent-amber-500 rounded"
-                        />
-                      </label>
+            {/* Bottom Quick Help Card */}
+            <div className="p-3 border-t border-stone-850 bg-stone-950/60">
+              <div className="p-2.5 rounded-xl bg-stone-900 border border-stone-800 text-[11px] text-stone-400 space-y-1">
+                <div className="font-semibold text-stone-200 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Instant Live Preview</span>
+                </div>
+                <p className="text-[10px] text-stone-400 leading-tight">
+                  Every change auto-saves and updates the live website instantly.
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right Content Area */}
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-6 bg-stone-900">
+            {/* 1. OVERVIEW */}
+            {activeTab === 'overview' && (
+              <ExecutiveDashboard
+                clinic={clinic}
+                onUpdateClinic={onUpdateClinic}
+                onNavigateTab={(tab, subTab) => {
+                  if (tab === 'leads') setActiveTab('leads');
+                  else if (tab === 'booking') setActiveTab('booking');
+                  else if (tab === 'setup') setActiveTab('checklist');
+                  else if (tab === 'site') {
+                    if (subTab === 'copy') setActiveTab('copy');
+                    else if (subTab === 'blog') setActiveTab('blog');
+                    else if (subTab === 'branding') setActiveTab('themes');
+                    else if (subTab === 'lists') setActiveTab('discomforts');
+                    else setActiveTab('clinic_info');
+                  }
+                }}
+                hasSupabase={hasSupabase}
+                syncStatus={syncStatus}
+              />
+            )}
+
+            {/* 2. SETUP CHECKLIST */}
+            {activeTab === 'checklist' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-stone-800">
+                  <div>
+                    <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                      <span>Practice Setup & Launch Checklist</span>
+                    </h3>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Verify key clinical details, contact channels, and conversion settings before launching.
+                    </p>
+                  </div>
+                </div>
+                <PracticeAudit clinic={clinic} hasSupabase={hasSupabase} syncStatus={syncStatus} />
+              </div>
+            )}
+
+            {/* 3. PATIENT LEADS */}
+            {activeTab === 'leads' && (
+              <LeadsInbox clinicName={clinic.name || 'Clinic'} />
+            )}
+
+            {/* 4. BOOKING & EHR */}
+            {activeTab === 'booking' && (
+              <BookingSettings />
+            )}
+
+            {/* 5. HEADLINES & COPY (Plain English, Helper Texts, Live Preview) */}
+            {activeTab === 'copy' && (
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-emerald-400" />
+                    <span>Website Copy & Headlines</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Customize your homepage headlines, doctor biography, and value propositions. All fields have plain-English helper descriptions.
+                  </p>
+                </div>
+
+                {/* Live Real-Time Mini Preview Card */}
+                <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-3 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-300 font-mono">
+                        Live Homepage Hero Preview
+                      </span>
                     </div>
+                    <span className="text-[10px] text-stone-500 font-mono">Updates dynamically</span>
+                  </div>
 
-                    {banner.enabled && (
-                      <div className="space-y-2 pt-2 border-t border-stone-800 text-xs">
-                        <div>
-                          <label className="block text-[11px] text-stone-400 mb-1">Message</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Holiday Notice: Clinic closed on Monday."
-                            value={banner.message}
-                            onChange={(e) =>
-                              onUpdateClinic({
-                                ...clinic,
-                                announcementBanner: { ...banner, message: e.target.value },
-                              })
-                            }
-                            className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:outline-none focus:border-amber-500"
-                          />
-                        </div>
+                  <div className="p-4 rounded-xl bg-stone-900 border border-stone-800 space-y-2.5">
+                    <span className="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+                      {clinic.heroBadge || 'Private Chiropractic Practice'}
+                    </span>
+                    <h4 className="font-serif text-lg sm:text-xl font-bold text-stone-100 leading-tight">
+                      {clinic.heroHook || 'Get Out of Chronic Pain Without Surgery'}
+                    </h4>
+                    {clinic.heroUrgentPain && (
+                      <p className="text-xs font-medium text-amber-300/90 leading-snug">
+                        {clinic.heroUrgentPain}
+                      </p>
+                    )}
+                    <p className="text-xs text-stone-300 leading-relaxed line-clamp-2">
+                      {clinic.heroSubhead ||
+                        'Gentle, evidence-based adjustments combined with targeted movement rehabilitation so your relief lasts.'}
+                    </p>
 
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[11px] text-stone-400 mb-1">Badge</label>
-                            <input
-                              type="text"
-                              placeholder="Notice"
-                              value={banner.badge || ''}
-                              onChange={(e) =>
-                                onUpdateClinic({
-                                  ...clinic,
-                                  announcementBanner: { ...banner, badge: e.target.value },
-                                })
-                              }
-                              className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] text-stone-400 mb-1">Variant</label>
-                            <select
-                              value={banner.variant || 'amber'}
-                              onChange={(e) =>
-                                onUpdateClinic({
-                                  ...clinic,
-                                  announcementBanner: {
-                                    ...banner,
-                                    variant: e.target.value as AnnouncementBannerConfig['variant'],
-                                  },
-                                })
-                              }
-                              className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 cursor-pointer"
-                            >
-                              <option value="amber">Amber</option>
-                              <option value="rose">Rose</option>
-                              <option value="emerald">Emerald</option>
-                              <option value="indigo">Indigo</option>
-                            </select>
-                          </div>
-                        </div>
+                    {/* Mini Offer Box */}
+                    <div className="pt-2 border-t border-stone-800 flex items-center justify-between gap-3 text-xs">
+                      <div>
+                        <span className="font-bold text-stone-200 block text-xs">
+                          {clinic.offerTitle || 'New Patient: $49 Complete Spinal Exam & Assessment'}
+                        </span>
+                        <span className="text-[10px] text-stone-400 block">
+                          {clinic.offerSubtext || 'Includes digital posture scan & customized relief plan.'}
+                        </span>
                       </div>
+                      <div className="px-3 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] shrink-0">
+                        {clinic.offerCtaText || 'CLAIM $49 SPECIAL →'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 1: Hero Section Copy */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="border-b border-stone-800 pb-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" /> Hero Section (Top of Homepage)
+                    </h4>
+                  </div>
+
+                  <Field
+                    label="Top Eyebrow Badge"
+                    value={clinic.heroBadge || ''}
+                    placeholder="Private Chiropractic Practice • Accepting New Patients"
+                    helperText="Small badge displayed above the main headline at the very top of your homepage."
+                    locationBadge="Top of Hero"
+                    onChange={(v) => onUpdateClinic({ ...clinic, heroBadge: v })}
+                  />
+
+                  <Field
+                    label="Main Headline"
+                    textarea
+                    value={clinic.heroHook || ''}
+                    placeholder="Get Out of Chronic Pain Without Surgery"
+                    helperText="The big headline at the very top of the page. Speaks directly to the patient's primary complaint or goal."
+                    locationBadge="Hero Main Headline"
+                    onChange={(v) => onUpdateClinic({ ...clinic, heroHook: v })}
+                  />
+
+                  <Field
+                    label="Sub-headline & Urgency Hook"
+                    value={clinic.heroUrgentPain || ''}
+                    placeholder="Same-day appointments available for acute back, neck, and nerve pain."
+                    helperText="Supporting line directly beneath the main headline to acknowledge their symptoms and provide immediate reassurance."
+                    locationBadge="Hero Sub-hook"
+                    onChange={(v) => onUpdateClinic({ ...clinic, heroUrgentPain: v })}
+                  />
+
+                  <Field
+                    label="Supporting Value Description"
+                    textarea
+                    value={clinic.heroSubhead || ''}
+                    placeholder="Gentle, evidence-based adjustments combined with targeted movement rehabilitation so your relief lasts."
+                    helperText="2-3 sentences explaining your gentle diagnostic approach, 1-on-1 care, and why your clinic gets lasting results."
+                    locationBadge="Hero Description"
+                    onChange={(v) => onUpdateClinic({ ...clinic, heroSubhead: v })}
+                  />
+                </div>
+
+                {/* Section 2: Special New Patient Offer */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="border-b border-stone-800 pb-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5" /> Special New Patient Offer
+                    </h4>
+                  </div>
+
+                  <Field
+                    label="Special Offer Headline"
+                    value={clinic.offerTitle || ''}
+                    placeholder="New Patient Special: $49 Complete Spinal Exam & Assessment"
+                    helperText="The headline of your introductory patient offer card to remove financial friction for first-time visitors."
+                    locationBadge="Offer Card"
+                    onChange={(v) => onUpdateClinic({ ...clinic, offerTitle: v })}
+                  />
+
+                  <Field
+                    label="Special Offer Terms & Urgency"
+                    value={clinic.offerSubtext || ''}
+                    placeholder="Includes digital posture scan & customized relief plan. First 20 patients this month."
+                    helperText="Supporting details for the offer explaining what's included and creating gentle urgency."
+                    locationBadge="Offer Card Subtext"
+                    onChange={(v) => onUpdateClinic({ ...clinic, offerSubtext: v })}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field
+                      label="Primary Action Button Text"
+                      value={clinic.offerCtaText || ''}
+                      placeholder="CLAIM $49 SPECIAL →"
+                      helperText="The call-to-action text on your primary booking buttons."
+                      locationBadge="All CTA Buttons"
+                      onChange={(v) => onUpdateClinic({ ...clinic, offerCtaText: v })}
+                    />
+                    <Field
+                      label="Trust Line & Guarantee Subtext"
+                      value={clinic.heroTrustLine || ''}
+                      placeholder="No long-term contracts • HSA/FSA accepted"
+                      helperText="Reassurance text displayed under the main button."
+                      locationBadge="Under CTA Button"
+                      onChange={(v) => onUpdateClinic({ ...clinic, heroTrustLine: v })}
+                    />
+                  </div>
+                </div>
+
+                {/* Section 3: Doctor Biography & Care Philosophy */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="border-b border-stone-800 pb-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Doctor Profile & Philosophy
+                    </h4>
+                  </div>
+
+                  <Field
+                    label="Doctor Biography & Clinical Background"
+                    textarea
+                    value={clinic.doctorBio || ''}
+                    placeholder="Dr. Marcus Vance brings over 14 years of clinical experience specializing in non-invasive spine care..."
+                    helperText="Your personal clinical background, education, and years in practice displayed in the Doctor Profile section."
+                    locationBadge="Doctor Section"
+                    onChange={(v) => onUpdateClinic({ ...clinic, doctorBio: v })}
+                  />
+
+                  <Field
+                    label="Clinical Care Philosophy"
+                    textarea
+                    value={clinic.doctorPhilosophy || ''}
+                    placeholder="We focus on rapid discharge and patient independence, not endless visit packages."
+                    helperText="Your core treatment methodology and ethical stance on patient care."
+                    locationBadge="Doctor Philosophy"
+                    onChange={(v) => onUpdateClinic({ ...clinic, doctorPhilosophy: v })}
+                  />
+                </div>
+
+                {/* Section 4: Satisfaction Guarantee */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="border-b border-stone-800 pb-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5" /> Peace of Mind Guarantee
+                    </h4>
+                  </div>
+
+                  <Field
+                    label="Satisfaction Guarantee Headline"
+                    value={clinic.guaranteeTitle || ''}
+                    placeholder="The 100% Patient Peace of Mind Guarantee"
+                    helperText="Headline for your patient peace-of-mind guarantee card."
+                    locationBadge="Guarantee Box"
+                    onChange={(v) => onUpdateClinic({ ...clinic, guaranteeTitle: v })}
+                  />
+
+                  <Field
+                    label="Satisfaction Guarantee Details"
+                    textarea
+                    value={clinic.guaranteeDesc || ''}
+                    placeholder="If you don't feel complete confidence in our diagnostic findings and care plan after your first visit, your exam fee is cheerfully refunded."
+                    helperText="Specific terms explaining your satisfaction guarantee."
+                    locationBadge="Guarantee Box"
+                    onChange={(v) => onUpdateClinic({ ...clinic, guaranteeDesc: v })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 6. BLOG & ARTICLES */}
+            {activeTab === 'blog' && (
+              <BlogManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+            )}
+
+            {/* 7. DISCOMFORTS */}
+            {activeTab === 'discomforts' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="triage" />
+            )}
+
+            {/* 8. CONDITIONS & PROTOCOLS */}
+            {activeTab === 'conditions' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="conditions" />
+            )}
+
+            {/* 9. WHY CHOOSE US */}
+            {activeTab === 'why_us' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="why-us" />
+            )}
+
+            {/* 10. 3-PHASE ROADMAP */}
+            {activeTab === 'roadmap' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="process" />
+            )}
+
+            {/* 11. PATIENT REVIEWS */}
+            {activeTab === 'reviews' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="reviews" />
+            )}
+
+            {/* 12. FAQS & FIRST VISIT */}
+            {activeTab === 'faqs' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="faqs" />
+            )}
+
+            {/* 13. CLINIC INFO & LOGISTICS (4 Distinct Subsections) */}
+            {activeTab === 'clinic_info' && (
+              <div className="space-y-6">
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                    <span>Clinic Info & Pricing</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Organized into contact details, practice hours, fee schedule, and booking integrations.
+                  </p>
+                </div>
+
+                {/* Sub-Section 1: Contact Details */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 border-b border-stone-800 pb-2">
+                    <MapPin className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                      1. Contact Details
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field
+                      label="Clinic Name"
+                      value={clinic.name || ''}
+                      placeholder="e.g. Columbus Chiropractic Care"
+                      helperText="Official practice trade name."
+                      onChange={(v) => onUpdateClinic({ ...clinic, name: v })}
+                    />
+                    <Field
+                      label="Practice Tagline"
+                      value={clinic.tagline || ''}
+                      placeholder="e.g. Modern Spine & Sports Recovery"
+                      helperText="Short practice motto shown in header."
+                      onChange={(v) => onUpdateClinic({ ...clinic, tagline: v })}
+                    />
+                  </div>
+
+                  <Field
+                    label="Lead Doctor Name & Credentials"
+                    value={clinic.doctorName || ''}
+                    placeholder="e.g. Dr. Marcus Vance, D.C., DACBSP"
+                    helperText="Doctor full name and post-graduate clinical board designations."
+                    onChange={(v) => onUpdateClinic({ ...clinic, doctorName: v })}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field
+                      label="Phone Number (Display Format)"
+                      value={clinic.phone || ''}
+                      placeholder="(614) 555-0192"
+                      helperText="Formatted telephone for human eyes."
+                      onChange={(v) => onUpdateClinic({ ...clinic, phone: v })}
+                    />
+                    <Field
+                      label="Phone (Tap-to-Call Digits)"
+                      value={clinic.phoneRaw || ''}
+                      placeholder="6145550192"
+                      helperText="Numeric only for smartphone 1-tap dialing."
+                      onChange={(v) => onUpdateClinic({ ...clinic, phoneRaw: v })}
+                    />
+                  </div>
+
+                  <Field
+                    label="Email Address"
+                    value={clinic.email || ''}
+                    placeholder="care@columbuschiropractic.com"
+                    helperText="Patient inquiries and appointment confirmation contact."
+                    onChange={(e) => onUpdateClinic({ ...clinic, email: e })}
+                  />
+
+                  <Field
+                    label="Physical Street Address"
+                    value={clinic.address || ''}
+                    placeholder="1280 N High St, Suite 200"
+                    helperText="Clinic physical street location."
+                    onChange={(v) => onUpdateClinic({ ...clinic, address: v })}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field
+                      label="City, State"
+                      value={clinic.cityState || clinic.city || ''}
+                      placeholder="Columbus, OH"
+                      helperText="City and state abbreviation."
+                      onChange={(v) =>
+                        onUpdateClinic({ ...clinic, cityState: v, city: v })
+                      }
+                    />
+                    <Field
+                      label="Postal / Zip Code"
+                      value={clinic.zip || ''}
+                      placeholder="43201"
+                      helperText="Postal zip code for Local SEO Schema."
+                      onChange={(v) => onUpdateClinic({ ...clinic, zip: v })}
+                    />
+                  </div>
+                </div>
+
+                {/* Sub-Section 2: Hours & Availability */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 border-b border-stone-800 pb-2">
+                    <Clock className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                      2. Hours & Availability
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field
+                      label="Weekday Operating Hours"
+                      value={clinic.hoursWeekday || ''}
+                      placeholder="Mon–Thu: 8:00 AM – 6:00 PM, Fri: 8:00 AM – 2:00 PM"
+                      helperText="Standard Monday through Friday schedule."
+                      onChange={(v) => onUpdateClinic({ ...clinic, hoursWeekday: v })}
+                    />
+                    <Field
+                      label="Saturday / Weekend Hours"
+                      value={clinic.hoursSaturday || ''}
+                      placeholder="Sat: 9:00 AM – 1:00 PM (By appointment only)"
+                      helperText="Weekend availability note."
+                      onChange={(v) => onUpdateClinic({ ...clinic, hoursSaturday: v })}
+                    />
+                  </div>
+
+                  <Field
+                    label="Parking & Directions Note"
+                    value={clinic.parkingNote || ''}
+                    placeholder="Free dedicated patient parking in rear lot. Elevator access on 2nd floor."
+                    helperText="Helpful arrival directions for first-time visitors."
+                    onChange={(v) => onUpdateClinic({ ...clinic, parkingNote: v })}
+                  />
+                </div>
+
+                {/* Sub-Section 3: Pricing & Fees */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 border-b border-stone-800 pb-2">
+                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                      3. Pricing & Fees
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field
+                      label="Initial Exam & Assessment Fee"
+                      value={clinic.examFee || ''}
+                      placeholder="$49 initial exam"
+                      helperText="Published price for first-time comprehensive examination."
+                      onChange={(v) => onUpdateClinic({ ...clinic, examFee: v })}
+                    />
+                    <Field
+                      label="Standard Follow-up Visit Fee"
+                      value={clinic.followUpFee || ''}
+                      placeholder="$45 adjustment"
+                      helperText="Routine follow-up treatment price."
+                      onChange={(v) => onUpdateClinic({ ...clinic, followUpFee: v })}
+                    />
+                  </div>
+                </div>
+
+                {/* Sub-Section 4: Integrations & Reputation */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 border-b border-stone-800 pb-2">
+                    <Star className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                      4. Integrations & Online Reputation
+                    </h4>
+                  </div>
+
+                  <div className="bg-stone-900 border border-stone-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-xs font-semibold text-stone-200 block">External EHR / Booking Link</span>
+                      <span className="text-[11px] text-stone-400">
+                        {clinic.externalBookingUrl
+                          ? `Connected to EHR (${clinic.bookingEmbedMode || 'iframe'} mode)`
+                          : 'Currently using built-in 3-step triage booking form'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('booking')}
+                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition cursor-pointer shrink-0"
+                    >
+                      Configure Booking Link →
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Field
+                      label="Google Star Rating"
+                      value={clinic.googleRating?.toString() || ''}
+                      placeholder="4.9"
+                      helperText="Average Google Business rating (e.g. 4.9 or 5.0)."
+                      onChange={(v) => onUpdateClinic({ ...clinic, googleRating: parseFloat(v) || v })}
+                    />
+                    <Field
+                      label="Verified Review Count"
+                      value={clinic.googleReviewCount?.toString() || clinic.googleReviewsCount?.toString() || ''}
+                      placeholder="140+"
+                      helperText="Total number of 5-star reviews on Google Maps."
+                      onChange={(v) => onUpdateClinic({ ...clinic, googleReviewCount: v, googleReviewsCount: v })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 14. THEMES & COLORS */}
+            {activeTab === 'themes' && (
+              <div className="space-y-6">
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-emerald-400" />
+                    <span>Themes & Color Palettes</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Select a designer-crafted color system or fine-tune specific brand hex codes.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {Object.values(colorPalettes).map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() =>
+                        onUpdateClinic({
+                          ...clinic,
+                          colorPalette: p.id,
+                          customPrimaryColor: undefined,
+                          customAccentColor: undefined,
+                          customBgColor: undefined,
+                          customTextColor: undefined,
+                        })
+                      }
+                      className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition cursor-pointer ${
+                        clinic.colorPalette === p.id && !hasCustomColors
+                          ? 'border-emerald-500 bg-emerald-950/40 text-emerald-300 ring-1 ring-emerald-500/50'
+                          : 'border-stone-800 bg-stone-850 hover:border-stone-700'
+                      }`}
+                    >
+                      <div className="flex -space-x-1.5 shrink-0">
+                        <span
+                          className="w-5 h-5 rounded-full border border-stone-800 shadow-xs"
+                          style={{ backgroundColor: p.preview.primary }}
+                        />
+                        <span
+                          className="w-5 h-5 rounded-full border border-stone-800 shadow-xs"
+                          style={{ backgroundColor: p.preview.accent }}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-xs text-stone-100">{p.name}</div>
+                        <div className="text-[10px] text-stone-400 capitalize">{p.category || 'Clinical Theme'}</div>
+                      </div>
+                      {clinic.colorPalette === p.id && !hasCustomColors && (
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Hex Overrides */}
+                <div className="border-t border-stone-800 pt-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-xs text-stone-200 flex items-center gap-1.5">
+                        <Paintbrush className="w-3.5 h-3.5 text-emerald-400" /> Custom Hex Overrides
+                      </h4>
+                      <p className="text-[11px] text-stone-400">Match your exact clinic brand guidelines.</p>
+                    </div>
+                    {hasCustomColors && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateClinic({
+                            ...clinic,
+                            customPrimaryColor: undefined,
+                            customAccentColor: undefined,
+                            customBgColor: undefined,
+                            customTextColor: undefined,
+                          })
+                        }
+                        className="text-xs text-amber-400 hover:underline cursor-pointer"
+                      >
+                        Reset to preset
+                      </button>
                     )}
                   </div>
 
-                  {/* SEO Meta Tags */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-stone-200 text-sm">Search Engine Optimization</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div>
-                      <label className="block text-xs text-stone-400 mb-1">SEO Title</label>
-                      <input
-                        type="text"
-                        value={clinic.seoTitle || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, seoTitle: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                      />
+                      <label className="block text-[11px] text-stone-400 mb-1">Primary Color</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={primaryVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
+                          className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={primaryVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customPrimaryColor: e.target.value })}
+                          className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase font-mono"
+                        />
+                      </div>
                     </div>
+
                     <div>
-                      <label className="block text-xs text-stone-400 mb-1">SEO Description</label>
-                      <textarea
-                        rows={2}
-                        value={clinic.seoDescription || ''}
-                        onChange={(e) => onUpdateClinic({ ...clinic, seoDescription: e.target.value })}
-                        className="w-full bg-stone-800 border border-stone-700 rounded-lg p-2 text-xs text-stone-200"
-                      />
+                      <label className="block text-[11px] text-stone-400 mb-1">Accent / CTA</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={accentVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
+                          className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={accentVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customAccentColor: e.target.value })}
+                          className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-stone-400 mb-1">Page Background</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={bgVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
+                          className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={bgVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customBgColor: e.target.value })}
+                          className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-stone-400 mb-1">Text Color</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={textVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
+                          className="w-8 h-8 rounded border border-stone-700 bg-stone-800 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={textVal}
+                          onChange={(e) => onUpdateClinic({ ...clinic, customTextColor: e.target.value })}
+                          className="w-20 bg-stone-900 border border-stone-700 px-2 py-1 rounded text-stone-200 text-xs uppercase font-mono"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
-            </>
-          )}
+              </div>
+            )}
 
-          {/* TAB GROUP 4: SETUP & AGENCY */}
-          {mainTab === 'setup' && (
-            <>
-              {/* SUB: PRACTICE CHECKLIST & AUDIT */}
-              {setupSubTab === 'audit' && (
-                <PracticeAudit clinic={clinic} hasSupabase={hasSupabase} syncStatus={syncStatus} />
-              )}
+            {/* 15. TYPOGRAPHY */}
+            {activeTab === 'typography' && (
+              <div className="space-y-6">
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <Type className="w-4 h-4 text-emerald-400" />
+                    <span>Typography & Font Pairings</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Select a typographic pairing to define the tone of your clinical website.
+                  </p>
+                </div>
 
-              {/* SUB: PRESETS & BLUEPRINT BACKUP */}
-              {setupSubTab === 'presets' && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-semibold text-stone-200 text-sm">Demo Practice Presets</h3>
-                    <p className="text-xs text-stone-400">Load full practice archetypes in 1 click.</p>
-                    <div className="grid grid-cols-1 gap-2 mt-3">
-                      {Object.entries(agencyDemoPresets).map(([key, presetData]) => (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            if (confirm(`Load "${presetData.name || key}" preset? This replaces current practice data.`)) {
-                              onUpdateClinic({ ...clinic, ...presetData });
-                            }
-                          }}
-                          className="p-3 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 rounded-lg text-left transition group cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-xs text-stone-100 group-hover:text-emerald-400">
-                              {presetData.name}
-                            </span>
-                            <span className="text-[10px] text-stone-500 bg-stone-800 px-1.5 py-0.5 rounded">
-                              {presetData.cityState || presetData.city || 'Preset'}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-stone-400 mt-1">{presetData.tagline || 'Pre-configured practice theme & content'}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Export & Import */}
-                  <div className="border-t border-stone-800 pt-4 space-y-3">
-                    <h3 className="font-semibold text-stone-200 text-sm">Blueprint JSON Backup</h3>
-                    <p className="text-xs text-stone-400">Save or transfer this clinic's complete settings.</p>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleExportBlueprint}
-                        className="flex-1 py-2 px-3 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download JSON</span>
-                      </button>
-                      <button
-                        onClick={handleCopyJson}
-                        className="flex-1 py-2 px-3 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer"
-                      >
-                        {jsonCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{jsonCopied ? 'Copied' : 'Copy JSON'}</span>
-                      </button>
-                    </div>
-
-                    <div className="pt-2 border-t border-stone-800">
-                      <label className="block text-[11px] font-medium text-stone-300 mb-1">
-                        Restore from JSON
-                      </label>
-                      <input
-                        type="file"
-                        accept=".json"
-                        onChange={handleFileUpload}
-                        className="block w-full text-xs text-stone-400 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-medium file:bg-stone-700 file:text-stone-200 hover:file:bg-stone-600 cursor-pointer mb-2"
-                      />
-                      <textarea
-                        rows={2}
-                        placeholder="Or paste JSON string here..."
-                        value={importJsonText}
-                        onChange={(e) => setImportJsonText(e.target.value)}
-                        className="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                      {importError && <p className="text-xs text-red-400 mt-1">{importError}</p>}
-                      {importJsonText && (
-                        <button
-                          onClick={handleImportJson}
-                          className="mt-2 px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg cursor-pointer"
-                        >
-                          Apply JSON
-                        </button>
+                <div className="grid grid-cols-1 gap-2.5">
+                  {[
+                    { id: 'classic-editorial', name: 'Playfair Display + Plus Jakarta Sans', style: 'Classic Editorial • High-end clinic feel' },
+                    { id: 'modern-sans', name: 'Inter + Montserrat', style: 'Clean Modern Sans • Sports & active rehab focus' },
+                    { id: 'warm-editorial', name: 'Lora + Inter', style: 'Warm Editorial • Gentle family practice vibe' },
+                    { id: 'bold-contemporary', name: 'Syne + Space Grotesk', style: 'Contemporary • High-tech spinal clinic' },
+                    { id: 'refined-elegance', name: 'Cinzel + Plus Jakarta Sans', style: 'Refined Elegance • Boutique private studio' },
+                  ].map((fp) => (
+                    <button
+                      key={fp.id}
+                      onClick={() => onUpdateClinic({ ...clinic, fontPairing: fp.id })}
+                      className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex items-center justify-between ${
+                        (clinic.fontPairing || 'classic-editorial') === fp.id
+                          ? 'border-emerald-500 bg-emerald-950/30 text-emerald-300 ring-1 ring-emerald-500/40'
+                          : 'border-stone-800 bg-stone-850 hover:border-stone-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold text-xs text-stone-100">{fp.name}</div>
+                        <div className="text-[11px] text-stone-400 mt-0.5">{fp.style}</div>
+                      </div>
+                      {(clinic.fontPairing || 'classic-editorial') === fp.id && (
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                       )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 16. SECTION VISIBILITY */}
+            {activeTab === 'sections' && (
+              <div className="space-y-4">
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-emerald-400" />
+                    <span>Section & Page Visibility</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Toggle individual sections and navigation pages on/off with 1 click.
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  {[
+                    { key: 'showHeroTriage', label: 'Hero Discomfort Selector (Interactive Triage)' },
+                    { key: 'showTrustBar', label: 'Ratings & Trust Bar' },
+                    { key: 'showConditions', label: 'Conditions Treated Grid' },
+                    { key: 'showWhyUs', label: 'Why Choose Us (Care Contrast Matrix)' },
+                    { key: 'showTheProcess', label: '3-Step Healing Process' },
+                    { key: 'showTheDoctor', label: 'Doctor Profile & Credentials' },
+                    { key: 'showPatients', label: 'Patient Reviews & Testimonials' },
+                    { key: 'showTheClinic', label: 'Clinic Photo Gallery & Sanctuary' },
+                    { key: 'showInsurancePayment', label: 'Insurance & Pricing Section' },
+                    { key: 'showFAQ', label: 'Frequently Asked Questions (FAQs)' },
+                    { key: 'showNavConditions', label: 'Navigation Link: Conditions (/conditions)' },
+                    { key: 'showNavFirstVisit', label: 'Navigation Link: First Visit (/first-visit)' },
+                    { key: 'showNavAbout', label: 'Navigation Link: About Doctor (/about)' },
+                    { key: 'showNavPricing', label: 'Navigation Link: Pricing (/pricing)' },
+                    { key: 'showNavBlog', label: 'Navigation Link: Blog (/blog)' },
+                  ].map(({ key, label }) => {
+                    const isVisible = clinic[key as keyof ClinicInfo] !== false;
+                    return (
+                      <label
+                        key={key}
+                        className="flex items-center justify-between p-3 bg-stone-850 border border-stone-800 rounded-xl cursor-pointer hover:border-stone-700 transition"
+                      >
+                        <span className="text-xs font-medium text-stone-200">{label}</span>
+                        <input
+                          type="checkbox"
+                          checked={isVisible}
+                          onChange={(e) => onUpdateClinic({ ...clinic, [key]: e.target.checked })}
+                          className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 17. SEO & META TAGS */}
+            {activeTab === 'seo' && (
+              <div className="space-y-6">
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-emerald-400" />
+                    <span>Search Engine Optimization (SEO)</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Meta tags and search engine titles for Google and local map rankings.
+                  </p>
+                </div>
+
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <Field
+                    label="SEO Page Title"
+                    value={clinic.seoTitle || ''}
+                    placeholder="Columbus Chiropractic Care | Dr. Marcus Vance | Relief in Columbus, OH"
+                    helperText="Displayed on Google search results tabs and browser title."
+                    locationBadge="<title>"
+                    onChange={(v) => onUpdateClinic({ ...clinic, seoTitle: v })}
+                  />
+
+                  <Field
+                    label="SEO Meta Description"
+                    textarea
+                    value={clinic.seoDescription || ''}
+                    placeholder="Columbus Chiropractic Care provides evidence-based spinal decompression, pain relief, and movement rehabilitation. Book your $49 exam today."
+                    helperText="150-160 character snippet shown in Google search result snippets."
+                    locationBadge="<meta description>"
+                    onChange={(v) => onUpdateClinic({ ...clinic, seoDescription: v })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 18. ANNOUNCEMENT ALERT */}
+            {activeTab === 'announcement' && (
+              <div className="space-y-6">
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-amber-400" />
+                    <span>Top Announcement Alert Banner</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Broadcast urgent notices, holiday hours, or new patient announcements at the very top of all pages.
+                  </p>
+                </div>
+
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-xs text-stone-200">Enable Alert Banner</h4>
+                      <p className="text-[11px] text-stone-400">Renders as a prominent bar above the main navigation.</p>
                     </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={banner.enabled}
+                        onChange={(e) =>
+                          onUpdateClinic({
+                            ...clinic,
+                            announcementBanner: { ...banner, enabled: e.target.checked },
+                          })
+                        }
+                        className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                      />
+                    </label>
+                  </div>
+
+                  {banner.enabled && (
+                    <div className="space-y-3 pt-3 border-t border-stone-800">
+                      <Field
+                        label="Banner Message"
+                        value={banner.message}
+                        placeholder="e.g. Notice: Clinic open regular hours this week. Early morning & evening slots available."
+                        helperText="The text displayed to all site visitors."
+                        onChange={(v) =>
+                          onUpdateClinic({
+                            ...clinic,
+                            announcementBanner: { ...banner, message: v },
+                          })
+                        }
+                      />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Field
+                          label="Badge Label (Optional)"
+                          value={banner.badge || ''}
+                          placeholder="Notice"
+                          helperText="Small pill tag displayed before the message."
+                          onChange={(v) =>
+                            onUpdateClinic({
+                              ...clinic,
+                              announcementBanner: { ...banner, badge: v },
+                            })
+                          }
+                        />
+
+                        <div>
+                          <label className="block text-xs font-medium text-stone-300 mb-1">Color Theme</label>
+                          <select
+                            value={banner.variant || 'amber'}
+                            onChange={(e) =>
+                              onUpdateClinic({
+                                ...clinic,
+                                announcementBanner: {
+                                  ...banner,
+                                  variant: e.target.value as AnnouncementBannerConfig['variant'],
+                                },
+                              })
+                            }
+                            className="w-full bg-stone-900 border border-stone-750 rounded-lg p-2.5 text-xs text-stone-200 cursor-pointer"
+                          >
+                            <option value="amber">Amber (Warning / Alert)</option>
+                            <option value="emerald">Emerald (Special Offer / Welcome)</option>
+                            <option value="rose">Rose (Urgent Notice / Holiday Closure)</option>
+                            <option value="indigo">Indigo (Informational)</option>
+                          </select>
+                          <span className="block text-[11px] text-stone-400 mt-1">Select visual accent color.</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 19. PRESETS & BACKUPS */}
+            {activeTab === 'presets' && (
+              <div className="space-y-6">
+                <div className="border-b border-stone-800 pb-3">
+                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                    <Download className="w-4 h-4 text-emerald-400" />
+                    <span>Demo Presets & Blueprint Backup</span>
+                  </h3>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Switch between pre-configured clinic archetypes or export/import complete site backups.
+                  </p>
+                </div>
+
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div>
+                    <h4 className="font-bold text-xs text-stone-200 uppercase tracking-wider text-emerald-400">
+                      1-Click Practice Archetypes
+                    </h4>
+                    <p className="text-xs text-stone-400 mt-0.5">Load ready-made clinic content and color systems.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {Object.entries(agencyDemoPresets).map(([key, presetData]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Load "${presetData.name || key}" preset? This replaces current practice data.`)) {
+                            onUpdateClinic({ ...clinic, ...presetData });
+                          }
+                        }}
+                        className="p-3.5 bg-stone-900 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition group cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-stone-100 group-hover:text-emerald-400 transition">
+                            {presetData.name}
+                          </span>
+                          <span className="text-[10px] text-stone-400 bg-stone-800 px-2 py-0.5 rounded font-mono">
+                            {presetData.cityState || presetData.city || 'Preset'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-400 mt-1 line-clamp-1">
+                          {presetData.tagline || 'Pre-configured practice theme & content'}
+                        </p>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
-            </>
-          )}
+
+                {/* Export & Import */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div>
+                    <h4 className="font-bold text-xs text-stone-200 uppercase tracking-wider text-emerald-400">
+                      Blueprint JSON Backup
+                    </h4>
+                    <p className="text-xs text-stone-400 mt-0.5">Export this clinic's complete JSON configuration.</p>
+                  </div>
+
+                  <div className="flex gap-2.5">
+                    <button
+                      onClick={handleExportBlueprint}
+                      className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-stone-700"
+                    >
+                      <Download className="w-4 h-4 text-emerald-400" />
+                      <span>Download JSON Backup</span>
+                    </button>
+                    <button
+                      onClick={handleCopyJson}
+                      className="flex-1 py-2.5 px-3 bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer border border-stone-700"
+                    >
+                      {jsonCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-stone-400" />}
+                      <span>{jsonCopied ? 'Copied to Clipboard!' : 'Copy JSON'}</span>
+                    </button>
+                  </div>
+
+                  <div className="pt-3 border-t border-stone-800 space-y-2">
+                    <label className="block text-xs font-medium text-stone-300">
+                      Restore from JSON File or String
+                    </label>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      className="block w-full text-xs text-stone-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-stone-750 file:text-stone-200 hover:file:bg-stone-700 cursor-pointer"
+                    />
+                    <textarea
+                      rows={2}
+                      placeholder="Or paste raw JSON string here..."
+                      value={importJsonText}
+                      onChange={(e) => setImportJsonText(e.target.value)}
+                      className="w-full bg-stone-900 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                    {importError && <p className="text-xs text-red-400">{importError}</p>}
+                    {importJsonText && (
+                      <button
+                        onClick={handleImportJson}
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl cursor-pointer transition shadow-xs"
+                      >
+                        Apply JSON Configuration
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
         </div>
 
-        {/* Unified Footer with explicit sync mental model */}
-        <div className="p-3.5 bg-stone-950 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400">
-          <div className="flex items-center gap-1.5">
+        {/* Footer */}
+        <div className="px-4 py-3 bg-stone-950 border-t border-stone-850 flex items-center justify-between text-xs text-stone-400 shrink-0">
+          <div className="flex items-center gap-2">
             {hasSupabase ? (
               syncStatus === 'synced' ? (
                 <>
@@ -1102,34 +1382,82 @@ export function AgencyWorkspace({
                     <strong className="text-emerald-400 font-semibold">Cloud Synced</strong> • PostgreSQL / Supabase connected
                   </span>
                 </>
-              ) : syncStatus === 'saving' ? (
-                <>
-                  <RotateCcw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
-                  <span className="text-[11px] text-amber-300">Syncing to PostgreSQL / Supabase...</span>
-                </>
               ) : (
                 <>
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="text-[11px] text-stone-300">Cloud Sync Active</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                  <span className="text-[11px] text-amber-300">Syncing to cloud database...</span>
                 </>
               )
             ) : (
               <>
-                <ShieldCheck className="w-4 h-4 text-stone-400 shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="text-[11px] text-stone-400">
-                  <strong className="text-stone-300 font-semibold">Local Storage</strong> • Saved in this browser (Multi-device team sync with Supabase)
+                  <strong className="text-stone-300 font-semibold">Local Storage</strong> • Active in this browser
                 </span>
               </>
             )}
           </div>
           <button
             onClick={onClose}
-            className="bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white font-medium px-3.5 py-1.5 rounded-lg border border-stone-700 transition cursor-pointer"
+            className="bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white font-medium px-4 py-1.5 rounded-lg border border-stone-750 transition cursor-pointer"
           >
-            Close
+            Done
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  textarea,
+  placeholder,
+  helperText,
+  locationBadge,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  textarea?: boolean;
+  placeholder?: string;
+  helperText?: string;
+  locationBadge?: string;
+}) {
+  return (
+    <label className="block mb-2">
+      <div className="flex items-center justify-between mb-1">
+        <span className="block text-xs font-semibold text-stone-300">{label}</span>
+        {locationBadge && (
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-stone-900 text-emerald-300 border border-emerald-900/60">
+            {locationBadge}
+          </span>
+        )}
+      </div>
+      {textarea ? (
+        <textarea
+          rows={2}
+          placeholder={placeholder}
+          className="w-full bg-stone-900 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 transition shadow-inner"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : (
+        <input
+          placeholder={placeholder}
+          className="w-full bg-stone-900 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 transition shadow-inner"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+      {helperText && (
+        <span className="block text-[11px] text-stone-400 mt-1 leading-normal flex items-center gap-1">
+          <Info className="w-3 h-3 text-stone-500 shrink-0 inline" />
+          <span>{helperText}</span>
+        </span>
+      )}
+    </label>
   );
 }
