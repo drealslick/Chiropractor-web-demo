@@ -79,7 +79,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ clinic }) => {
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                       className="overflow-hidden border-t border-stone-100 bg-stone-50/50"
                     >
-                      <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-3 text-stone-600 text-sm sm:text-base leading-relaxed">
+                      <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-3 text-stone-500 font-normal text-sm sm:text-base leading-relaxed pl-6 border-l-2 border-emerald-600/30 ml-4 mb-2">
                         {faq.answer}
                       </div>
                     </motion.div>

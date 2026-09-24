@@ -42,6 +42,8 @@ import {
   UploadCloud,
   FileCheck,
   Users,
+  CreditCard,
+  Plus,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { agencyDemoPresets } from '../data/presets';
@@ -86,6 +88,9 @@ export type AdminTabId =
   | 'reviews'
   | 'faqs'
   | 'legal'
+  | 'pricing'
+  | 'insurance'
+  | 'financing'
   // Business Info
   | 'clinic_info'
   // Design & Style
@@ -172,6 +177,9 @@ export function AgencyWorkspace({
         { id: 'roadmap' as AdminTabId, label: '3-Phase Roadmap', icon: Clock },
         { id: 'reviews' as AdminTabId, label: 'Patient Reviews', icon: MessageSquare },
         { id: 'faqs' as AdminTabId, label: 'FAQs & First Visit', icon: HelpCircle },
+        { id: 'pricing' as AdminTabId, label: 'Pricing & Fees', icon: DollarSign, badge: (clinic.customFeeItems?.length || 2).toString() },
+        { id: 'insurance' as AdminTabId, label: 'Insurance Partners', icon: Shield, badge: (clinic.customInsurances?.length || 6).toString() },
+        { id: 'financing' as AdminTabId, label: 'Financing Plans', icon: CreditCard },
         { id: 'legal' as AdminTabId, label: 'Legal Pages & Policies', icon: FileCheck },
       ],
     },
@@ -763,6 +771,21 @@ export function AgencyWorkspace({
               <LegalPolicyManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
+            {/* 15. PRICING & FEES */}
+            {activeTab === 'pricing' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="pricing" />
+            )}
+
+            {/* 16. INSURANCE PARTNERS */}
+            {activeTab === 'insurance' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="insurance" />
+            )}
+
+            {/* 17. FINANCING PLANS */}
+            {activeTab === 'financing' && (
+              <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="financing" />
+            )}
+
             {/* 13. CLINIC INFO & LOGISTICS (4 Distinct Subsections) */}
             {activeTab === 'clinic_info' && (
               <div className="space-y-6">
@@ -900,28 +923,90 @@ export function AgencyWorkspace({
 
                 {/* Sub-Section 3: Pricing & Fees */}
                 <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
-                  <div className="flex items-center gap-2 border-b border-stone-800 pb-2">
-                    <DollarSign className="w-4 h-4 text-emerald-400" />
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
-                      3. Pricing & Fees
-                    </h4>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-emerald-400" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                        3. Pricing & Fees
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('pricing')}
+                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Manage Dynamic Fee Types & Inclusions →</span>
+                    </button>
+                  </div>
+
+                  {/* Summary of Active Fee Types */}
+                  <div className="p-3 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                        Active Fee Tiers ({clinic.customFeeItems?.length || 2})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('pricing')}
+                        className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900 cursor-pointer"
+                      >
+                        + Add Custom Fee Type
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(clinic.customFeeItems && clinic.customFeeItems.length > 0
+                        ? clinic.customFeeItems
+                        : [
+                            { title: 'New Patient', price: clinic.examFee || '£49' },
+                            { title: 'Follow-up', price: clinic.followUpFee || '£50' },
+                          ]
+                      ).map((fee, fIdx) => (
+                        <span
+                          key={fIdx}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-800 text-stone-200 border border-stone-700 text-xs font-mono"
+                        >
+                          <span className="font-sans font-bold text-stone-300">{fee.title}:</span>
+                          <span className="text-emerald-400 font-bold">{fee.price}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field
                       label="Initial Exam & Assessment Fee"
                       value={clinic.examFee || ''}
-                      placeholder="$49 initial exam"
+                      placeholder="£49 initial exam"
                       helperText="Published price for first-time comprehensive examination."
-                      onChange={(v) => onUpdateClinic({ ...clinic, examFee: v })}
+                      onChange={(v) => {
+                        const nextItems = clinic.customFeeItems ? [...clinic.customFeeItems] : [];
+                        if (nextItems[0]) nextItems[0] = { ...nextItems[0], price: v };
+                        onUpdateClinic({ ...clinic, examFee: v, customFeeItems: nextItems.length ? nextItems : undefined });
+                      }}
                     />
                     <Field
                       label="Standard Follow-up Visit Fee"
                       value={clinic.followUpFee || ''}
-                      placeholder="$45 adjustment"
+                      placeholder="£50 follow-up"
                       helperText="Routine follow-up treatment price."
-                      onChange={(v) => onUpdateClinic({ ...clinic, followUpFee: v })}
+                      onChange={(v) => {
+                        const nextItems = clinic.customFeeItems ? [...clinic.customFeeItems] : [];
+                        if (nextItems[1]) nextItems[1] = { ...nextItems[1], price: v };
+                        onUpdateClinic({ ...clinic, followUpFee: v, customFeeItems: nextItems.length ? nextItems : undefined });
+                      }}
                     />
+                  </div>
+
+                  <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400">
+                    <span>Spread fees over installments?</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('financing')}
+                      className="text-emerald-400 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      <span>Configure Financing & Payment Plans →</span>
+                    </button>
                   </div>
                 </div>
 

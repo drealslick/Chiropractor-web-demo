@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { ClinicInfo, ProblemCondition, PatientTestimonial, ProcessStep, HeroTriageOption, ClinicPost } from '../types';
+import {
+  ClinicInfo,
+  ProblemCondition,
+  PatientTestimonial,
+  ProcessStep,
+  HeroTriageOption,
+  ClinicPost,
+  PricingFeeItem,
+  FinancingOption,
+} from '../types';
 import {
   conditionsData,
   faqs,
@@ -9,6 +18,7 @@ import {
   defaultTriageOptions,
 } from '../data/clinicData';
 import { defaultBlogPosts } from '../data/defaultPosts';
+import { defaultPricingFees, defaultFinancingOption } from '../data/defaultPricingFees';
 import { BlogManager } from './admin/BlogManager';
 import {
   Activity,
@@ -35,6 +45,10 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  CreditCard,
+  User,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 type FaqRow = { q: string; a: string };
@@ -77,14 +91,32 @@ function seedTriage(clinic: ClinicInfo): HeroTriageOption[] {
 function seedInsurances(clinic: ClinicInfo): string[] {
   if (clinic.customInsurances && clinic.customInsurances.length) return clinic.customInsurances;
   return [
-    'Anthem Blue Cross Blue Shield',
-    'Aetna',
-    'UnitedHealthcare',
-    'Medical Mutual',
-    'Medicare',
-    'Cigna',
-    'HSA / FSA Accepted',
+    'Bupa',
+    'AXA Health',
+    'Aviva',
+    'Vitality',
+    'WPA',
+    'Self-pay',
   ];
+}
+
+function seedPricingFees(clinic: ClinicInfo): PricingFeeItem[] {
+  if (clinic.customFeeItems && clinic.customFeeItems.length) return clinic.customFeeItems;
+  return [
+    {
+      ...defaultPricingFees[0],
+      price: clinic.examFee || defaultPricingFees[0].price,
+    },
+    {
+      ...defaultPricingFees[1],
+      price: clinic.followUpFee || defaultPricingFees[1].price,
+    },
+  ];
+}
+
+function seedFinancing(clinic: ClinicInfo): FinancingOption {
+  if (clinic.financing) return clinic.financing;
+  return defaultFinancingOption;
 }
 
 // 5 Core Pre-Built Discomfort Presets for Instant 1-Click Toggle
@@ -203,6 +235,8 @@ export function ListsEditor({
   const processList = seedProcess(clinic);
   const firstVisitList = seedFirstVisit(clinic);
   const insuranceList = seedInsurances(clinic);
+  const feeItems = seedPricingFees(clinic);
+  const financing = seedFinancing(clinic);
 
   const isTriageEnabled = clinic.showHeroTriage !== false;
   const postList = seedPosts(clinic);
@@ -227,7 +261,8 @@ export function ListsEditor({
     { id: 'faqs', label: 'FAQs', icon: HelpCircle, count: faqList.length },
     { id: 'first-visit', label: 'First Visit Guide', icon: FileText, count: firstVisitList.length },
     { id: 'insurance', label: 'Insurances', icon: Shield, count: insuranceList.length },
-    { id: 'pricing', label: 'Pricing & Fees', icon: DollarSign, count: undefined },
+    { id: 'pricing', label: 'Pricing & Fees', icon: DollarSign, count: feeItems.length },
+    { id: 'financing', label: 'Financing', icon: CreditCard, count: undefined },
     { id: 'images', label: 'Photos & URLs', icon: ImageIcon, count: undefined },
   ];
 
@@ -1185,30 +1220,572 @@ export function ListsEditor({
         </div>
       )}
 
-      {/* SECTION: PRICING */}
+      {/* SECTION: PRICING & FEES (Dynamic List with Inclusions) */}
       {activeCategory === 'pricing' && (
-        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-3">
-          <div className="border-b border-stone-800 pb-2">
-            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span>Pricing & Fee Transparency</span>
-            </h3>
-            <p className="text-[11px] text-stone-400">Published fee schedule to build upfront trust with self-pay patients.</p>
+        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+            <div>
+              <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <span>Pricing & Fee Transparency ({feeItems.length} Fee Types)</span>
+              </h3>
+              <p className="text-[11px] text-stone-400">
+                Create dynamic fee tiers (e.g., New Patient, Follow-up, Sports Massage, Rehab Packages) with bulleted inclusions.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="px-2.5 py-1.5 bg-stone-800 hover:bg-stone-750 text-stone-300 rounded-lg text-xs font-semibold cursor-pointer border border-stone-700 flex items-center gap-1.5"
+                onClick={() => {
+                  if (window.confirm('Reset pricing list to standard default fees?')) {
+                    onUpdateClinic({
+                      ...clinic,
+                      customFeeItems: defaultPricingFees,
+                      examFee: defaultPricingFees[0].price,
+                      followUpFee: defaultPricingFees[1].price,
+                    });
+                  }
+                }}
+                title="Reset to factory standard fee structure"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Defaults</span>
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold cursor-pointer flex items-center gap-1.5 shadow-xs"
+                onClick={() => {
+                  const newFee: PricingFeeItem = {
+                    id: `fee-${Date.now()}`,
+                    title: 'New Clinical Service',
+                    price: '£65',
+                    description: 'Targeted assessment and individualized therapy session.',
+                    badge: '',
+                    icon: 'activity',
+                    popular: false,
+                    features: [
+                      'Comprehensive functional check',
+                      'Targeted therapeutic treatment',
+                      'Home recovery guidance',
+                    ],
+                  };
+                  const next = [...feeItems, newFee];
+                  onUpdateClinic({
+                    ...clinic,
+                    customFeeItems: next,
+                    examFee: next[0]?.price,
+                    followUpFee: next[1]?.price,
+                  });
+                }}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Add Fee Type</span>
+              </button>
+            </div>
           </div>
-          <Field
-            label="New Patient Exam Fee"
-            value={(clinic as ClinicInfo & { examFee?: string }).examFee || ''}
-            placeholder="$49 Initial Exam & Consultation"
-            helperText="Full price for initial visit."
-            onChange={(v) => onUpdateClinic({ ...clinic, examFee: v })}
-          />
-          <Field
-            label="Follow-up Visit Fee"
-            value={(clinic as ClinicInfo & { followUpFee?: string }).followUpFee || ''}
-            placeholder="$45 Follow-up Adjustment"
-            helperText="Standard routine adjustment price."
-            onChange={(v) => onUpdateClinic({ ...clinic, followUpFee: v })}
-          />
+
+          <div className="space-y-4">
+            {feeItems.map((item, i) => (
+              <div
+                key={item.id || i}
+                className="p-4 bg-stone-900 border border-stone-800 rounded-xl space-y-3.5 relative"
+              >
+                {/* Header row */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-800/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-md bg-stone-800 text-emerald-400 text-xs font-mono font-bold flex items-center justify-center">
+                      #{i + 1}
+                    </span>
+                    <span className="font-bold text-sm text-stone-200">
+                      {item.title || 'Untitled Fee'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800/80">
+                      {item.price || 'No price'}
+                    </span>
+                    {item.popular && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
+                        Recommended / Popular
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {/* Move Up */}
+                    <button
+                      type="button"
+                      disabled={i === 0}
+                      onClick={() => {
+                        if (i === 0) return;
+                        const next = [...feeItems];
+                        const temp = next[i - 1];
+                        next[i - 1] = next[i];
+                        next[i] = temp;
+                        onUpdateClinic({
+                          ...clinic,
+                          customFeeItems: next,
+                          examFee: next[0]?.price,
+                          followUpFee: next[1]?.price,
+                        });
+                      }}
+                      className="p-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 disabled:cursor-not-allowed rounded bg-stone-800"
+                      title="Move Up"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    {/* Move Down */}
+                    <button
+                      type="button"
+                      disabled={i === feeItems.length - 1}
+                      onClick={() => {
+                        if (i === feeItems.length - 1) return;
+                        const next = [...feeItems];
+                        const temp = next[i + 1];
+                        next[i + 1] = next[i];
+                        next[i] = temp;
+                        onUpdateClinic({
+                          ...clinic,
+                          customFeeItems: next,
+                          examFee: next[0]?.price,
+                          followUpFee: next[1]?.price,
+                        });
+                      }}
+                      className="p-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 disabled:cursor-not-allowed rounded bg-stone-800"
+                      title="Move Down"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded transition cursor-pointer flex items-center gap-1"
+                      onClick={() => {
+                        if (feeItems.length <= 1) {
+                          alert('You must have at least one fee item.');
+                          return;
+                        }
+                        const next = feeItems.filter((_, idx) => idx !== i);
+                        onUpdateClinic({
+                          ...clinic,
+                          customFeeItems: next,
+                          examFee: next[0]?.price,
+                          followUpFee: next[1]?.price,
+                        });
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Main Fields: Title & Price */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field
+                    label="Fee Title"
+                    value={item.title}
+                    placeholder="e.g. New Patient Exam"
+                    helperText="Name of this treatment tier."
+                    onChange={(v) => {
+                      const next = [...feeItems];
+                      next[i] = { ...item, title: v };
+                      onUpdateClinic({ ...clinic, customFeeItems: next });
+                    }}
+                  />
+                  <Field
+                    label="Price"
+                    value={item.price}
+                    placeholder="e.g. £49"
+                    helperText="Displayed cost (include currency symbol £ or $)."
+                    onChange={(v) => {
+                      const next = [...feeItems];
+                      next[i] = { ...item, price: v };
+                      onUpdateClinic({
+                        ...clinic,
+                        customFeeItems: next,
+                        examFee: next[0]?.price,
+                        followUpFee: next[1]?.price,
+                      });
+                    }}
+                  />
+                </div>
+
+                {/* Row: Badge, Icon & Popular Toggle */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                  <Field
+                    label="Badge Label (Optional)"
+                    value={item.badge || ''}
+                    placeholder="e.g. Recommended First Step"
+                    helperText="Small pill tag shown on card top."
+                    onChange={(v) => {
+                      const next = [...feeItems];
+                      next[i] = { ...item, badge: v };
+                      onUpdateClinic({ ...clinic, customFeeItems: next });
+                    }}
+                  />
+
+                  <div>
+                    <label className="block text-xs font-medium text-stone-300 mb-1">Card Icon</label>
+                    <select
+                      value={item.icon || (i === 0 ? 'user' : 'refresh')}
+                      onChange={(e) => {
+                        const next = [...feeItems];
+                        next[i] = { ...item, icon: e.target.value as any };
+                        onUpdateClinic({ ...clinic, customFeeItems: next });
+                      }}
+                      className="w-full bg-stone-900 border border-stone-750 rounded-lg p-2.5 text-xs text-stone-200 cursor-pointer"
+                    >
+                      <option value="user">User (New Patient)</option>
+                      <option value="refresh">Refresh (Follow-up)</option>
+                      <option value="activity">Activity (Rehab / Movement)</option>
+                      <option value="zap">Zap (Acute Relief)</option>
+                      <option value="sparkles">Sparkles (Comprehensive)</option>
+                      <option value="heart">Heart (Wellness / Maintenance)</option>
+                    </select>
+                    <span className="block text-[11px] text-stone-400 mt-1">Displayed next to price.</span>
+                  </div>
+
+                  <div className="pb-3">
+                    <label className="flex items-center gap-2 cursor-pointer bg-stone-850 p-2.5 rounded-lg border border-stone-750 hover:border-stone-600 transition">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(item.popular)}
+                        onChange={(e) => {
+                          const next = [...feeItems];
+                          next[i] = { ...item, popular: e.target.checked };
+                          onUpdateClinic({ ...clinic, customFeeItems: next });
+                        }}
+                        className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                      />
+                      <span className="text-xs text-stone-200 font-medium">
+                        Highlight as Recommended
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <Field
+                  label="Description"
+                  textarea
+                  value={item.description}
+                  placeholder="Clear description explaining what this visit involves and who it is for."
+                  helperText="One to two sentences displayed directly beneath the price."
+                  onChange={(v) => {
+                    const next = [...feeItems];
+                    next[i] = { ...item, description: v };
+                    onUpdateClinic({ ...clinic, customFeeItems: next });
+                  }}
+                />
+
+                {/* Included Features Bullet List */}
+                <div className="pt-2 border-t border-stone-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-stone-300 flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>What's Included ({item.features?.length || 0} items)</span>
+                      </span>
+                      <span className="text-[10px] text-stone-500">
+                        Bulleted checklist displayed inside this card.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextFeatures = [...(item.features || []), 'New included item'];
+                        const next = [...feeItems];
+                        next[i] = { ...item, features: nextFeatures };
+                        onUpdateClinic({ ...clinic, customFeeItems: next });
+                      }}
+                      className="px-2 py-1 bg-stone-800 hover:bg-stone-700 text-emerald-400 text-xs font-semibold rounded transition cursor-pointer flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>+ Add Feature</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {(item.features || []).map((feat, fIdx) => (
+                      <div key={fIdx} className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-emerald-950 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-800/80">
+                          <Check className="w-3 h-3" />
+                        </span>
+                        <input
+                          type="text"
+                          value={feat}
+                          placeholder="e.g. Full biomechanical history"
+                          onChange={(e) => {
+                            const nextFeatures = [...(item.features || [])];
+                            nextFeatures[fIdx] = e.target.value;
+                            const next = [...feeItems];
+                            next[i] = { ...item, features: nextFeatures };
+                            onUpdateClinic({ ...clinic, customFeeItems: next });
+                          }}
+                          className="flex-1 bg-stone-850 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextFeatures = (item.features || []).filter((_, idx) => idx !== fIdx);
+                            const next = [...feeItems];
+                            next[i] = { ...item, features: nextFeatures };
+                            onUpdateClinic({ ...clinic, customFeeItems: next });
+                          }}
+                          className="p-1.5 text-stone-500 hover:text-red-400 cursor-pointer"
+                          title="Remove feature"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SECTION: FINANCING (Requested Flexible Payment Plans) */}
+      {activeCategory === 'financing' && (
+        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+            <div>
+              <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-400" />
+                <span>Financing & Flexible Payment Plans</span>
+              </h3>
+              <p className="text-[11px] text-stone-400">
+                Configure patient payment plans (e.g. Klarna, Medfin, 0% interest). If left blank or disabled, this section does not render on the front end.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="px-2.5 py-1.5 bg-stone-800 hover:bg-stone-750 text-stone-300 rounded-lg text-xs font-semibold cursor-pointer border border-stone-700 flex items-center gap-1.5"
+                onClick={() => {
+                  onUpdateClinic({
+                    ...clinic,
+                    financing: defaultFinancingOption,
+                  });
+                }}
+                title="Restore default Klarna & 0% care financing settings"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Defaults</span>
+              </button>
+
+              <button
+                type="button"
+                className="px-2.5 py-1.5 bg-red-950/60 hover:bg-red-900/60 text-red-300 rounded-lg text-xs font-semibold cursor-pointer border border-red-800/80 flex items-center gap-1.5"
+                onClick={() => {
+                  onUpdateClinic({
+                    ...clinic,
+                    financing: {
+                      enabled: false,
+                      provider: '',
+                      badge: '',
+                      headline: '',
+                      description: '',
+                      terms: '',
+                      features: [],
+                      ctaText: '',
+                    },
+                  });
+                }}
+                title="Clear and hide financing section completely"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hide / Clear</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Master Enable/Disable Toggle */}
+          <div className="p-3 bg-stone-900 border border-stone-800 rounded-xl flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-stone-200 block">
+                Enable Financing Section on Website
+              </span>
+              <span className="text-[11px] text-stone-400">
+                When turned off, the financing box on the Pricing page is completely removed.
+              </span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={financing.enabled !== false}
+                onChange={(e) =>
+                  onUpdateClinic({
+                    ...clinic,
+                    financing: { ...financing, enabled: e.target.checked },
+                  })
+                }
+                className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+              />
+              <span className="text-xs text-stone-300 font-semibold">
+                {financing.enabled !== false ? 'Active' : 'Disabled'}
+              </span>
+            </label>
+          </div>
+
+          {financing.enabled !== false && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field
+                  label="Financing Provider / Partner Name"
+                  value={financing.provider || ''}
+                  placeholder="e.g. Klarna, Medfin, or In-House Plans"
+                  helperText="Displayed in small uppercase subtitle tag."
+                  onChange={(v) =>
+                    onUpdateClinic({
+                      ...clinic,
+                      financing: { ...financing, provider: v },
+                    })
+                  }
+                />
+                <Field
+                  label="Top Badge Label"
+                  value={financing.badge || ''}
+                  placeholder="e.g. 0% Interest Available"
+                  helperText="Highlight pill displayed at the top of the financing section."
+                  onChange={(v) =>
+                    onUpdateClinic({
+                      ...clinic,
+                      financing: { ...financing, badge: v },
+                    })
+                  }
+                />
+              </div>
+
+              <Field
+                label="Financing Headline"
+                value={financing.headline || ''}
+                placeholder="e.g. Flexible Financing & Monthly Care Plans"
+                helperText="Main header for the financing block."
+                onChange={(v) =>
+                  onUpdateClinic({
+                    ...clinic,
+                    financing: { ...financing, headline: v },
+                  })
+                }
+              />
+
+              <Field
+                label="Description"
+                textarea
+                value={financing.description || ''}
+                placeholder="e.g. Spread treatment fees over manageable monthly installments with zero interest so you never have to postpone your recovery."
+                helperText="Explains how the payment plan works."
+                onChange={(v) =>
+                  onUpdateClinic({
+                    ...clinic,
+                    financing: { ...financing, description: v },
+                  })
+                }
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field
+                  label="CTA Button Text"
+                  value={financing.ctaText || ''}
+                  placeholder="e.g. Inquire About Payment Plans"
+                  helperText="Button text linking to appointment/inquiry modal."
+                  onChange={(v) =>
+                    onUpdateClinic({
+                      ...clinic,
+                      financing: { ...financing, ctaText: v },
+                    })
+                  }
+                />
+                <Field
+                  label="Terms & Disclaimer Note"
+                  value={financing.terms || ''}
+                  placeholder="e.g. Simple 60-second digital application. Soft credit check with no impact on credit score."
+                  helperText="Footnote disclaimer shown under the section."
+                  onChange={(v) =>
+                    onUpdateClinic({
+                      ...clinic,
+                      financing: { ...financing, terms: v },
+                    })
+                  }
+                />
+              </div>
+
+              {/* Financing Highlights Bullet List */}
+              <div className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-stone-200 block">
+                      Plan Highlights & Features ({financing.features?.length || 0})
+                    </span>
+                    <span className="text-[10px] text-stone-400">
+                      Key bullet points listed across the bottom of the financing card.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextFeatures = [
+                        ...(financing.features || []),
+                        'New financing feature (e.g. 0% APR for 6 months)',
+                      ];
+                      onUpdateClinic({
+                        ...clinic,
+                        financing: { ...financing, features: nextFeatures },
+                      });
+                    }}
+                    className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-emerald-400 text-xs font-semibold rounded transition cursor-pointer flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>+ Add Highlight</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {(financing.features || []).map((feat, fIdx) => (
+                    <div key={fIdx} className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-emerald-950 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-800/80">
+                        <Check className="w-3 h-3" />
+                      </span>
+                      <input
+                        type="text"
+                        value={feat}
+                        placeholder="e.g. Pay in 3 installments with Klarna"
+                        onChange={(e) => {
+                          const nextFeatures = [...(financing.features || [])];
+                          nextFeatures[fIdx] = e.target.value;
+                          onUpdateClinic({
+                            ...clinic,
+                            financing: { ...financing, features: nextFeatures },
+                          });
+                        }}
+                        className="flex-1 bg-stone-850 border border-stone-750 rounded-lg px-2.5 py-1.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextFeatures = (financing.features || []).filter(
+                            (_, idx) => idx !== fIdx
+                          );
+                          onUpdateClinic({
+                            ...clinic,
+                            financing: { ...financing, features: nextFeatures },
+                          });
+                        }}
+                        className="p-1.5 text-stone-500 hover:text-red-400 cursor-pointer"
+                        title="Remove highlight"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

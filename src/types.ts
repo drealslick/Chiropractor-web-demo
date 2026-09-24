@@ -127,6 +127,28 @@ export interface HeroTriageOption {
   focus: string;
 }
 
+export interface PricingFeeItem {
+  id: string;
+  title: string;
+  price: string;
+  description: string;
+  badge?: string;
+  icon?: 'user' | 'refresh' | 'activity' | 'zap' | 'sparkles' | 'heart';
+  popular?: boolean;
+  features: string[];
+}
+
+export interface FinancingOption {
+  enabled?: boolean;
+  provider?: string;
+  badge?: string;
+  headline?: string;
+  description?: string;
+  terms?: string;
+  features?: string[];
+  ctaText?: string;
+}
+
 export interface ClinicInfo {
   id?: string;
   name?: string;
@@ -182,6 +204,8 @@ export interface ClinicInfo {
   logoUrlAlt?: string;
   examFee?: string;
   followUpFee?: string;
+  customFeeItems?: PricingFeeItem[];
+  financing?: FinancingOption;
   aboutApproach?: string;
   aboutMission?: string;
   aboutStory?: string;
