@@ -9,7 +9,6 @@ import {
   AlertCircle,
   ExternalLink,
   RotateCcw,
-  Zap,
   Globe,
   Sliders,
   ShieldCheck,
@@ -17,13 +16,15 @@ import {
   Eye,
   Bell,
   ArrowRight,
+  TrendingUp,
+  Settings2,
+  Check,
 } from 'lucide-react';
 import { ClinicInfo } from '../../types';
 import { getStoredLeads, saveLead, PatientLead } from '../../data/leadsStore';
-import { agencyDemoPresets } from '../../data/presets';
 import { resolvePalette } from '../../data/colorPalettes';
 
-interface ExecutiveGodsEyeProps {
+interface ExecutiveDashboardProps {
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
   onNavigateTab: (tab: 'leads' | 'booking' | 'site' | 'setup', subTab?: string) => void;
@@ -31,7 +32,7 @@ interface ExecutiveGodsEyeProps {
   syncStatus: string;
 }
 
-export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
+export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   clinic,
   onUpdateClinic,
   onNavigateTab,
@@ -52,7 +53,7 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
   const newLeadsCount = leads.filter((l) => l.status === 'new').length;
   const currentPalette = resolvePalette(clinic.colorPalette);
 
-  // Practice Readiness Calculation
+  // Practice Setup & Health Calculation
   const checks = [
     Boolean(clinic.name && clinic.doctorName),
     Boolean(clinic.phone && clinic.address),
@@ -83,7 +84,7 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
       email: `${randName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
       phone: randPhone,
       condition: randCond,
-      notes: `Simulated patient triage via God's Eye console. Primary complaint: ${randCond}.`,
+      notes: `Prospective patient inquiry. Primary complaint: ${randCond}.`,
       clinicName: clinic.name || 'Clinic',
       status: 'new',
     });
@@ -99,8 +100,8 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
       announcementBanner: {
         ...current,
         enabled: !current.enabled,
-        message: current.message || 'Holiday Notice: Special clinic consultation hours in effect this week.',
-        variant: current.variant || 'amber',
+        message: current.message || 'Notice: Accepting new patients this week. Early morning & evening slots available.',
+        variant: current.variant || 'emerald',
       },
     });
   };
@@ -117,46 +118,46 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
   return (
     <div className="space-y-6">
       {/* Executive Command Header */}
-      <div className="p-5 rounded-2xl bg-gradient-to-br from-stone-850 via-stone-900 to-stone-950 border border-stone-800 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 sm:p-5 rounded-2xl bg-stone-900 border border-stone-800 shadow-md space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold">
-              <Zap className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold">
+              <TrendingUp className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-white">God's Eye Command Console</h3>
+                <h3 className="font-bold text-sm sm:text-base text-white">Practice Executive Overview</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-800/80">
-                  Live Control
+                  Live Operations
                 </span>
               </div>
-              <p className="text-xs text-stone-400">
-                Omniscient status & real-time controls for {clinic.name || 'Practice'}.
+              <p className="text-xs text-stone-400 mt-0.5">
+                Real-time performance metrics and control panel for {clinic.name || 'Your Practice'}.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <div className="text-right">
-              <div className="text-xs font-bold text-emerald-400">{healthPercent}% Practice Health</div>
+            <div className="text-left sm:text-right">
+              <div className="text-xs font-bold text-emerald-400">{healthPercent}% Setup Health</div>
               <div className="text-[10px] text-stone-500 font-mono">
-                {hasSupabase ? (syncStatus === 'synced' ? 'Supabase Synced' : 'Syncing...') : 'Local Storage'}
+                {hasSupabase ? (syncStatus === 'synced' ? 'Supabase Synced' : 'Syncing...') : 'Local Database'}
               </div>
             </div>
           </div>
         </div>
 
-        {/* 4 Live KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
-          {/* KPI 1: Inbound Leads */}
+        {/* 4 Live Metric Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {/* Metric 1: Inbound Leads */}
           <button
             type="button"
             onClick={() => onNavigateTab('leads')}
-            className="p-3 bg-stone-900/80 hover:bg-stone-800/90 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group"
+            className="p-3 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/40 rounded-xl text-left transition cursor-pointer group"
           >
             <div className="flex items-center justify-between text-stone-400 mb-1">
-              <span className="text-[11px] font-medium group-hover:text-emerald-400">Inbound Leads</span>
-              <Inbox className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-medium group-hover:text-emerald-400">Patient Inquiries</span>
+              <Inbox className="w-3.5 h-3.5 text-stone-500" />
             </div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl font-serif font-bold text-white tabular-nums">{leads.length}</span>
@@ -166,38 +167,39 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
                 </span>
               )}
             </div>
+            <div className="text-[10px] text-stone-500 mt-0.5 truncate">Click to view CRM</div>
           </button>
 
-          {/* KPI 2: Booking Engine */}
+          {/* Metric 2: Booking Engine */}
           <button
             type="button"
             onClick={() => onNavigateTab('booking')}
-            className="p-3 bg-stone-900/80 hover:bg-stone-800/90 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group"
+            className="p-3 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/40 rounded-xl text-left transition cursor-pointer group"
           >
             <div className="flex items-center justify-between text-stone-400 mb-1">
               <span className="text-[11px] font-medium group-hover:text-emerald-400">Booking Engine</span>
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="w-3.5 h-3.5 text-stone-500" />
             </div>
             <div className="text-xs font-bold text-stone-200 truncate capitalize">
               {clinic.bookingEmbedMode === 'iframe'
                 ? 'Iframe Modal'
                 : clinic.bookingEmbedMode === 'redirect'
-                ? 'Direct Redirect'
+                ? 'External Link'
                 : '3-Step Triage'}
             </div>
             <div className="text-[10px] text-stone-500 truncate mt-0.5">
-              {clinic.externalBookingUrl ? 'External Connected' : 'Internal Forms'}
+              {clinic.externalBookingUrl ? 'EHR Connected' : 'Website Forms'}
             </div>
           </button>
 
-          {/* KPI 3: Active Theme */}
+          {/* Metric 3: Active Theme */}
           <button
             type="button"
             onClick={() => onNavigateTab('site', 'branding')}
-            className="p-3 bg-stone-900/80 hover:bg-stone-800/90 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group"
+            className="p-3 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/40 rounded-xl text-left transition cursor-pointer group"
           >
             <div className="flex items-center justify-between text-stone-400 mb-1">
-              <span className="text-[11px] font-medium group-hover:text-emerald-400">Active Theme</span>
+              <span className="text-[11px] font-medium group-hover:text-emerald-400">Visual Palette</span>
               <div
                 className="w-3.5 h-3.5 rounded-full border border-stone-700"
                 style={{ backgroundColor: currentPalette.preview.primary }}
@@ -205,15 +207,15 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
             </div>
             <div className="text-xs font-bold text-stone-200 truncate">{currentPalette.name}</div>
             <div className="text-[10px] text-stone-500 truncate mt-0.5 capitalize">
-              {clinic.fontPairing?.replace(/-/g, ' ') || 'Classic Editorial'}
+              {clinic.fontPairing?.replace(/-/g, ' ') || 'Editorial Style'}
             </div>
           </button>
 
-          {/* KPI 4: Special Offer */}
+          {/* Metric 4: Pricing */}
           <button
             type="button"
-            onClick={() => onNavigateTab('site', 'copy')}
-            className="p-3 bg-stone-900/80 hover:bg-stone-800/90 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group"
+            onClick={() => onNavigateTab('site', 'lists')}
+            className="p-3 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/40 rounded-xl text-left transition cursor-pointer group"
           >
             <div className="flex items-center justify-between text-stone-400 mb-1">
               <span className="text-[11px] font-medium group-hover:text-emerald-400">Exam Fee</span>
@@ -229,17 +231,17 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
         </div>
       </div>
 
-      {/* Instant God's Eye Actions */}
+      {/* Quick Operational Controls */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-amber-400" /> Rapid Command Triggers
+            <Settings2 className="w-3.5 h-3.5 text-emerald-400" /> Operational Actions
           </h4>
-          <span className="text-[11px] text-stone-500">1-click direct operations</span>
+          <span className="text-[11px] text-stone-500">Fast workflow shortcuts</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {/* Action 1: Simulate Inbound Lead */}
+          {/* Action 1: Simulate Lead */}
           <button
             type="button"
             onClick={handleSimulateLead}
@@ -252,16 +254,16 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
             <div>
               <div className="font-bold text-xs flex items-center gap-1.5">
                 <Inbox className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{testLeadAdded ? 'Test Patient Lead Injected!' : 'Simulate Inbound Lead'}</span>
+                <span>{testLeadAdded ? 'Test Inquiry Created!' : 'Simulate Patient Inquiry'}</span>
               </div>
               <div className="text-[11px] text-stone-400 mt-0.5">
-                Generates a realistic test patient in the CRM.
+                Injects a realistic patient triage lead into the CRM.
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
           </button>
 
-          {/* Action 2: Toggle Emergency Banner */}
+          {/* Action 2: Toggle Announcement Banner */}
           <button
             type="button"
             onClick={handleToggleBanner}
@@ -271,11 +273,11 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
               <div className="font-bold text-xs flex items-center gap-1.5 text-stone-200">
                 <Bell className="w-3.5 h-3.5 text-amber-400" />
                 <span>
-                  {clinic.announcementBanner?.enabled ? 'Disable Banner' : 'Enable Top Alert Banner'}
+                  {clinic.announcementBanner?.enabled ? 'Disable Alert Banner' : 'Enable Top Alert Banner'}
                 </span>
               </div>
               <div className="text-[11px] text-stone-400 mt-0.5">
-                {clinic.announcementBanner?.enabled ? 'Currently active on site' : 'Instant urgent announcement'}
+                {clinic.announcementBanner?.enabled ? 'Active on website top' : 'Broadcast practice notices & hours'}
               </div>
             </div>
             <span
@@ -294,16 +296,16 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
             <div>
               <div className="font-bold text-xs flex items-center gap-1.5 text-stone-200">
                 <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Cycle Booking Mode</span>
+                <span>Toggle Booking Mode</span>
               </div>
               <div className="text-[11px] text-stone-400 mt-0.5 capitalize">
-                Mode: {clinic.bookingEmbedMode || 'triage_request'} → Next Mode
+                Current: {clinic.bookingEmbedMode === 'iframe' ? 'Embedded Modal' : clinic.bookingEmbedMode === 'redirect' ? 'Direct Redirect' : '3-Step Form'}
               </div>
             </div>
             <RotateCcw className="w-3.5 h-3.5 text-stone-500" />
           </button>
 
-          {/* Action 4: Quick Launch Preset Modal */}
+          {/* Action 4: Load Archetype */}
           <button
             type="button"
             onClick={() => onNavigateTab('setup', 'presets')}
@@ -315,7 +317,7 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
                 <span>Load Practice Archetype</span>
               </div>
               <div className="text-[11px] text-stone-400 mt-0.5">
-                Austin, Denver, London, or San Diego in 1-click.
+                Switch demo presets (Sports, Family, Luxury, Rehab).
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
@@ -323,10 +325,10 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
         </div>
       </div>
 
-      {/* Newly Elevated Clinical Components Direct Navigator */}
+      {/* Direct Content Section Navigator */}
       <div className="space-y-3 border-t border-stone-800 pt-4">
         <h4 className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5 text-emerald-400" /> Elevated Section Inspectors
+          <Layers className="w-3.5 h-3.5 text-emerald-400" /> Content & Clinical Editors
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           <button
@@ -335,10 +337,10 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
             className="p-2.5 rounded-lg bg-stone-850 hover:bg-stone-800 border border-stone-800 flex items-center justify-between text-left transition cursor-pointer"
           >
             <div>
-              <span className="font-medium text-stone-200 block">Conditions & Protocols</span>
-              <span className="text-[11px] text-stone-500">Diagnostic navigator & visit arcs</span>
+              <span className="font-medium text-stone-200 block">Trust Bar & Accreditation Badges</span>
+              <span className="text-[11px] text-stone-500">Rating, certifications, visit guarantees</span>
             </div>
-            <span className="text-emerald-400 text-xs font-semibold">Manage →</span>
+            <span className="text-emerald-400 text-xs font-semibold">Edit →</span>
           </button>
 
           <button
@@ -347,10 +349,10 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
             className="p-2.5 rounded-lg bg-stone-850 hover:bg-stone-800 border border-stone-800 flex items-center justify-between text-left transition cursor-pointer"
           >
             <div>
-              <span className="font-medium text-stone-200 block">Care Contrast Matrix</span>
-              <span className="text-[11px] text-stone-500">Why Us side-by-side comparison</span>
+              <span className="font-medium text-stone-200 block">Conditions & Diagnostic Protocols</span>
+              <span className="text-[11px] text-stone-500">Symptoms, adjustments, visit arcs</span>
             </div>
-            <span className="text-emerald-400 text-xs font-semibold">Manage →</span>
+            <span className="text-emerald-400 text-xs font-semibold">Edit →</span>
           </button>
 
           <button
@@ -359,10 +361,10 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
             className="p-2.5 rounded-lg bg-stone-850 hover:bg-stone-800 border border-stone-800 flex items-center justify-between text-left transition cursor-pointer"
           >
             <div>
-              <span className="font-medium text-stone-200 block">3-Phase Care Roadmap</span>
-              <span className="text-[11px] text-stone-500">The Process stages & doctor notes</span>
+              <span className="font-medium text-stone-200 block">Care Contrast Matrix (Why Us)</span>
+              <span className="text-[11px] text-stone-500">Side-by-side clinical comparison</span>
             </div>
-            <span className="text-emerald-400 text-xs font-semibold">Manage →</span>
+            <span className="text-emerald-400 text-xs font-semibold">Edit →</span>
           </button>
 
           <button
@@ -371,10 +373,10 @@ export const ExecutiveGodsEye: React.FC<ExecutiveGodsEyeProps> = ({
             className="p-2.5 rounded-lg bg-stone-850 hover:bg-stone-800 border border-stone-800 flex items-center justify-between text-left transition cursor-pointer"
           >
             <div>
-              <span className="font-medium text-stone-200 block">Patient Case Studies</span>
-              <span className="text-[11px] text-stone-500">Featured athlete story & filters</span>
+              <span className="font-medium text-stone-200 block">3-Phase Patient Journey Roadmap</span>
+              <span className="text-[11px] text-stone-500">Discovery, relief, and discharge phases</span>
             </div>
-            <span className="text-emerald-400 text-xs font-semibold">Manage →</span>
+            <span className="text-emerald-400 text-xs font-semibold">Edit →</span>
           </button>
         </div>
       </div>

@@ -21,8 +21,9 @@ import {
   Sparkles,
   CheckCircle2,
   Sliders,
-  VolumeX,
-  Wind,
+  ShieldCheck,
+  Star,
+  Award,
 } from 'lucide-react';
 
 type FaqRow = { q: string; a: string };
@@ -108,7 +109,7 @@ export function ListsEditor({
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
 }) {
-  const [activeCategory, setActiveCategory] = useState<string>('conditions');
+  const [activeCategory, setActiveCategory] = useState<string>('trust');
 
   const faqList = seedFaqs(clinic);
   const condList = seedConditions(clinic);
@@ -126,6 +127,7 @@ export function ListsEditor({
   };
 
   const categories = [
+    { id: 'trust', label: 'Trust & Badges', icon: ShieldCheck, count: 4 },
     { id: 'conditions', label: 'Conditions & Protocols', icon: Activity, count: condList.length },
     { id: 'why-us', label: 'Care Contrast Matrix', icon: Heart, count: 4 },
     { id: 'process', label: '3-Phase Journey', icon: Clock, count: processList.length },
@@ -169,6 +171,105 @@ export function ListsEditor({
           })}
         </div>
       </div>
+
+      {/* SECTION: TRUST & ACCREDITATION BAR */}
+      {activeCategory === 'trust' && (
+        <div className="p-4 bg-stone-850 border border-stone-800 rounded-xl space-y-4">
+          <div className="border-b border-stone-800 pb-2">
+            <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Trust Bar & Accreditation Highlights (100% Editable)</span>
+            </h3>
+            <p className="text-[11px] text-stone-400">
+              Customizes the 4 high-trust credentials beneath the hero section.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Trust Item 1 */}
+            <div className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5" /> Badge 1: Patient Rating & Social Proof
+              </div>
+              <Field
+                label="Primary Text"
+                value={clinic.trustItem1Primary || clinic.trustRatingLabel || `${clinic.googleRating || 4.9} ★ Google Rating`}
+                placeholder="4.9 ★ Google Rating"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem1Primary: v, trustRatingLabel: v })}
+              />
+              <Field
+                label="Secondary Subtitle"
+                value={clinic.trustItem1Secondary || `${clinic.googleReviewsCount || clinic.googleReviewCount || '140+'} Verified Reviews`}
+                placeholder="140+ Verified Reviews"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem1Secondary: v })}
+              />
+              <Field
+                label="Google Reviews External URL (Optional)"
+                value={clinic.reviewsUrl || ''}
+                placeholder="https://maps.google.com/..."
+                onChange={(v) => onUpdateClinic({ ...clinic, reviewsUrl: v })}
+              />
+            </div>
+
+            {/* Trust Item 2 */}
+            <div className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5" /> Badge 2: Doctor Credential & Board Status
+              </div>
+              <Field
+                label="Primary Text"
+                value={clinic.trustItem2Primary || clinic.doctorCredentials || 'Board Certified DC'}
+                placeholder="Board Certified DC"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem2Primary: v })}
+              />
+              <Field
+                label="Secondary Subtitle"
+                value={clinic.trustItem2Secondary || 'Licensed & Insured'}
+                placeholder="Licensed & Insured"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem2Secondary: v })}
+              />
+            </div>
+
+            {/* Trust Item 3 */}
+            <div className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" /> Badge 3: Appointment Time & Dignity
+              </div>
+              <Field
+                label="Primary Text"
+                value={clinic.trustItem3Primary || 'No Rushed Visits'}
+                placeholder="No Rushed Visits"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem3Primary: v })}
+              />
+              <Field
+                label="Secondary Subtitle"
+                value={clinic.trustItem3Secondary || 'Dedicated 1-on-1 Doctor Time'}
+                placeholder="Dedicated 1-on-1 Doctor Time"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem3Secondary: v })}
+              />
+            </div>
+
+            {/* Trust Item 4 */}
+            <div className="p-3.5 bg-stone-900 border border-stone-800 rounded-xl space-y-2">
+              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5" /> Badge 4: Ethical Care & Freedom
+              </div>
+              <Field
+                label="Primary Text"
+                value={clinic.trustItem4Primary || 'Zero Long Contracts'}
+                placeholder="Zero Long Contracts"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem4Primary: v })}
+              />
+              <Field
+                label="Secondary Subtitle"
+                value={clinic.trustItem4Secondary || 'Discharged Once You Heal'}
+                placeholder="Discharged Once You Heal"
+                onChange={(v) => onUpdateClinic({ ...clinic, trustItem4Secondary: v })}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SECTION: CONDITIONS TREATED & PROTOCOLS */}
       {activeCategory === 'conditions' && (

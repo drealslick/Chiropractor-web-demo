@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Shield, Award, Clock, HeartHandshake } from 'lucide-react';
+import { Star, Shield, Award, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ClinicInfo } from '../types';
 
@@ -14,46 +14,49 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
   const trustHighlights = [
     {
       icon: Star,
-      primary: `${rating} ★ Rating`,
-      secondary: `${reviewCount} Verified Reviews`,
+      primary: clinic.trustItem1Primary || clinic.trustRatingLabel || `${rating} ★ Google Rating`,
+      secondary: clinic.trustItem1Secondary || `${reviewCount} Verified Reviews`,
       link: clinic.reviewsUrl,
     },
     {
       icon: Award,
-      primary: clinic.doctorCredentials || 'Board Certified DC',
-      secondary: 'Licensed & Insured',
+      primary: clinic.trustItem2Primary || clinic.doctorCredentials || 'Board Certified DC',
+      secondary: clinic.trustItem2Secondary || 'Licensed & Insured',
+      link: undefined,
     },
     {
       icon: Clock,
-      primary: 'No Rushed Visits',
-      secondary: 'Dedicated 1-on-1 Doctor Time',
+      primary: clinic.trustItem3Primary || 'No Rushed Visits',
+      secondary: clinic.trustItem3Secondary || 'Dedicated 1-on-1 Doctor Time',
+      link: undefined,
     },
     {
       icon: Shield,
-      primary: 'Zero Long Contracts',
-      secondary: 'Discharged Once You Heal',
+      primary: clinic.trustItem4Primary || 'Zero Long Contracts',
+      secondary: clinic.trustItem4Secondary || 'Discharged Once You Heal',
+      link: undefined,
     },
   ];
 
   return (
-    <section className="border-y border-stone-200/90 bg-stone-100/70 py-4 sm:py-5 overflow-hidden">
+    <section className="border-y border-stone-200/90 bg-stone-100/80 py-4 sm:py-5 overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 divide-y sm:divide-y-0 sm:divide-x divide-stone-200/80">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {trustHighlights.map((item, idx) => {
             const Icon = item.icon;
             return (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.08 }}
-                className={`flex items-center gap-3 ${idx > 0 ? 'pt-3 sm:pt-0 sm:pl-6' : ''}`}
+                transition={{ duration: 0.35, delay: idx * 0.06 }}
+                className="flex items-center gap-2.5 sm:gap-3 p-2 sm:p-0 rounded-xl bg-white/50 sm:bg-transparent border border-stone-200/60 sm:border-0"
               >
-                <div className="w-8 h-8 rounded-lg bg-stone-200/70 text-emerald-800 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg bg-stone-200/80 text-emerald-800 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-emerald-800" />
                 </div>
-                <div className="text-left leading-tight min-w-0">
+                <div className="text-left leading-tight min-w-0 flex-1">
                   {item.link ? (
                     <a
                       href={item.link}
@@ -68,7 +71,7 @@ export const TrustBar: React.FC<TrustBarProps> = ({ clinic }) => {
                       {item.primary}
                     </span>
                   )}
-                  <span className="text-[11px] text-stone-500 truncate block mt-0.5">
+                  <span className="text-[10px] sm:text-[11px] text-stone-500 truncate block mt-0.5">
                     {item.secondary}
                   </span>
                 </div>

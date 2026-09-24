@@ -41,13 +41,13 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
           </div>
           
           {/* Filter Bar */}
-          <div className="flex flex-wrap gap-1.5 p-1 bg-stone-800/90 rounded-xl border border-stone-700/80">
+          <div className="flex gap-1.5 p-1 bg-stone-800/90 rounded-xl border border-stone-700/80 overflow-x-auto no-scrollbar max-w-full">
             {categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedFilter(cat)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap shrink-0 cursor-pointer ${
                   selectedFilter === cat
                     ? 'bg-emerald-700 text-white font-semibold shadow-sm'
                     : 'text-stone-400 hover:text-stone-200 hover:bg-stone-700/50'

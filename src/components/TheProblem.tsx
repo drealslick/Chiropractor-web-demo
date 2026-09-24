@@ -17,29 +17,50 @@ export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCond
   const sectionSubtitle = clinic?.conditionsSubtitle || "Clinical Focus Areas";
 
   return (
-    <section id="care" className="py-16 md:py-24 bg-stone-100/50 border-b border-stone-200/80 relative overflow-hidden">
+    <section id="care" className="py-12 sm:py-16 md:py-24 bg-stone-100/50 border-b border-stone-200/80 relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="max-w-2xl">
             <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-md inline-block mb-3">
               {sectionSubtitle}
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight leading-tight [text-wrap:balance]">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight leading-tight [text-wrap:balance]">
               {sectionTitle}
             </h2>
           </div>
-          <p className="text-sm text-stone-600 max-w-md leading-relaxed">
+          <p className="text-xs sm:text-sm text-stone-600 max-w-md leading-relaxed">
             Pain is rarely random. We isolate the exact nerve irritation, joint restriction, or postural compensation causing your symptoms.
           </p>
         </div>
 
+        {/* Mobile Horizontal Condition Picker Bar */}
+        <div className="lg:hidden flex gap-2 overflow-x-auto no-scrollbar pb-3 mb-4 -mx-4 px-4">
+          {conditions.map((item, idx) => {
+            const isActive = activeIdx === idx;
+            return (
+              <button
+                key={item.id || idx}
+                type="button"
+                onClick={() => setActiveIdx(idx)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-stone-900 text-white shadow-sm'
+                    : 'bg-white text-stone-700 border border-stone-200 hover:bg-stone-50'
+                }`}
+              >
+                {item.title}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Master-Detail Interactive Diagnostic Canvas */}
-        <div className="grid lg:grid-cols-12 gap-8 items-start">
+        <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
-          {/* Left Column: Condition Navigation List */}
-          <div className="lg:col-span-5 space-y-2">
+          {/* Left Column: Condition Navigation List (Desktop) */}
+          <div className="hidden lg:block lg:col-span-5 space-y-2">
             <div className="text-xs font-bold uppercase tracking-wider text-stone-400 px-2 mb-2">
               Select Condition to Inspect Protocol:
             </div>
@@ -79,71 +100,74 @@ export const TheProblem: React.FC<TheProblemProps> = ({ conditions, onSelectCond
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeCondition.id || activeIdx}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/90 shadow-lg space-y-6"
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="bg-white rounded-3xl p-5 sm:p-8 border border-stone-200/90 shadow-md space-y-5 sm:space-y-6"
               >
                 {/* Condition Header Badge & Title */}
-                <div className="flex items-start justify-between gap-4 border-b border-stone-100 pb-5">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 border-b border-stone-100 pb-4 sm:pb-5">
                   <div>
-                    <span className="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded uppercase font-semibold">
-                      Diagnostic Profile 0{activeIdx + 1}
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md">
+                      Diagnostic Profile #{activeIdx + 1}
                     </span>
-                    <h3 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 mt-2">
+                    <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mt-2">
                       {activeCondition.title}
                     </h3>
-                    <p className="text-sm sm:text-base text-stone-600 mt-1">
-                      {activeCondition.description}
-                    </p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-stone-400 font-mono self-start">
+                    <Compass className="w-4 h-4 text-emerald-700" />
+                    <span>Targeted Protocol</span>
                   </div>
                 </div>
 
-                {/* Common Symptoms / Indications */}
+                {/* Biomechanical Root-Cause Description */}
+                <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">
+                  {activeCondition.description}
+                </p>
+
+                {/* Common Symptoms Pill Cloud */}
                 {activeCondition.symptoms && activeCondition.symptoms.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-3 flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-emerald-700" />
-                      Typical Clinical Presentation:
-                    </h4>
-                    <div className="grid sm:grid-cols-2 gap-2.5">
-                      {activeCondition.symptoms.map((sym: string, sIdx: number) => (
-                        <div
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">
+                      Common Warning Signs:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {activeCondition.symptoms.map((sym, sIdx) => (
+                        <span
                           key={sIdx}
-                          className="flex items-start gap-2.5 p-3 rounded-xl bg-stone-50 border border-stone-100 text-xs text-stone-800"
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-stone-100 text-stone-700 border border-stone-200/70"
                         >
-                          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                          <span>{sym}</span>
-                        </div>
+                          {sym}
+                        </span>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* The Treatment Approach */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                {/* Doctor Clinical Strategy Box */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200/90 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-stone-900">
                     <Stethoscope className="w-4 h-4 text-emerald-700" />
-                    Our Gentle Clinical Protocol:
-                  </h4>
-                  <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-                    {activeCondition.approach ||
-                      "Detailed orthopedic testing, gentle low-force segmental realignment, targeted soft-tissue mobilization, and customized kinetic chain stabilization routines."}
+                    <span>How We Restore Function:</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                    {activeCondition.approach || activeCondition.howWeHelp || "Precise spinal adjustments paired with targeted muscular mobilization and kinetic stability training."}
                   </p>
                 </div>
 
-                {/* Direct Booking Action */}
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-stone-100">
-                  <div className="text-xs text-stone-500">
-                    Includes full orthopedic exam & personalized plan.
+                {/* Interactive Action Footer */}
+                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs text-stone-500">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>Evaluated during your 45-minute initial exam</span>
                   </div>
                   <button
-                    type="button"
-                    onClick={() => onSelectCondition(activeCondition.title || 'Condition')}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-stone-900 hover:bg-emerald-900 text-white text-xs font-bold rounded-xl transition-all shadow-sm hover:shadow active:scale-[0.99] cursor-pointer"
+                    onClick={() => onSelectCondition(activeCondition.title)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
                   >
-                    <span>Book Exam for {activeCondition.title}</span>
+                    <span>Request Visit For This</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>

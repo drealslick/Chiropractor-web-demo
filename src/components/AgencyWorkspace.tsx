@@ -27,7 +27,7 @@ import { ListsEditor } from './ListsEditor';
 import { LeadsInbox } from './admin/LeadsInbox';
 import { PracticeAudit } from './admin/PracticeAudit';
 import { BookingSettings } from './admin/BookingSettings';
-import { ExecutiveGodsEye } from './admin/ExecutiveGodsEye';
+import { ExecutiveDashboard } from './admin/ExecutiveDashboard';
 import { getStoredLeads } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -100,10 +100,10 @@ export function AgencyWorkspace({
     icon: React.ComponentType<{ className?: string }>;
     badge?: number | string;
   }[] = [
-    { id: 'overview', label: "God's Eye", icon: Zap, badge: 'Live' },
+    { id: 'overview', label: 'Overview', icon: Layout, badge: 'Live' },
     { id: 'leads', label: 'Leads', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
     { id: 'booking', label: 'Booking', icon: Calendar },
-    { id: 'site', label: 'Site', icon: Layout },
+    { id: 'site', label: 'Site', icon: Palette },
     { id: 'setup', label: 'Setup', icon: Sparkles },
   ];
 
@@ -306,9 +306,9 @@ export function AgencyWorkspace({
 
         {/* Tab Content Panel */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {/* TAB GROUP 0: GOD'S EYE COMMAND CONSOLE */}
+          {/* TAB GROUP 0: EXECUTIVE PRACTICE OVERVIEW */}
           {mainTab === 'overview' && (
-            <ExecutiveGodsEye
+            <ExecutiveDashboard
               clinic={clinic}
               onUpdateClinic={onUpdateClinic}
               onNavigateTab={(tab, subTab) => {
