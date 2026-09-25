@@ -6,6 +6,7 @@ import { Navbar } from './components/Navbar';
 import { ClinicProvider, useClinic } from './data/ClinicContext';
 import { GlobalAnnouncementBanner } from './components/GlobalAnnouncementBanner';
 import { GlobalAgencyController } from './components/GlobalAgencyController';
+import { GlobalThemeApplier } from './components/GlobalThemeApplier';
 import { Footer } from './components/Footer';
 import { BookingModal } from './components/BookingModal';
 import { PatientPortalModal } from './components/PatientPortalModal';
@@ -34,6 +35,7 @@ function AppShell() {
   return (
     <Router>
       <ScrollToTop />
+      <GlobalThemeApplier />
       <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
         <ClinicSchema />
         <GlobalAnnouncementBanner banner={clinic.announcementBanner} />

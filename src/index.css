@@ -37,11 +37,15 @@
 }
 
 @layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  :root {
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   }
-  h1, h2, h3, .font-display {
-    font-family: 'Playfair Display', Georgia, serif;
+  body {
+    font-family: var(--font-body), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6, .font-serif, .font-display {
+    font-family: var(--font-heading), 'Playfair Display', Georgia, Cambria, "Times New Roman", Times, serif;
   }
 }
 
