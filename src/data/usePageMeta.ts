@@ -22,7 +22,14 @@ export function usePageMeta(pageTitle: string, pageDesc?: string, pageImage?: st
       clinic.ogImage ||
       clinic.heroImage ||
       'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80';
-    const canonicalUrl = typeof window !== 'undefined' ? window.location.href : '';
+    let canonicalUrl = '';
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (!url.pathname.endsWith('/')) {
+        url.pathname += '/';
+      }
+      canonicalUrl = url.origin + url.pathname;
+    }
 
     // Standard HTML Title & Description
     document.title = fullTitle;
