@@ -39,7 +39,11 @@ export interface ClinicPaymentPolicy {
   allowPayAtClinic: boolean; // if true, patients can opt to pay on arrival
   statementDescriptor: string; // e.g. "VANCE HEALTH"
   stripeMode: 'test' | 'live';
-  stripePublishableKey?: string;
+  stripeAccountId?: string; // Connected Stripe Account ID, e.g. "acct_1NzABC..."
+  stripePublishableKey?: string; // pk_live_... or pk_test_...
+  stripeConnectedEmail?: string;
+  stripeConnectedAt?: string;
+  stripePayoutSchedule?: 'daily' | 'weekly' | 'monthly';
   requireCardForOnlineBookings: boolean;
   customExplanation?: string;
 }

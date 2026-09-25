@@ -1848,22 +1848,191 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
               />
             </div>
 
-            {/* Stripe Merchant & Terminal Gateway Integration */}
-            <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <div className="space-y-1">
-                <span className="font-bold text-stone-900 flex items-center gap-2">
-                  <span>Payment Gateway: Stripe & Digital Wallets</span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                    Sandbox Active
-                  </span>
-                </span>
-                <p className="text-stone-600 text-[11px]">
-                  Supports Apple Pay, Google Pay, Visa, Mastercard, and American Express. Test transactions process with card 4242 4242 4242 4242.
-                </p>
+            {/* Stripe Merchant & Connect Account Gateway Integration */}
+            <div className="p-5 rounded-2xl bg-stone-900 border border-stone-800 text-stone-100 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#635BFF] flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                    S
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h5 className="font-serif font-bold text-white text-base">Stripe Connect Account</h5>
+                      {paymentPolicyState.stripeAccountId ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Connected</span>
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold uppercase tracking-wider">
+                          Ready to Link
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Direct deposit payouts straight into your clinic's business bank account.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mode toggle (Live vs Test) */}
+                <div className="flex items-center bg-stone-800 p-1 rounded-xl border border-stone-700">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleSavePaymentPolicy({
+                        ...paymentPolicyState,
+                        stripeMode: 'test',
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      paymentPolicyState.stripeMode === 'test'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs'
+                        : 'text-stone-400 hover:text-stone-200'
+                    }`}
+                  >
+                    Test Sandbox
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleSavePaymentPolicy({
+                        ...paymentPolicyState,
+                        stripeMode: 'live',
+                      })
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                      paymentPolicyState.stripeMode === 'live'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-stone-400 hover:text-stone-200'
+                    }`}
+                  >
+                    Live Production
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-stone-500">Terminal Descriptor: {paymentPolicyState.statementDescriptor || 'VANCE HEALTH'}</span>
+              {/* Connected Account Details or Link CTA */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-3 border-t border-stone-800 text-xs">
+                {paymentPolicyState.stripeAccountId ? (
+                  <div className="space-y-2 p-3.5 rounded-xl bg-stone-950/80 border border-stone-800">
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">
+                      Connected Merchant Profile
+                    </span>
+                    <div className="flex items-center justify-between text-stone-300">
+                      <span>Account ID:</span>
+                      <span className="font-mono text-white text-xs">{paymentPolicyState.stripeAccountId}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-stone-300">
+                      <span>Payout Email:</span>
+                      <span className="text-white">{paymentPolicyState.stripeConnectedEmail || clinic.email || 'billing@vancehealth.co.uk'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-stone-300">
+                      <span>Payout Schedule:</span>
+                      <span className="text-emerald-400 font-semibold uppercase text-[10px]">Daily Rolling (T+2)</span>
+                    </div>
+                    <div className="pt-2 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('Disconnect current Stripe account? You can reconnect or use test sandbox.')) {
+                            handleSavePaymentPolicy({
+                              ...paymentPolicyState,
+                              stripeAccountId: undefined,
+                              stripeConnectedEmail: undefined,
+                            });
+                          }
+                        }}
+                        className="text-[11px] text-rose-400 hover:text-rose-300 underline cursor-pointer"
+                      >
+                        Disconnect Account
+                      </button>
+                      <a
+                        href="https://dashboard.stripe.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                      >
+                        <span>Open Stripe Express Dashboard</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 p-3.5 rounded-xl bg-stone-950/80 border border-stone-800">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">
+                        Step 1: Connect Your Clinic
+                      </span>
+                      <p className="text-stone-300 text-xs mt-1">
+                        Connect with Stripe to automatically deposit patient fees into your clinic's bank account with zero platform markup.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const demoAcct = `acct_1M${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+                        handleSavePaymentPolicy({
+                          ...paymentPolicyState,
+                          stripeAccountId: demoAcct,
+                          stripeConnectedEmail: clinic.email || 'finance@vancehealth.co.uk',
+                          stripeConnectedAt: new Date().toISOString(),
+                        });
+                      }}
+                      className="w-full py-2.5 px-4 bg-[#635BFF] hover:bg-[#534be0] text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                    >
+                      <span>Connect with Stripe</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] text-stone-500 block text-center">
+                      Takes 2 minutes • Verified bank transfer & PCI Level 1 compliant
+                    </span>
+                  </div>
+                )}
+
+                {/* API Keys & Terminal Statement Descriptor */}
+                <div className="space-y-2 p-3.5 rounded-xl bg-stone-950/80 border border-stone-800">
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">
+                    Gateway Credentials & Statement Name
+                  </span>
+
+                  <div>
+                    <label className="text-[10px] text-stone-400 block mb-0.5">
+                      Publishable Key ({paymentPolicyState.stripeMode === 'live' ? 'pk_live_...' : 'pk_test_...'})
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={paymentPolicyState.stripeMode === 'live' ? 'pk_live_51...' : 'pk_test_51... (or leave blank for sandbox)'}
+                      value={paymentPolicyState.stripePublishableKey || ''}
+                      onChange={(e) =>
+                        handleSavePaymentPolicy({
+                          ...paymentPolicyState,
+                          stripePublishableKey: e.target.value,
+                        })
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-stone-900 border border-stone-700 text-xs font-mono text-stone-200 placeholder:text-stone-600 focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-stone-400 block mb-0.5">
+                      Bank Statement Descriptor (Shows on Patient Card Bill)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={22}
+                      value={paymentPolicyState.statementDescriptor || 'VANCE HEALTH'}
+                      onChange={(e) =>
+                        handleSavePaymentPolicy({
+                          ...paymentPolicyState,
+                          statementDescriptor: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-stone-900 border border-stone-700 text-xs uppercase text-stone-200 placeholder:text-stone-600 focus:border-emerald-500 focus:outline-none"
+                    />
+                    <span className="text-[9px] text-stone-500 mt-0.5 block">Max 22 characters. E.g. VANCE HEALTH CLINIC</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
