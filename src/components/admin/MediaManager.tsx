@@ -42,7 +42,7 @@ interface ImageSlotConfig {
   subtitle: string;
   helperText: string;
   recommendedSize: string;
-  aspectRatio: 'aspect-video' | 'aspect-[4/5]' | 'aspect-square';
+  aspectRatio: 'aspect-video' | 'aspect-[4/5]' | 'aspect-square' | 'aspect-[3/1]';
   cropperDefaultRatio: AspectRatioType;
   defaultAsset: string;
   icon: React.ElementType;
@@ -132,11 +132,11 @@ export const MediaManager: React.FC<MediaManagerProps> = ({ clinic, onUpdateClin
       imageKey: 'logoUrl',
       altKey: 'logoUrlAlt',
       title: 'Practice Brand Logo / Mark',
-      subtitle: 'Displayed in top navbar and footer branding block.',
-      helperText: 'Transparent PNG or SVG vector logo. If blank, the practice initial monogram is rendered.',
-      recommendedSize: '512 × 512px (Square / Transparent PNG)',
-      aspectRatio: 'aspect-square',
-      cropperDefaultRatio: '1:1',
+      subtitle: 'Displayed in top navigation bar and footer branding block.',
+      helperText: 'Transparent PNG or SVG vector. Standard horizontal layout: 250–400 × 50–100px. Square mark layout: 160 × 160px (or 512 × 512px). If blank, practice monogram initial is rendered.',
+      recommendedSize: 'Horizontal: 300 × 75px | Square: 512 × 512px',
+      aspectRatio: 'aspect-[3/1]',
+      cropperDefaultRatio: '3:1',
       defaultAsset: '',
       icon: FileImage,
     },

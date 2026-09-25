@@ -12,7 +12,7 @@ import {
   Grid,
 } from 'lucide-react';
 
-export type AspectRatioType = '16:9' | '4:5' | '1:1' | 'free';
+export type AspectRatioType = '16:9' | '4:5' | '1:1' | '3:1' | 'free';
 
 interface ImageCropperModalProps {
   isOpen: boolean;
@@ -117,6 +117,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         return 4 / 5;
       case '1:1':
         return 1;
+      case '3:1':
+        return 3 / 1;
       case 'free':
       default:
         return 16 / 9;
@@ -239,6 +241,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       ? 'aspect-[4/5]'
       : aspectRatio === '1:1'
       ? 'aspect-square'
+      : aspectRatio === '3:1'
+      ? 'aspect-[3/1]'
       : 'aspect-video';
 
   return (
@@ -273,7 +277,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         <div className="px-5 py-2.5 bg-stone-850 border-b border-stone-800 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-1.5">
             <span className="text-stone-400 text-[11px] font-medium mr-1 hidden sm:inline">Aspect Ratio:</span>
-            {(['16:9', '4:5', '1:1', 'free'] as AspectRatioType[]).map((ratio) => (
+            {(['16:9', '4:5', '1:1', '3:1', 'free'] as AspectRatioType[]).map((ratio) => (
               <button
                 key={ratio}
                 type="button"
@@ -290,6 +294,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
                   ? '4:5 (Doctor Portrait)'
                   : ratio === '1:1'
                   ? '1:1 (Square)'
+                  : ratio === '3:1'
+                  ? '3:1 (Horizontal Logo)'
                   : 'Original'}
               </button>
             ))}

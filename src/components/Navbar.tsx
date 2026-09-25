@@ -31,16 +31,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2.5 group">
             {activeLogo && !logoImageError ? (
-              <div className="flex items-center justify-center overflow-hidden rounded-xl bg-stone-900 border border-stone-800/20 shadow-xs transition-transform group-hover:scale-105 shrink-0">
+              <div className="flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105 shrink-0 max-h-[52px]">
                 <img
                   src={activeLogo}
                   alt={clinic.logoUrlAlt || clinic.logoImageAlt || clinic.logoText || clinic.name || 'Practice Logo'}
                   onError={() => setLogoImageError(true)}
                   style={{
-                    maxWidth: clinic.logoWidth ? `${clinic.logoWidth}px` : '200px',
-                    maxHeight: '46px',
+                    maxWidth: clinic.logoWidth ? `${clinic.logoWidth}px` : '320px',
+                    maxHeight: '52px',
                   }}
-                  className="h-10 sm:h-11 w-auto max-w-[180px] sm:max-w-[220px] object-contain rounded-lg p-0.5"
+                  className="h-10 sm:h-12 w-auto max-w-[220px] sm:max-w-[320px] object-contain rounded-lg"
                 />
               </div>
             ) : (
@@ -48,14 +48,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
                 <span>{(clinic.logoText || clinic.name || 'C').charAt(0) || 'C'}</span>
               </div>
             )}
-            <div className="flex flex-col min-w-0">
-              <span className="font-serif font-bold text-base sm:text-lg leading-tight tracking-tight text-stone-900 group-hover:text-emerald-800 transition-colors truncate max-w-[180px] sm:max-w-xs">
-                {clinic.logoText || clinic.name}
-              </span>
-              <span className="text-[11px] sm:text-xs tracking-wider uppercase text-stone-500 font-medium truncate">
-                {clinic.cityState || clinic.city || ''}
-              </span>
-            </div>
+            {!clinic.hideLogoText && (
+              <div className="flex flex-col min-w-0">
+                <span className="font-serif font-bold text-base sm:text-lg leading-tight tracking-tight text-stone-900 group-hover:text-emerald-800 transition-colors truncate max-w-[180px] sm:max-w-xs">
+                  {clinic.logoText || clinic.name}
+                </span>
+                <span className="text-[11px] sm:text-xs tracking-wider uppercase text-stone-500 font-medium truncate">
+                  {clinic.cityState || clinic.city || ''}
+                </span>
+              </div>
+            )}
           </Link>
         </div>
 
