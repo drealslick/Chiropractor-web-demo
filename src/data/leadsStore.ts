@@ -46,15 +46,25 @@ export interface DispatchedNotification {
 const LEADS_STORAGE_KEY = 'agency_patient_leads_v1';
 const NOTIFICATIONS_STORAGE_KEY = 'agency_dispatched_notifications_v1';
 
+export function generateSecureBookingReference(prefix: string = 'VH'): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // base32 without ambiguous chars (no 0/O, 1/I)
+  let part1 = '';
+  let part2 = '';
+  for (let i = 0; i < 4; i++) {
+    part1 += chars.charAt(Math.floor(Math.random() * chars.length));
+    part2 += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${prefix}-${part1}-${part2}`;
+}
+
 export function getDefaultSeedLeads(): PatientLead[] {
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
   const inThreeDays = new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0];
 
   return [
-    // 3 Pending Online Requests
     {
-      id: 'lead-pending-1',
+      id: 'VH-9428-K82X',
       source: 'booking',
       name: 'John Doe',
       email: 'johndoe@example.com',
@@ -65,7 +75,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       time: '12:00 PM',
       durationMinutes: 45,
       notes: 'Initial Consultation (£49). Has sharp lumbar pain radiating to left leg for 3 weeks.',
-      createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(), // 18m ago
+      createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
       status: 'new',
       clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'deposit_paid',
@@ -77,7 +87,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       noShowProtected: true,
     },
     {
-      id: 'lead-pending-2',
+      id: 'VH-7183-M91B',
       source: 'booking',
       name: 'John Dow',
       email: 'johndow@example.com',
@@ -88,7 +98,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       time: '1:45 PM',
       durationMinutes: 45,
       notes: 'Requested: Initial Consultation (£49). Chronic tension headaches by 3 PM daily.',
-      createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(), // 55m ago
+      createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
       status: 'new',
       clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'card_hold',
@@ -100,112 +110,62 @@ export function getDefaultSeedLeads(): PatientLead[] {
       noShowProtected: true,
     },
     {
-      id: 'lead-pending-3',
-      source: 'contact',
-      name: 'Sarah Jenkins',
-      email: 'sarah.jenkins@example.com',
-      phone: '(303) 555-0188',
-      condition: 'Sciatica / Disc Bulge Question',
-      practitionerName: 'Dr. Alistair Vance',
-      date: tomorrow,
-      time: '3:00 PM',
-      durationMinutes: 45,
-      notes: 'Requested callback about insurance coverage (Aetna PPO) prior to initial exam.',
-      createdAt: new Date(Date.now() - 1000 * 60 * 140).toISOString(), // 2.3h ago
-      status: 'new',
-      clinicName: 'Vance Health Practice Architecture',
-      paymentStatus: 'unpaid',
-      paymentAmount: '£0.00',
-      paymentMethod: 'clinic_cash',
-    },
-
-    // 8 Appointments Scheduled for Today
-    {
-      id: 'appt-today-1',
+      id: 'VH-3850-P24A',
       source: 'booking',
-      name: 'Michael Thorne',
-      email: 'm.thorne@example.com',
-      phone: '(303) 555-0112',
-      condition: 'Spinal Decompression Follow-up',
+      name: 'Sarah Jenkins',
+      email: 'sjenkins@example.com',
+      phone: '(303) 555-0188',
+      condition: 'Sports Shoulder Impingement',
       practitionerName: 'Dr. Alistair Vance',
       date: today,
-      time: '9:00 AM',
-      durationMinutes: 30,
-      notes: 'Visit 4 of 6. Lumbar decompression and table adjustments.',
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      status: 'confirmed',
+      time: '3:00 PM',
+      durationMinutes: 45,
+      notes: 'Requested Initial Exam. Swimmer with overhead pain.',
+      createdAt: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
+      status: 'new',
       clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'paid_full',
       paymentAmount: '£49.00',
       paymentMethod: 'card',
-      cardLast4: '3004',
+      cardLast4: '8821',
       cardBrand: 'Visa',
-      transactionId: 'pi_3P00aa123',
+      transactionId: 'pi_3Q88xL9pWv',
+      noShowProtected: true,
     },
     {
-      id: 'appt-today-2',
+      id: 'VH-5519-R76Q',
+      source: 'booking',
+      name: 'Michael Chang',
+      email: 'm.chang@example.com',
+      phone: '(303) 555-0112',
+      condition: 'Mid-Back Thoracic Spine Stiffness',
+      practitionerName: 'Dr. Elena Rostova',
+      date: today,
+      time: '9:00 AM',
+      durationMinutes: 45,
+      notes: 'Regular check-in. Reports 80% improvement after last adjustment.',
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      status: 'checked_in',
+      clinicName: 'Vance Health Practice Architecture',
+    },
+    {
+      id: 'VH-6294-T18K',
       source: 'booking',
       name: 'David Chen',
-      email: 'dchen@example.com',
-      phone: '(303) 555-0177',
-      condition: 'Cervical Spine & Neck Strain',
-      practitionerName: 'Dr. Elena Rostova',
-      date: today,
-      time: '10:00 AM',
-      durationMinutes: 45,
-      notes: 'Arrived at 9:55 AM. Paperwork complete. In waiting lobby.',
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      status: 'checked_in', // 1 Checked in patient!
-      clinicName: 'Vance Health Practice Architecture',
-      paymentStatus: 'deposit_paid',
-      paymentAmount: '£25.00',
-      paymentMethod: 'card',
-      cardLast4: '5521',
-      cardBrand: 'Mastercard',
-      transactionId: 'pi_3M998242',
-      noShowProtected: true,
-    },
-    {
-      id: 'appt-today-3',
-      source: 'booking',
-      name: 'Amanda Lewis',
-      email: 'alewis@example.com',
-      phone: '(303) 555-0163',
-      condition: 'Shoulder Impingement & Mobility',
-      practitionerName: 'Dr. Alistair Vance',
-      date: today,
-      time: '10:30 AM',
-      durationMinutes: 45,
-      notes: 'Confirmed via SMS reminder yesterday.',
-      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-      status: 'confirmed',
-      clinicName: 'Vance Health Practice Architecture',
-      paymentStatus: 'card_hold',
-      paymentAmount: '£0.00 (Hold)',
-      paymentMethod: 'card',
-      cardLast4: '9812',
-      cardBrand: 'Amex',
-      transactionId: 'ch_hold_55812',
-      noShowProtected: true,
-    },
-    {
-      id: 'appt-today-4',
-      source: 'booking',
-      name: 'Robert Taylor',
-      email: 'rtaylor@example.com',
+      email: 'david.chen@example.com',
       phone: '(303) 555-0129',
-      condition: 'Headaches & Upper Cervical Care',
+      condition: 'Cervical Disc Herniation & Arm Tingling',
       practitionerName: 'Dr. Elena Rostova',
       date: today,
-      time: '11:30 AM',
+      time: '10:15 AM',
       durationMinutes: 45,
-      notes: 'UNCONFIRMED: Sent automated SMS yesterday, no reply yet. Needs front desk voice call.',
-      createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-      status: 'new', // 1st Unconfirmed appointment!
+      notes: 'Initial Exam. MRI scan brought on USB drive.',
+      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+      status: 'checked_in',
       clinicName: 'Vance Health Practice Architecture',
     },
     {
-      id: 'appt-today-5',
+      id: 'VH-4402-Z33W',
       source: 'booking',
       name: 'Emily Watson',
       email: 'emily.w@example.com',
@@ -218,84 +178,6 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Initial Exam (£49). Returning after marathon training.',
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       status: 'confirmed',
-      clinicName: 'Vance Health Practice Architecture',
-    },
-    {
-      id: 'appt-today-6',
-      source: 'booking',
-      name: 'Lucas Vance',
-      email: 'lucas.v@example.com',
-      phone: '(303) 555-0138',
-      condition: 'Athletic Knee & Hip Recovery',
-      practitionerName: 'Dr. Elena Rostova',
-      date: today,
-      time: '2:30 PM',
-      durationMinutes: 30,
-      notes: 'Rehab exercise progression + active release technique.',
-      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-      status: 'confirmed',
-      clinicName: 'Vance Health Practice Architecture',
-    },
-    {
-      id: 'appt-today-7',
-      source: 'booking',
-      name: 'Jessica Moore',
-      email: 'jess.moore@example.com',
-      phone: '(303) 555-0155',
-      condition: 'Prenatal Webster Technique Consult',
-      practitionerName: 'Dr. Elena Rostova',
-      date: today,
-      time: '3:30 PM',
-      durationMinutes: 45,
-      notes: 'UNCONFIRMED: Left voicemail this morning. Needs a follow-up call to confirm slot.',
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      status: 'new', // 2nd Unconfirmed appointment!
-      clinicName: 'Vance Health Practice Architecture',
-    },
-    {
-      id: 'appt-today-8',
-      source: 'booking',
-      name: 'William Scott',
-      email: 'wscott@example.com',
-      phone: '(303) 555-0171',
-      condition: 'Bi-weekly Spine Maintenance',
-      practitionerName: 'Dr. Alistair Vance',
-      date: today,
-      time: '4:30 PM',
-      durationMinutes: 30,
-      notes: 'Wellness adjustment package.',
-      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
-      status: 'confirmed',
-      clinicName: 'Vance Health Practice Architecture',
-    },
-
-    // 2 Waitlist Patients
-    {
-      id: 'waitlist-1',
-      source: 'booking',
-      name: 'Claire Thompson',
-      email: 'claire.t@example.com',
-      phone: '(303) 555-0182',
-      condition: 'Acute Neck Spasm',
-      practitionerName: 'Dr. Alistair Vance',
-      preferredTimeWindow: 'Today or Tomorrow Morning (9 AM - 12 PM)',
-      notes: 'Wants immediate notification if anyone cancels their morning slot.',
-      createdAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
-      status: 'waitlist',
-      clinicName: 'Vance Health Practice Architecture',
-    },
-    {
-      id: 'waitlist-2',
-      source: 'booking',
-      name: 'Brian K.',
-      email: 'brian.k@example.com',
-      phone: '(303) 555-0196',
-      condition: 'Lower Back Flare-up',
-      practitionerName: 'Dr. Elena Rostova',
-      preferredTimeWindow: 'Afternoons (2 PM - 5 PM)',
-      notes: 'Flexible, works down the street. Can arrive within 20 minutes notice.',
-      createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-      status: 'waitlist',
       clinicName: 'Vance Health Practice Architecture',
     },
   ];
@@ -430,7 +312,7 @@ export function saveLead(
 ): PatientLead {
   const currentLeads = getStoredLeads();
   const newLead: PatientLead = {
-    id: leadInput.id || `lead-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    id: leadInput.id || generateSecureBookingReference('VH'),
     source: leadInput.source || 'booking',
     name: leadInput.name || 'Anonymous',
     email: leadInput.email || '',
@@ -731,3 +613,129 @@ export function exportLeadsToCSV(leads: PatientLead[], clinicName: string = 'Cli
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Patient Self-Service Portal Helpers (Search, Reschedule, Cancellation)
+ * STRICT SECURITY: Access is strictly locked to the cryptographically unique Booking Reference Key
+ * or Transaction ID to prevent unauthorized access via guessing names/phones.
+ */
+export function findPatientAppointments(searchQuery: string): PatientLead[] {
+  const query = searchQuery.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  if (!query || query.length < 4) return [];
+
+  const leads = getStoredLeads();
+
+  return leads.filter((lead) => {
+    const leadIdClean = lead.id.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    const txIdClean = (lead.transactionId || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+
+    return leadIdClean === query || txIdClean === query;
+  });
+}
+
+export function requestPatientReschedule(
+  leadId: string,
+  newDate: string,
+  newTime: string,
+  notes?: string
+): { success: boolean; updatedLead?: PatientLead; message: string } {
+  const leads = getStoredLeads();
+  const targetIndex = leads.findIndex((l) => l.id === leadId);
+
+  if (targetIndex === -1) {
+    return { success: false, message: 'Appointment not found.' };
+  }
+
+  const existing = leads[targetIndex];
+  const oldDate = existing.date || 'TBD';
+  const oldTime = existing.time || 'TBD';
+
+  const updatedLead: PatientLead = {
+    ...existing,
+    date: newDate,
+    time: newTime,
+    status: 'new', // Flag as new/needs reception check
+    notes: `${existing.notes || ''}\n[RESCHEDULE REQUESTED by patient on ${new Date().toLocaleDateString()} from ${oldDate} ${oldTime} to ${newDate} ${newTime}. Note: ${notes || 'None'}]`.trim(),
+  };
+
+  leads[targetIndex] = updatedLead;
+
+  try {
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    window.dispatchEvent(new CustomEvent('leads_updated', { detail: leads }));
+
+    // Dispatch front desk notification
+    const newNotif: DispatchedNotification = {
+      id: `notif-reschedule-${Date.now()}`,
+      type: 'rescheduled',
+      recipient: 'Front Desk',
+      channel: 'sms',
+      subject: `Reschedule request from ${updatedLead.name}`,
+      message: `${updatedLead.name} requested to move appointment from ${oldDate} ${oldTime} to ${newDate} ${newTime}.`,
+      timestamp: new Date().toISOString(),
+      status: 'delivered',
+      priority: 'high',
+      read: false,
+    };
+
+    const currentNotifs = getDispatchedNotifications();
+    const updatedNotifs = [newNotif, ...currentNotifs];
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
+    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updatedNotifs }));
+  } catch {
+    // Ignore
+  }
+
+  return { success: true, updatedLead, message: 'Appointment reschedule request submitted successfully.' };
+}
+
+export function requestPatientCancellation(
+  leadId: string,
+  reason: string
+): { success: boolean; updatedLead?: PatientLead; message: string } {
+  const leads = getStoredLeads();
+  const targetIndex = leads.findIndex((l) => l.id === leadId);
+
+  if (targetIndex === -1) {
+    return { success: false, message: 'Appointment not found.' };
+  }
+
+  const existing = leads[targetIndex];
+  const updatedLead: PatientLead = {
+    ...existing,
+    status: 'cancelled',
+    cancellationReason: reason,
+    notes: `${existing.notes || ''}\n[CANCELLED by patient on ${new Date().toLocaleDateString()}: ${reason}]`.trim(),
+  };
+
+  leads[targetIndex] = updatedLead;
+
+  try {
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    window.dispatchEvent(new CustomEvent('leads_updated', { detail: leads }));
+
+    // Dispatch front desk alert
+    const newNotif: DispatchedNotification = {
+      id: `notif-cancel-${Date.now()}`,
+      type: 'status_update',
+      recipient: 'Front Desk',
+      channel: 'email',
+      subject: `Appointment Cancelled: ${updatedLead.name}`,
+      message: `${updatedLead.name} cancelled their ${existing.date || ''} ${existing.time || ''} booking. Reason: "${reason}". Slot opened.`,
+      timestamp: new Date().toISOString(),
+      status: 'delivered',
+      priority: 'high',
+      read: false,
+    };
+
+    const currentNotifs = getDispatchedNotifications();
+    const updatedNotifs = [newNotif, ...currentNotifs];
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
+    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updatedNotifs }));
+  } catch {
+    // Ignore
+  }
+
+  return { success: true, updatedLead, message: 'Appointment cancelled successfully.' };
+}
+

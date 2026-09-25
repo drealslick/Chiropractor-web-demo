@@ -25,6 +25,8 @@ import {
   Zap,
   Heart,
   Layers,
+  FileText,
+  Copy,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData, PublicTeamMember, ClinicSchedulingRules, PricingFeeItem } from '../types';
@@ -112,6 +114,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     brand: string;
     transactionId: string;
   } | null>(null);
+  const [createdBookingRefId, setCreatedBookingRefId] = useState<string>('');
+  const [copiedKey, setCopiedKey] = useState<boolean>(false);
 
   const detectedBrand = useMemo(() => {
     const clean = cardNumber.replace(/\s+/g, '');
@@ -641,7 +645,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setStep(4);
     } else {
       // Direct booking without payment
-      saveLead({
+      const saved = saveLead({
         source: 'booking',
         name: formData.name,
         phone: formData.phone,
@@ -659,6 +663,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         status: 'new',
         paymentStatus: 'unpaid',
       });
+      setCreatedBookingRefId(saved.id);
       setStep(4);
     }
   };
@@ -721,7 +726,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setConfirmedPaymentDetails(paymentDetail);
 
       // Save lead with full payment & multi-service tracking
-      saveLead({
+      const saved = saveLead({
         source: 'booking',
         name: formData.name,
         phone: formData.phone,
@@ -745,6 +750,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         transactionId: txId,
         noShowProtected: paymentChoice !== 'pay_at_clinic',
       });
+      setCreatedBookingRefId(saved.id);
 
       setStep(5);
     }, 1100);
@@ -1727,6 +1733,38 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </p>
                       </div>
 
+                      {/* Secure Clinical Reference Passkey Badge */}
+                      <div className="p-4 bg-stone-900 text-white rounded-2xl text-left space-y-2 border border-stone-800 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                            Your Unique Patient Passkey
+                          </span>
+                          <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                            Save This Key
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between bg-stone-950 p-2.5 rounded-xl border border-stone-800">
+                          <span className="font-mono font-bold text-sm sm:text-base text-white tracking-wider">
+                            {createdBookingRefId || 'VH-9428-K82X'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(createdBookingRefId || 'VH-9428-K82X');
+                              setCopiedKey(true);
+                              setTimeout(() => setCopiedKey(false), 2000);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold cursor-pointer flex items-center gap-1 transition"
+                          >
+                            {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-stone-400" />}
+                            <span>{copiedKey ? 'Copied ✓' : 'Copy Key'}</span>
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-stone-400 leading-snug">
+                          Use this unguessable reference passkey to log into your <strong>Patient Portal</strong>, print medical insurance receipts, or reschedule online.
+                        </p>
+                      </div>
+
                       {/* Payment receipt badge */}
                       {confirmedPaymentDetails && (
                         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-left space-y-1 text-xs">
@@ -1834,6 +1872,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       </div>
 
                       <div className="pt-1 flex flex-col gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const lookupVal = createdBookingRefId || 'VH-9428-K82X';
+                            resetAndClose();
+                            context.openPatientPortal(lookupVal);
+                          }}
+                          className="w-full py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-950 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-2xs"
+                        >
+                          <FileText className="w-4 h-4 text-emerald-700" />
+                          <span>View Itinerary & Insurance Receipt in Patient Portal</span>
+                        </button>
+
                         {prefilledExternalUrl ? (
                           <a
                             href={prefilledExternalUrl}

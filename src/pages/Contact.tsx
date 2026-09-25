@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
 import { useClinic } from '../data/ClinicContext';
 import { saveLead } from '../data/leadsStore';
-import { CheckCircle2, Instagram, Facebook, Globe, Youtube, Linkedin, Twitter } from 'lucide-react';
+import {
+  CheckCircle2,
+  Instagram,
+  Facebook,
+  Globe,
+  Youtube,
+  Linkedin,
+  Twitter,
+  MapPin,
+  Navigation,
+  ExternalLink,
+} from 'lucide-react';
 
 export default function Contact() {
   const { clinicData: clinic } = useClinic();
   const extra = clinic as typeof clinic & { email?: string };
-  const mapQuery = encodeURIComponent(
-    [clinic.address, clinic.cityState || clinic.city, clinic.zip].filter(Boolean).join(', ')
-  );
+  const fullAddressString = [clinic.address, clinic.cityState || clinic.city, clinic.zip]
+    .filter(Boolean)
+    .join(', ');
+  const mapQuery = encodeURIComponent(fullAddressString);
+  const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapQuery}`;
   const [sent, setSent] = useState(false);
 
   return (
@@ -134,15 +147,36 @@ export default function Contact() {
           </div>
         </div>
 
-        <div className="bg-stone-100 border border-stone-200 rounded-2xl overflow-hidden h-80 md:h-auto min-h-[300px]">
-          <iframe
-            title={`${clinic.name} location`}
-            src={`https://maps.google.com/maps?q=${mapQuery}&output=embed`}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            loading="lazy"
-          />
+        <div className="bg-stone-100 border border-stone-200 rounded-2xl overflow-hidden h-96 md:h-auto min-h-[340px] flex flex-col relative shadow-xs">
+          <div className="flex-1 relative">
+            <iframe
+              title={`${clinic.name} Google Map Location`}
+              src={`https://maps.google.com/maps?q=${mapQuery}&output=embed`}
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              className="w-full h-full min-h-[280px]"
+            />
+          </div>
+
+          <div className="p-3.5 bg-white border-t border-stone-200 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 text-xs text-stone-700">
+              <MapPin className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span className="font-semibold text-stone-900 truncate max-w-xs">{fullAddressString || clinic.name}</span>
+            </div>
+
+            <a
+              href={googleMapsDirectionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-emerald-900 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+            >
+              <Navigation className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Open in Google Maps</span>
+              <ExternalLink className="w-3 h-3 text-stone-400" />
+            </a>
+          </div>
         </div>
       </div>
 

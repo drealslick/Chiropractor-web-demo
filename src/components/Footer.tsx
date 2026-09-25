@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, MapPin, Clock, Mail, Instagram, Facebook, Globe, Youtube, Linkedin, Twitter } from 'lucide-react';
+import { Phone, MapPin, Clock, Mail, Instagram, Facebook, Globe, Youtube, Linkedin, Twitter, CalendarCheck2 } from 'lucide-react';
 import { ClinicInfo } from '../types';
+import { useClinic } from '../data/ClinicContext';
 
 interface FooterProps {
   clinic: ClinicInfo;
@@ -9,6 +10,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
+  const { openPatientPortal } = useClinic();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -175,6 +177,16 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
               <li><Link to="/first-visit" className="hover:text-white transition-colors">First Visit Guide</Link></li>
               <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing & Fees</Link></li>
               <li><Link to="/blog" className="hover:text-white transition-colors">Clinical Blog</Link></li>
+              <li className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => openPatientPortal()}
+                  className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors flex items-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <CalendarCheck2 className="w-3.5 h-3.5" />
+                  <span>Patient Portal & Receipts</span>
+                </button>
+              </li>
             </ul>
           </div>
 

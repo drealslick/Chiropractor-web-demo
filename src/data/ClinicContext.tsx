@@ -34,6 +34,11 @@ interface ClinicContextType {
     initialPractitionerId?: string
   ) => void;
   closeBookingModal: () => void;
+  // Patient Self-Service Portal State & Triggers
+  isPatientPortalOpen: boolean;
+  patientPortalInitialQuery: string;
+  openPatientPortal: (query?: string) => void;
+  closePatientPortal: () => void;
 }
 
 export const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -72,6 +77,19 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [bookingInitialServiceTitle, setBookingInitialServiceTitle] = useState<string>('Initial Consultation & Examination');
   const [bookingInitialServicePrice, setBookingInitialServicePrice] = useState<string | undefined>(undefined);
   const [bookingInitialPractitionerId, setBookingInitialPractitionerId] = useState<string | undefined>(undefined);
+
+  // Patient Self-Service Portal State
+  const [isPatientPortalOpen, setIsPatientPortalOpen] = useState<boolean>(false);
+  const [patientPortalInitialQuery, setPatientPortalInitialQuery] = useState<string>('');
+
+  const openPatientPortal = useCallback((query?: string) => {
+    setPatientPortalInitialQuery(query || '');
+    setIsPatientPortalOpen(true);
+  }, []);
+
+  const closePatientPortal = useCallback(() => {
+    setIsPatientPortalOpen(false);
+  }, []);
 
   const hasSupabase = Boolean(supabase);
 
@@ -278,6 +296,10 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       bookingInitialPractitionerId,
       openBookingModal,
       closeBookingModal,
+      isPatientPortalOpen,
+      patientPortalInitialQuery,
+      openPatientPortal,
+      closePatientPortal,
     }),
     [
       clinicData,
@@ -297,6 +319,10 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       bookingInitialPractitionerId,
       openBookingModal,
       closeBookingModal,
+      isPatientPortalOpen,
+      patientPortalInitialQuery,
+      openPatientPortal,
+      closePatientPortal,
     ]
   );
 

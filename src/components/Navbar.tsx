@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Phone, Menu, X } from 'lucide-react';
+import { Calendar, Phone, Menu, X, CalendarCheck2 } from 'lucide-react';
 import { ClinicContext } from '../data/ClinicContext';
 
 interface NavbarProps {
@@ -83,10 +83,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             <Link to="/blog" className="hover:text-stone-900 transition-colors">Blog</Link>
           )}
           <Link to="/contact" className="hover:text-stone-900 transition-colors">Contact</Link>
+          <Link
+            to="/portal"
+            className="text-emerald-800 hover:text-emerald-950 font-semibold transition-colors flex items-center gap-1"
+          >
+            <span>Patient Portal</span>
+          </Link>
         </nav>
 
         {/* Action Buttons & Mobile Toggle */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => context.openPatientPortal()}
+            className="hidden xl:inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-950 px-2.5 py-1.5 rounded-lg hover:bg-stone-200/50 transition cursor-pointer"
+            title="Lookup booking, reschedule, or view receipt"
+          >
+            <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Manage Booking</span>
+          </button>
+
           <a
             href={`tel:${clinic.phoneRaw}`}
             className="hidden lg:flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-700 hover:text-emerald-800 px-3 py-2 rounded-md hover:bg-stone-200/60 transition-all"
@@ -191,7 +207,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             Contact
           </Link>
-          <div className="pt-2 border-t border-stone-200">
+          <div className="pt-2 border-t border-stone-200 space-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                context.openPatientPortal();
+              }}
+              className="w-full flex items-center gap-2 py-2 px-3 text-sm font-semibold text-stone-800 hover:bg-stone-200/60 rounded-md transition text-left cursor-pointer"
+            >
+              <CalendarCheck2 className="w-4 h-4 text-emerald-700" />
+              <span>Manage Booking & Receipts</span>
+            </button>
             <a
               href={`tel:${clinic.phoneRaw}`}
               className="flex items-center gap-2 py-2 px-3 text-sm font-semibold text-emerald-800"

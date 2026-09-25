@@ -8,6 +8,7 @@ import { GlobalAnnouncementBanner } from './components/GlobalAnnouncementBanner'
 import { GlobalAgencyController } from './components/GlobalAgencyController';
 import { Footer } from './components/Footer';
 import { BookingModal } from './components/BookingModal';
+import { PatientPortalModal } from './components/PatientPortalModal';
 import { ScrollToTop } from './components/ScrollToTop';
 
 import Home from './pages/Home';
@@ -23,11 +24,12 @@ import Blog from './pages/Blog';
 import BlogPost from './pages/BlogPost';
 import Team from './pages/Team';
 import TeamMemberDetail from './pages/TeamMemberDetail';
+import PatientPortalPage from './pages/PatientPortalPage';
 import NotFound from './pages/NotFound';
 
 function AppShell() {
   const [, setMobileMenuOpen] = useState(false);
-  const { clinicData: clinic } = useClinic();
+  const { clinicData: clinic, isPatientPortalOpen, closePatientPortal, patientPortalInitialQuery } = useClinic();
 
   return (
     <Router>
@@ -69,6 +71,8 @@ function AppShell() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/portal" element={<PatientPortalPage />} />
+            <Route path="/patient-portal" element={<PatientPortalPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
@@ -77,6 +81,11 @@ function AppShell() {
 
         <GlobalAgencyController />
         <BookingModal />
+        <PatientPortalModal
+          isOpen={isPatientPortalOpen}
+          onClose={closePatientPortal}
+          initialQuery={patientPortalInitialQuery}
+        />
       </div>
     </Router>
   );
