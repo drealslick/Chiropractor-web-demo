@@ -410,6 +410,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
   // External Platform Sync Handlers
   const currentUrl = clinic.externalBookingUrl || '';
   const currentMode: BookingEmbedMode = clinic.bookingEmbedMode || (currentUrl ? 'iframe' : 'triage_request');
+  const isExternalSync = currentMode === 'iframe' || currentMode === 'redirect';
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const detectPlatform = (url: string): BookingPlatformPreset => {
@@ -422,6 +423,24 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
   };
 
   const detectedPlatform = detectPlatform(currentUrl);
+
+  const platformName =
+    clinic.bookingPlatformPreset === 'jane' || currentUrl.includes('janeapp.com')
+      ? 'Jane App'
+      : clinic.bookingPlatformPreset === 'cliniko' || currentUrl.includes('cliniko.com')
+      ? 'Cliniko'
+      : clinic.bookingPlatformPreset === 'calendly' || currentUrl.includes('calendly.com')
+      ? 'Calendly'
+      : clinic.bookingPlatformPreset === 'acuity' || currentUrl.includes('as.me') || currentUrl.includes('acuityscheduling.com')
+      ? 'Acuity Scheduling'
+      : 'Jane App';
+
+  // Automatically switch away from Availability Rules or Practitioner Mapping if External Sync is enabled
+  useEffect(() => {
+    if (isExternalSync && (activeSubTab === 'rules' || activeSubTab === 'practitioners')) {
+      setActiveSubTab('calendar');
+    }
+  }, [isExternalSync, activeSubTab]);
 
   const handleUrlChange = (newUrl: string) => {
     updateClinic({
@@ -464,34 +483,61 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Full-Stack Booking & EHR Management Engine</span>
+              <span>
+                {isExternalSync
+                  ? `Mode 2: External Sync Active • ${platformName}`
+                  : 'Mode 1: On-Site Triage • Full Practice Engine'}
+              </span>
             </div>
             <h3 className="text-xl sm:text-2xl font-serif font-bold text-stone-900">
-              Reception Desk & Scheduling Center
+              {isExternalSync ? `Booking Managed by ${platformName}` : 'Reception Desk & Scheduling Center'}
             </h3>
             <p className="text-xs sm:text-sm text-stone-600 max-w-2xl leading-relaxed">
-              Manage live appointment requests, customize working hours & buffer times, map conditions to doctors, and automate patient confirmations.
+              {isExternalSync
+                ? `Patient bookings and doctor schedules are managed inside ${platformName}. Internal calendars and availability rules are hidden to eliminate double-booking confusion.`
+                : 'Manage live appointment requests, customize working hours & buffer times, map conditions to doctors, and automate patient confirmations.'}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsAddBookingOpen(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-sm transition active:scale-[0.99] cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>+ New Walk-in / Phone Booking</span>
-            </button>
+            {!isExternalSync ? (
+              <button
+                type="button"
+                onClick={() => setIsAddBookingOpen(true)}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-sm transition active:scale-[0.99] cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ New Walk-in / Phone Booking</span>
+              </button>
+            ) : (
+              <a
+                href={currentUrl || 'https://demo.janeapp.com'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-sm transition active:scale-[0.99] cursor-pointer"
+              >
+                <span>Open {platformName === 'Jane App' ? 'Jane' : platformName} Dashboard →</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
           </div>
         </div>
 
-        {/* Sub-tab Navigation */}
+        {/* Sub-tab Navigation (Availability Rules and Practitioner Mapping are hidden when in External Sync mode) */}
         <div className="flex items-center gap-1.5 mt-5 pt-4 border-t border-stone-200 overflow-x-auto">
           {[
-            { id: 'calendar', label: 'Admin Calendar & Requests', icon: CalendarIcon, count: leads.filter(l => l.source === 'booking' && l.status === 'new').length },
-            { id: 'rules', label: 'Availability & Scheduling Rules', icon: Clock },
-            { id: 'practitioners', label: 'Practitioner Mapping', icon: Users },
+            {
+              id: 'calendar',
+              label: isExternalSync ? 'Direct Launch Card' : 'Admin Calendar & Requests',
+              icon: CalendarIcon,
+              count: isExternalSync ? 0 : leads.filter((l) => l.source === 'booking' && l.status === 'new').length,
+            },
+            ...(isExternalSync
+              ? []
+              : [
+                  { id: 'rules', label: 'Availability & Scheduling Rules', icon: Clock },
+                  { id: 'practitioners', label: 'Practitioner Mapping', icon: Users },
+                ]),
             { id: 'crm', label: 'Notifications & CRM Automation', icon: Bell, count: notifications.length },
             { id: 'integrations', label: 'External EHR / Iframe Sync', icon: Link2 },
           ].map((tab) => {
@@ -511,9 +557,11 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-stone-500'}`} />
                 <span>{tab.label}</span>
                 {Boolean(tab.count && tab.count > 0) && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                    isActive ? 'bg-emerald-500 text-stone-950' : 'bg-emerald-100 text-emerald-800'
-                  }`}>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      isActive ? 'bg-emerald-500 text-stone-950' : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
                     {tab.count}
                   </span>
                 )}
@@ -526,8 +574,76 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
       {/* TAB 1: ADMIN CALENDAR & REQUESTS */}
       {activeSubTab === 'calendar' && (
         <div className="space-y-4">
-          {/* Calendar View Switcher (Day View Columns vs Month Grid) & Waitlist Action */}
-          <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+          {isExternalSync ? (
+            /* Direct Launch Card for External Sync (Jane App / Cliniko / Calendly) */
+            <div className="bg-gradient-to-br from-stone-900 to-stone-950 border border-emerald-500/40 rounded-2xl p-6 sm:p-8 text-stone-100 relative overflow-hidden shadow-lg space-y-6">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/80 text-xs font-bold uppercase tracking-wider">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>External EHR Active • {platformName}</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-serif font-bold text-white">
+                    Your booking is managed by {platformName}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-stone-300 max-w-2xl leading-relaxed">
+                    Patient calendar scheduling, appointment times, practitioner hours, and clinical intake are handled directly inside your {platformName} workspace. Internal calendar views, Availability Rules, and Practitioner Mapping are hidden to keep your admin panel clean.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+                  <a
+                    href={currentUrl || 'https://demo.janeapp.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm inline-flex items-center justify-center gap-2 shadow-md transition active:scale-[0.99] cursor-pointer"
+                  >
+                    <span>Open {platformName === 'Jane App' ? 'Jane' : platformName} Dashboard →</span>
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab('integrations')}
+                    className="px-4 py-3 rounded-xl bg-stone-850 hover:bg-stone-800 text-stone-200 border border-stone-700 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Sync Settings
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-stone-950/80 border border-stone-800 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                    Website Contact Inquiries
+                  </span>
+                  <p className="text-stone-300 leading-relaxed">
+                    Even when patients schedule appointments on {platformName}, prospective patients still ask questions through your website form (e.g. &ldquo;Do you take my insurance?&rdquo; or &ldquo;Do you treat sciatica?&rdquo;). Those general inquiries go straight to your receptionist&apos;s <strong>Patient Inquiries</strong> inbox.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
+                    Connected EHR Portal
+                  </span>
+                  <span className="font-mono text-emerald-400 break-all select-all block">
+                    {currentUrl || 'https://demo.janeapp.com'}
+                  </span>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleModeChange('triage_request')}
+                      className="text-xs text-stone-400 hover:text-white underline cursor-pointer"
+                    >
+                      Want to run practice triage on this website? Switch to Mode 1 (On-Site Triage)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* Calendar View Switcher (Day View Columns vs Month Grid) & Waitlist Action */}
+              <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl">
               <button
                 type="button"
@@ -932,10 +1048,12 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
               )}
             </div>
           </div>
-            </div>
-          )}
         </div>
       )}
+    </div>
+  )}
+</div>
+)}
 
       {/* TAB 2: AVAILABILITY & SCHEDULING RULES */}
       {activeSubTab === 'rules' && (

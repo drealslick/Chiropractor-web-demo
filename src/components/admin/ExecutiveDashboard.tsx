@@ -19,10 +19,12 @@ import {
   TrendingUp,
   Settings2,
   Check,
+  Link2,
 } from 'lucide-react';
 import { ClinicInfo, UserRole } from '../../types';
 import { getStoredLeads, saveLead, PatientLead } from '../../data/leadsStore';
 import { resolvePalette } from '../../data/colorPalettes';
+import { BookingEngineManager } from './BookingEngineManager';
 
 interface ExecutiveDashboardProps {
   clinic: ClinicInfo;
@@ -74,6 +76,19 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
   const newLeadsCount = leads.filter((l) => l.status === 'new').length;
   const currentPalette = resolvePalette(clinic.colorPalette);
+
+  const isExternalSync = clinic.bookingEmbedMode === 'iframe' || clinic.bookingEmbedMode === 'redirect';
+  const externalUrl = clinic.externalBookingUrl || 'https://demo.janeapp.com';
+  const platformName =
+    clinic.bookingPlatformPreset === 'jane' || externalUrl.includes('janeapp.com')
+      ? 'Jane App'
+      : clinic.bookingPlatformPreset === 'cliniko' || externalUrl.includes('cliniko.com')
+      ? 'Cliniko'
+      : clinic.bookingPlatformPreset === 'calendly' || externalUrl.includes('calendly.com')
+      ? 'Calendly'
+      : clinic.bookingPlatformPreset === 'acuity' || externalUrl.includes('as.me') || externalUrl.includes('acuityscheduling.com')
+      ? 'Acuity Scheduling'
+      : 'Jane App';
 
   // Practice Setup & Health Calculation (Admin only)
   const checks = [
@@ -153,12 +168,18 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-base text-white">Today at a Glance</h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-800/80">
-                    Front Desk Active
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    isExternalSync
+                      ? 'bg-sky-950 text-sky-300 border border-sky-800'
+                      : 'bg-emerald-950 text-emerald-300 border border-emerald-800/80'
+                  }`}>
+                    {isExternalSync ? `External Sync • ${platformName}` : 'Front Desk Active • On-Site Triage'}
                   </span>
                 </div>
                 <p className="text-xs text-stone-400 mt-0.5">
-                  Today's live schedule, waiting room, and incoming patient triage for {clinic.name || 'our practice'}.
+                  {isExternalSync
+                    ? `Patient bookings and doctor schedules are managed in ${platformName}. General website inquiries appear in your inbox.`
+                    : `Today's live schedule, waiting room, and incoming patient triage for ${clinic.name || 'our practice'}.`}
                 </p>
               </div>
             </div>
@@ -170,108 +191,180 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             </div>
           </div>
 
-          {/* 4 Reception Default Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Card 1: Pending Requests */}
-            <button
-              type="button"
-              onClick={() => onNavigateTab('leads')}
-              className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between text-stone-400 mb-1.5">
-                <span className="text-xs font-semibold text-stone-300 group-hover:text-amber-400">
-                  Pending Requests
-                </span>
-                <Inbox className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-serif font-bold text-white tabular-nums">
-                  {pendingCount}
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500 text-stone-950">
-                  +1 new
-                </span>
-              </div>
-              <div className="text-[11px] text-stone-400 mt-1 truncate">
-                Click to open CRM inbox
-              </div>
-            </button>
+          {/* DYNAMIC STAFF CARDS BASED ON MODE */}
+          {isExternalSync ? (
+            /* Mode 2: External Sync (Jane App / Cliniko / Calendly) */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Card 1: General Patient Inquiries */}
+              <button
+                type="button"
+                onClick={() => onNavigateTab('leads')}
+                className="p-4 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/50 rounded-2xl text-left transition cursor-pointer group relative overflow-hidden flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-stone-400 mb-2">
+                    <span className="text-xs font-bold text-stone-200 group-hover:text-amber-400 flex items-center gap-2">
+                      <Inbox className="w-4 h-4 text-amber-400" />
+                      <span>General Patient Inquiries</span>
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-stone-950">
+                      {pendingCount} Pending
+                    </span>
+                  </div>
+                  <div className="text-2xl font-serif font-bold text-white tabular-nums mb-1">
+                    {pendingCount}
+                  </div>
+                  <p className="text-xs text-stone-400 leading-relaxed">
+                    Patient questions submitted via Contact Us form (insurance coverage, conditions, examination fees).
+                  </p>
+                </div>
+                <div className="mt-4 pt-2.5 border-t border-stone-800/80 flex items-center justify-between text-xs text-amber-400 font-semibold">
+                  <span>Open Inquiries Inbox</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
 
-            {/* Card 2: Appointments Today -> Takes to Day View */}
-            <button
-              type="button"
-              onClick={() => onNavigateTab('booking')}
-              className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between text-stone-400 mb-1.5">
-                <span className="text-xs font-semibold text-stone-300 group-hover:text-emerald-400">
-                  Appointments Today
-                </span>
-                <Calendar className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-serif font-bold text-emerald-300 tabular-nums">
-                  {todayCount}
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700">
-                  Day View →
-                </span>
-              </div>
-              <div className="text-[11px] text-stone-400 mt-1 truncate">
-                Click to view doctor columns
-              </div>
-            </button>
+              {/* Card 2: The Direct Launch Card */}
+              <div className="p-4 bg-gradient-to-br from-stone-850 to-stone-900 border border-emerald-500/40 rounded-2xl flex flex-col justify-between shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>EHR Management Active</span>
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700">
+                      🟢 Connected
+                    </span>
+                  </div>
+                  <h4 className="text-base font-bold text-white mb-1">
+                    Your booking is managed by {platformName}
+                  </h4>
+                  <p className="text-xs text-stone-300 leading-relaxed">
+                    Patient calendar scheduling, appointment times, and clinical intake are synchronized directly through your {platformName} workspace.
+                  </p>
+                </div>
 
-            {/* Card 3: Unconfirmed Appointments -> Needs a call */}
-            <button
-              type="button"
-              onClick={() => onNavigateTab('booking')}
-              className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between text-stone-400 mb-1.5">
-                <span className="text-xs font-semibold text-stone-300 group-hover:text-amber-400">
-                  Unconfirmed
-                </span>
-                <AlertCircle className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-serif font-bold text-amber-300 tabular-nums">
-                  {unconfirmedCount}
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  Needs a call
-                </span>
-              </div>
-              <div className="text-[11px] text-stone-400 mt-1 truncate">
-                Click to review patient phones
-              </div>
-            </button>
+                <div className="mt-4 pt-3 border-t border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <a
+                    href={externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center justify-center gap-2 shadow-sm transition active:scale-[0.99] cursor-pointer"
+                  >
+                    <span>Open {platformName === 'Jane App' ? 'Jane' : platformName} Dashboard →</span>
+                  </a>
 
-            {/* Card 4: Checked-in Patient -> Waiting for doctor */}
-            <button
-              type="button"
-              onClick={() => onNavigateTab('booking')}
-              className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between text-stone-400 mb-1.5">
-                <span className="text-xs font-semibold text-stone-300 group-hover:text-emerald-400">
-                  Checked-in Patient
-                </span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-[11px] text-stone-400 font-mono truncate max-w-[200px]" title={externalUrl}>
+                    {externalUrl}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-serif font-bold text-emerald-400 tabular-nums">
-                  {checkedInCount}
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-stone-950">
-                  In Waiting Room
-                </span>
-              </div>
-              <div className="text-[11px] text-stone-400 mt-1 truncate">
-                Waiting for the doctor
-              </div>
-            </button>
-          </div>
+            </div>
+          ) : (
+            /* Mode 1: On-Site Triage (4 Reception Default Cards) */
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Card 1: Pending Requests */}
+              <button
+                type="button"
+                onClick={() => onNavigateTab('leads')}
+                className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between text-stone-400 mb-1.5">
+                  <span className="text-xs font-semibold text-stone-300 group-hover:text-amber-400">
+                    Pending Requests
+                  </span>
+                  <Inbox className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-serif font-bold text-white tabular-nums">
+                    {pendingCount}
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500 text-stone-950">
+                    +1 new
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-400 mt-1 truncate">
+                  Click to open CRM inbox
+                </div>
+              </button>
+
+              {/* Card 2: Appointments Today -> Takes to Day View */}
+              <button
+                type="button"
+                onClick={() => onNavigateTab('booking')}
+                className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between text-stone-400 mb-1.5">
+                  <span className="text-xs font-semibold text-stone-300 group-hover:text-emerald-400">
+                    Appointments Today
+                  </span>
+                  <Calendar className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-serif font-bold text-emerald-300 tabular-nums">
+                    {todayCount}
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    Day View →
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-400 mt-1 truncate">
+                  Click to view doctor columns
+                </div>
+              </button>
+
+              {/* Card 3: Unconfirmed Appointments -> Needs a call */}
+              <button
+                type="button"
+                onClick={() => onNavigateTab('booking')}
+                className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between text-stone-400 mb-1.5">
+                  <span className="text-xs font-semibold text-stone-300 group-hover:text-amber-400">
+                    Unconfirmed
+                  </span>
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-serif font-bold text-amber-300 tabular-nums">
+                    {unconfirmedCount}
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    Needs a call
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-400 mt-1 truncate">
+                  Click to review patient phones
+                </div>
+              </button>
+
+              {/* Card 4: Checked-in Patient -> Waiting for doctor */}
+              <button
+                type="button"
+                onClick={() => onNavigateTab('booking')}
+                className="p-3.5 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/50 rounded-xl text-left transition cursor-pointer group relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between text-stone-400 mb-1.5">
+                  <span className="text-xs font-semibold text-stone-300 group-hover:text-emerald-400">
+                    Checked-in Patient
+                  </span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-serif font-bold text-emerald-400 tabular-nums">
+                    {checkedInCount}
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-stone-950">
+                    In Waiting Room
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-400 mt-1 truncate">
+                  Waiting for the doctor
+                </div>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions Menu (Operational Controls: Banner & Booking Mode) */}
@@ -304,23 +397,42 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           {quickActionsOpen && (
             <div className="p-4 pt-1 border-t border-stone-800 space-y-3 bg-stone-950/40 animate-fade-in">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-                {/* Quick Action 1: Open Day Schedule */}
-                <button
-                  type="button"
-                  onClick={() => onNavigateTab('booking')}
-                  className="p-3 rounded-xl bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/40 text-left flex items-center justify-between transition cursor-pointer"
-                >
-                  <div>
-                    <div className="font-bold text-xs flex items-center gap-1.5 text-stone-200">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Open Day Calendar</span>
+                {/* Quick Action 1: Calendar or Inbox */}
+                {!isExternalSync ? (
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('booking')}
+                    className="p-3 rounded-xl bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/40 text-left flex items-center justify-between transition cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-bold text-xs flex items-center gap-1.5 text-stone-200">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Open Day Calendar</span>
+                      </div>
+                      <div className="text-[11px] text-stone-400 mt-0.5">
+                        View vertical doctor columns & drag-and-drop slots.
+                      </div>
                     </div>
-                    <div className="text-[11px] text-stone-400 mt-0.5">
-                      View vertical doctor columns & drag-and-drop slots.
+                    <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('leads')}
+                    className="p-3 rounded-xl bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-amber-500/40 text-left flex items-center justify-between transition cursor-pointer"
+                  >
+                    <div>
+                      <div className="font-bold text-xs flex items-center gap-1.5 text-stone-200">
+                        <Inbox className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Open Patient Inquiries</span>
+                      </div>
+                      <div className="text-[11px] text-stone-400 mt-0.5">
+                        Review website contact messages & questions.
+                      </div>
                     </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
-                </button>
+                    <ArrowRight className="w-4 h-4 text-stone-500 shrink-0" />
+                  </button>
+                )}
 
                 {/* Quick Action 2: Toggle Announcement Banner */}
                 <button
@@ -346,22 +458,32 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   />
                 </button>
 
-                {/* Quick Action 3: Switch Booking Embed Mode */}
+                {/* Quick Action 3: Switch Booking Engine Mode */}
                 <button
                   type="button"
-                  onClick={handleToggleBookingMode}
+                  onClick={() => {
+                    const nextMode = isExternalSync ? 'triage_request' : 'iframe';
+                    onUpdateClinic({
+                      ...clinic,
+                      bookingEmbedMode: nextMode,
+                      externalBookingUrl: clinic.externalBookingUrl || 'https://demo.janeapp.com',
+                      bookingPlatformPreset: clinic.bookingPlatformPreset || 'jane',
+                    });
+                  }}
                   className="p-3 rounded-xl bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-stone-700 text-left flex items-center justify-between transition cursor-pointer"
                 >
                   <div>
                     <div className="font-bold text-xs flex items-center gap-1.5 text-stone-200">
                       <RotateCcw className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Toggle Booking Mode</span>
+                      <span>Switch Booking Engine</span>
                     </div>
-                    <div className="text-[11px] text-stone-400 mt-0.5 capitalize">
-                      Current: {clinic.bookingEmbedMode === 'iframe' ? 'Embedded Modal' : clinic.bookingEmbedMode === 'redirect' ? 'Direct Redirect' : '3-Step Form'}
+                    <div className="text-[11px] text-stone-400 mt-0.5">
+                      Current: {isExternalSync ? `Mode 2 (${platformName})` : 'Mode 1 (On-Site Triage)'}
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-stone-500">Switch</span>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                    {isExternalSync ? 'Switch to Mode 1' : 'Switch to Mode 2'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -523,6 +645,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Booking Engine Architecture Selector (Adapts Admin Panel & Reception Dashboard) */}
+      <BookingEngineManager
+        clinic={clinic}
+        onUpdateClinic={onUpdateClinic}
+        onNavigateTab={onNavigateTab}
+      />
 
       {/* Quick Operational Controls */}
       <div className="space-y-3">

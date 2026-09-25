@@ -74,6 +74,7 @@ import { AboutManager } from './admin/AboutManager';
 import { OurTeamManager } from './admin/OurTeamManager';
 import { PresetBackupManager } from './admin/PresetBackupManager';
 import { NotificationHub } from './admin/NotificationHub';
+import { BookingEngineManager } from './admin/BookingEngineManager';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -176,6 +177,8 @@ export function AgencyWorkspace({
   const bgVal = clinic.customBgColor || currentPalette.preview.bg;
   const textVal = clinic.customTextColor || currentPalette.variables['--theme-text'] || '#1C1917';
 
+  const isExternalSync = clinic.bookingEmbedMode === 'iframe' || clinic.bookingEmbedMode === 'redirect';
+
   // Navigation Groups Definition with Page-First Architecture & Role-Based Access Control Filtering
   const allNavGroups = [
     {
@@ -187,7 +190,7 @@ export function AgencyWorkspace({
         { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: clinic.isProductionMode ? 'Live' : 'Demo' },
         { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles, minRole: 'admin' as UserRole },
         { id: 'leads' as AdminTabId, label: 'Patient Inquiries', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
-        { id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar },
+        ...(!isExternalSync ? [{ id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar }] : []),
       ],
     },
     {
@@ -250,6 +253,7 @@ export function AgencyWorkspace({
       minRole: 'admin' as UserRole,
       collapsible: true,
       items: [
+        ...(isExternalSync ? [{ id: 'booking' as AdminTabId, label: 'Booking Engine & Sync', icon: Sliders, minRole: 'admin' as UserRole }] : []),
         { id: 'clinic_info' as AdminTabId, label: 'Clinic Information', icon: Building2 },
         { id: 'seo' as AdminTabId, label: 'SEO & Meta Tags', icon: Globe },
         { id: 'announcement' as AdminTabId, label: 'Announcement Alert', icon: Bell },
@@ -568,7 +572,7 @@ export function AgencyWorkspace({
 
             {/* 2. SETUP CHECKLIST */}
             {activeTab === 'checklist' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center justify-between pb-3 border-b border-stone-800">
                   <div>
                     <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
@@ -576,10 +580,21 @@ export function AgencyWorkspace({
                       <span>Practice Setup & Launch Checklist</span>
                     </h3>
                     <p className="text-xs text-stone-400 mt-0.5">
-                      Verify key clinical details, contact channels, and conversion settings before launching.
+                      Choose your Booking Engine architecture (On-Site Triage vs. Jane/Cliniko/Calendly) and audit key practice launch settings.
                     </p>
                   </div>
                 </div>
+                {/* Core Onboarding Setup: Choose Booking Engine Architecture */}
+                <BookingEngineManager
+                  clinic={clinic}
+                  onUpdateClinic={onUpdateClinic}
+                  onNavigateTab={(tab) => {
+                    if (tab === 'leads') setActiveTab('leads');
+                    else if (tab === 'booking') setActiveTab('booking');
+                    else if (tab === 'setup') setActiveTab('checklist');
+                    else setActiveTab('overview');
+                  }}
+                />
                 <PracticeAudit clinic={clinic} hasSupabase={hasSupabase} syncStatus={syncStatus} />
               </div>
             )}
