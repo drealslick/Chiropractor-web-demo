@@ -1,5 +1,7 @@
 import { ColorPaletteId } from './data/colorPalettes';
 
+export type UserRole = 'admin' | 'editor' | 'staff';
+
 export interface BookingFormData {
   fullName?: string;
   name: string;

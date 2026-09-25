@@ -73,7 +73,8 @@ import { FirstVisitManager } from './admin/FirstVisitManager';
 import { AboutManager } from './admin/AboutManager';
 import { OurTeamManager } from './admin/OurTeamManager';
 import { PresetBackupManager } from './admin/PresetBackupManager';
-import { getStoredLeads } from '../data/leadsStore';
+import { NotificationHub } from './admin/NotificationHub';
+import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
   isOpen: boolean;
@@ -139,6 +140,7 @@ export function AgencyWorkspace({
   const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
+  const [selectedLeadToSchedule, setSelectedLeadToSchedule] = useState<PatientLead | null>(null);
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
   const [socialPlatformPreview, setSocialPlatformPreview] = useState<'imessage' | 'twitter' | 'facebook'>('imessage');
@@ -183,7 +185,7 @@ export function AgencyWorkspace({
       collapsible: false,
       items: [
         { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: clinic.isProductionMode ? 'Live' : 'Demo' },
-        { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles },
+        { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles, minRole: 'admin' as UserRole },
         { id: 'leads' as AdminTabId, label: 'Patient Inquiries', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
         { id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar },
       ],
@@ -281,16 +283,23 @@ export function AgencyWorkspace({
     setOpenAccordion((prev) => (prev === groupName ? '' : groupName));
   };
 
-  // Filter navigation groups based on active role preview
-  const navGroups = allNavGroups.filter((g) => {
-    if (activeRolePreview === 'staff') {
-      return g.minRole === 'staff';
-    }
-    if (activeRolePreview === 'editor') {
-      return g.minRole === 'staff' || g.minRole === 'editor';
-    }
-    return true; // admin sees everything
-  });
+  // Filter navigation groups and individual items based on active role preview
+  const roleRank: Record<UserRole, number> = { staff: 1, editor: 2, admin: 3 };
+  const userRank = roleRank[activeRolePreview] || 3;
+
+  const navGroups = allNavGroups
+    .filter((g) => {
+      const groupMinRank = roleRank[g.minRole || 'staff'] || 1;
+      return userRank >= groupMinRank;
+    })
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((item: any) => {
+        const itemMinRank = item.minRole ? roleRank[item.minRole as UserRole] : 1;
+        return userRank >= itemMinRank;
+      }),
+    }))
+    .filter((g) => g.items.length > 0);
 
   // Flat array of accessible tab IDs for quick lookup
   const accessibleTabIds = navGroups.flatMap((g) => g.items.map((i) => i.id));
@@ -347,6 +356,15 @@ export function AgencyWorkspace({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Reception Notification Hub (Top Bar Bell & Alerts Dropdown) */}
+            <NotificationHub
+              onNavigateTab={(tab) => {
+                if (tab === 'leads') setActiveTab('leads');
+                else if (tab === 'booking') setActiveTab('booking');
+                else if (tab === 'setup') setActiveTab('checklist');
+              }}
+            />
+
             {/* Quick Role Preview Switcher */}
             <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
               <span className="text-[10px] uppercase font-bold text-stone-400">Role:</span>
@@ -544,6 +562,7 @@ export function AgencyWorkspace({
                 }}
                 hasSupabase={hasSupabase}
                 syncStatus={syncStatus}
+                role={activeRolePreview}
               />
             )}
 
@@ -567,12 +586,23 @@ export function AgencyWorkspace({
 
             {/* 3. PATIENT LEADS */}
             {activeTab === 'leads' && (
-              <LeadsInbox clinicName={clinic.name || 'Clinic'} />
+              <LeadsInbox
+                clinicName={clinic.name || 'Clinic'}
+                role={activeRolePreview}
+                onAssignToCalendar={(lead) => {
+                  setSelectedLeadToSchedule(lead);
+                  setActiveTab('booking');
+                }}
+              />
             )}
 
             {/* 4. BOOKING & EHR */}
             {activeTab === 'booking' && (
-              <BookingSettings />
+              <BookingSettings
+                role={activeRolePreview}
+                assignedLead={selectedLeadToSchedule}
+                onClearAssignedLead={() => setSelectedLeadToSchedule(null)}
+              />
             )}
 
             {/* 5. HEADLINES & COPY (Plain English, Helper Texts, Live Preview) */}

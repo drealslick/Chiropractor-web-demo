@@ -43,6 +43,7 @@ import {
   DayWorkingHours,
   PractitionerSchedulingOverride,
   PublicTeamMember,
+  UserRole,
 } from '../../types';
 import { defaultSchedulingRules } from '../../data/clinicData';
 import { defaultPublicTeamMembers } from '../../data/defaultTeamData';
@@ -58,6 +59,8 @@ import {
   clearDispatchedNotifications,
   DispatchedNotification,
 } from '../../data/leadsStore';
+import { ReceptionDayView } from './ReceptionDayView';
+import { WaitlistDrawer } from './WaitlistDrawer';
 
 interface PlatformPresetItem {
   id: BookingPlatformPreset;
@@ -113,7 +116,19 @@ const PLATFORM_PRESETS: PlatformPresetItem[] = [
 
 type ManagerSubTab = 'calendar' | 'rules' | 'practitioners' | 'crm' | 'integrations';
 
-export const BookingSettings: React.FC = () => {
+interface BookingSettingsProps {
+  role?: UserRole;
+  initialCalendarMode?: 'day' | 'month';
+  assignedLead?: PatientLead | null;
+  onClearAssignedLead?: () => void;
+}
+
+export const BookingSettings: React.FC<BookingSettingsProps> = ({
+  role = 'admin',
+  initialCalendarMode,
+  assignedLead,
+  onClearAssignedLead,
+}) => {
   const { clinicData: clinic, updateClinic } = useClinic();
   const [activeSubTab, setActiveSubTab] = useState<ManagerSubTab>('calendar');
 
@@ -121,7 +136,13 @@ export const BookingSettings: React.FC = () => {
   const [leads, setLeads] = useState<PatientLead[]>(getStoredLeads);
   const [notifications, setNotifications] = useState<DispatchedNotification[]>(getDispatchedNotifications);
 
-  // Calendar View State
+  // Calendar View State: Default to 'day' view for staff, or based on initial mode
+  const [calendarMode, setCalendarMode] = useState<'day' | 'month'>(() => {
+    if (role === 'staff') return 'day';
+    return initialCalendarMode || 'day';
+  });
+  const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+
   const [selectedMonth, setSelectedMonth] = useState<Date>(() => new Date());
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>(''); // YYYY-MM-DD
   const [doctorFilter, setDoctorFilter] = useState<string>('all');
@@ -183,6 +204,27 @@ export const BookingSettings: React.FC = () => {
       ? clinic.publicTeamMembers.filter((m) => m.showOnWebsite !== false)
       : defaultPublicTeamMembers;
   }, [clinic.publicTeamMembers]);
+
+  // Handle incoming lead assignment from Patient Inquiries or Waitlist
+  useEffect(() => {
+    if (assignedLead) {
+      setCalendarMode('day');
+      setNewBookingData({
+        name: assignedLead.name,
+        phone: assignedLead.phone,
+        email: assignedLead.email || '',
+        condition: assignedLead.condition || 'General Consultation',
+        practitionerName: assignedLead.practitionerName || practitioners[0]?.name || 'Dr. Alistair Vance',
+        date: assignedLead.date || new Date().toISOString().split('T')[0],
+        time: assignedLead.time || '10:00 AM',
+        notes: assignedLead.notes || `Scheduled from patient inquiry.`,
+      });
+      setIsAddBookingOpen(true);
+      if (onClearAssignedLead) {
+        onClearAssignedLead();
+      }
+    }
+  }, [assignedLead, practitioners, onClearAssignedLead]);
 
   // Update scheduling rules in clinic data
   const handleUpdateRules = (updatedRules: ClinicSchedulingRules) => {
@@ -483,9 +525,71 @@ export const BookingSettings: React.FC = () => {
 
       {/* TAB 1: ADMIN CALENDAR & REQUESTS */}
       {activeSubTab === 'calendar' && (
-        <div className="space-y-6">
-          {/* Controls Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="space-y-4">
+          {/* Calendar View Switcher (Day View Columns vs Month Grid) & Waitlist Action */}
+          <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setCalendarMode('day')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  calendarMode === 'day'
+                    ? 'bg-stone-900 text-white shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <CalendarIcon className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Day View (Doctor Columns)</span>
+                {role === 'staff' && (
+                  <span className="text-[10px] px-1.5 py-0.2 bg-emerald-950 text-emerald-300 rounded-full font-mono">
+                    Staff
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarMode('month')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  calendarMode === 'month'
+                    ? 'bg-stone-900 text-white shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Month Grid & List</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsWaitlistOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <span>Waitlist Queue</span>
+                {leads.filter((l) => l.status === 'waitlist').length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-stone-950 text-[10px] font-black">
+                    {leads.filter((l) => l.status === 'waitlist').length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {calendarMode === 'day' ? (
+            <ReceptionDayView
+              leads={leads}
+              practitioners={practitioners}
+              clinicName={clinic.name || 'Clinic'}
+              onOpenNewBookingModal={() => setIsAddBookingOpen(true)}
+              onOpenWaitlistModal={() => setIsWaitlistOpen(true)}
+              waitlistCount={leads.filter((l) => l.status === 'waitlist').length}
+            />
+          ) : (
+            <div className="space-y-6">
+              {/* Controls Bar */}
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search */}
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -828,6 +932,8 @@ export const BookingSettings: React.FC = () => {
               )}
             </div>
           </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1980,6 +2086,28 @@ export const BookingSettings: React.FC = () => {
           </form>
         </div>
       )}
+
+      {/* Patient Cancellation Waitlist Drawer */}
+      <WaitlistDrawer
+        isOpen={isWaitlistOpen}
+        onClose={() => setIsWaitlistOpen(false)}
+        leads={leads}
+        clinicName={clinic.name || 'Clinic'}
+        onAssignToCalendar={(patient) => {
+          setCalendarMode('day');
+          setNewBookingData({
+            name: patient.name,
+            phone: patient.phone,
+            email: patient.email || '',
+            condition: patient.condition || 'Cancellation opening fill',
+            practitionerName: patient.practitionerName || practitioners[0]?.name || 'Dr. Alistair Vance',
+            date: new Date().toISOString().split('T')[0],
+            time: '3:00 PM',
+            notes: `Waitlist slot offer: ${patient.notes || ''}`,
+          });
+          setIsAddBookingOpen(true);
+        }}
+      />
     </div>
   );
 };

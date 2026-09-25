@@ -14,9 +14,10 @@ export interface PatientLead {
   durationMinutes?: number;
   notes?: string;
   createdAt: string;
-  status: 'new' | 'contacted' | 'booked' | 'confirmed' | 'cancelled' | 'archived';
+  status: 'new' | 'contacted' | 'booked' | 'confirmed' | 'cancelled' | 'archived' | 'checked_in' | 'waitlist';
   clinicName?: string;
   cancellationReason?: string;
+  preferredTimeWindow?: string;
 }
 
 export interface DispatchedNotification {
@@ -28,28 +29,321 @@ export interface DispatchedNotification {
   message: string;
   timestamp: string;
   status: 'delivered' | 'simulated';
+  read?: boolean;
+  priority?: 'high' | 'medium' | 'info';
 }
 
 const LEADS_STORAGE_KEY = 'agency_patient_leads_v1';
 const NOTIFICATIONS_STORAGE_KEY = 'agency_dispatched_notifications_v1';
 
+export function getDefaultSeedLeads(): PatientLead[] {
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const inThreeDays = new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0];
+
+  return [
+    // 3 Pending Online Requests
+    {
+      id: 'lead-pending-1',
+      source: 'booking',
+      name: 'John Doe',
+      email: 'johndoe@example.com',
+      phone: '(303) 555-0199',
+      condition: 'Lower Back & Sciatica Pain',
+      practitionerName: 'Dr. Alistair Vance',
+      date: tomorrow,
+      time: '12:00 PM',
+      durationMinutes: 45,
+      notes: 'Initial Consultation ($49). Has sharp lumbar pain radiating to left leg for 3 weeks.',
+      createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(), // 18m ago
+      status: 'new',
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'lead-pending-2',
+      source: 'booking',
+      name: 'John Dow',
+      email: 'johndow@example.com',
+      phone: '(303) 555-0142',
+      condition: 'Desk Posture & Neck Stiffness',
+      practitionerName: 'Dr. Elena Rostova',
+      date: inThreeDays,
+      time: '1:45 PM',
+      durationMinutes: 45,
+      notes: 'Requested: Initial Consultation ($49). Chronic tension headaches by 3 PM daily.',
+      createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(), // 55m ago
+      status: 'new',
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'lead-pending-3',
+      source: 'contact',
+      name: 'Sarah Jenkins',
+      email: 'sarah.jenkins@example.com',
+      phone: '(303) 555-0188',
+      condition: 'Sciatica / Disc Bulge Question',
+      practitionerName: 'Dr. Alistair Vance',
+      date: tomorrow,
+      time: '3:00 PM',
+      durationMinutes: 45,
+      notes: 'Requested callback about insurance coverage (Aetna PPO) prior to initial exam.',
+      createdAt: new Date(Date.now() - 1000 * 60 * 140).toISOString(), // 2.3h ago
+      status: 'new',
+      clinicName: 'Denver Family Chiropractic',
+    },
+
+    // 8 Appointments Scheduled for Today
+    {
+      id: 'appt-today-1',
+      source: 'booking',
+      name: 'Michael Thorne',
+      email: 'm.thorne@example.com',
+      phone: '(303) 555-0112',
+      condition: 'Spinal Decompression Follow-up',
+      practitionerName: 'Dr. Alistair Vance',
+      date: today,
+      time: '9:00 AM',
+      durationMinutes: 30,
+      notes: 'Visit 4 of 6. Lumbar decompression and table adjustments.',
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      status: 'confirmed',
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'appt-today-2',
+      source: 'booking',
+      name: 'David Chen',
+      email: 'dchen@example.com',
+      phone: '(303) 555-0177',
+      condition: 'Cervical Spine & Neck Strain',
+      practitionerName: 'Dr. Elena Rostova',
+      date: today,
+      time: '10:00 AM',
+      durationMinutes: 45,
+      notes: 'Arrived at 9:55 AM. Paperwork complete. In waiting lobby.',
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      status: 'checked_in', // 1 Checked in patient!
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'appt-today-3',
+      source: 'booking',
+      name: 'Amanda Lewis',
+      email: 'alewis@example.com',
+      phone: '(303) 555-0163',
+      condition: 'Shoulder Impingement & Mobility',
+      practitionerName: 'Dr. Alistair Vance',
+      date: today,
+      time: '10:30 AM',
+      durationMinutes: 45,
+      notes: 'Confirmed via SMS reminder yesterday.',
+      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+      status: 'confirmed',
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'appt-today-4',
+      source: 'booking',
+      name: 'Robert Taylor',
+      email: 'rtaylor@example.com',
+      phone: '(303) 555-0129',
+      condition: 'Headaches & Upper Cervical Care',
+      practitionerName: 'Dr. Elena Rostova',
+      date: today,
+      time: '11:30 AM',
+      durationMinutes: 45,
+      notes: 'UNCONFIRMED: Sent automated SMS yesterday, no reply yet. Needs front desk voice call.',
+      createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+      status: 'new', // 1st Unconfirmed appointment!
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'appt-today-5',
+      source: 'booking',
+      name: 'Emily Watson',
+      email: 'emily.w@example.com',
+      phone: '(303) 555-0194',
+      condition: 'Pelvic Alignment & Lower Back',
+      practitionerName: 'Dr. Alistair Vance',
+      date: today,
+      time: '1:30 PM',
+      durationMinutes: 45,
+      notes: 'Initial Exam ($49). Returning after marathon training.',
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      status: 'confirmed',
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'appt-today-6',
+      source: 'booking',
+      name: 'Lucas Vance',
+      email: 'lucas.v@example.com',
+      phone: '(303) 555-0138',
+      condition: 'Athletic Knee & Hip Recovery',
+      practitionerName: 'Dr. Elena Rostova',
+      date: today,
+      time: '2:30 PM',
+      durationMinutes: 30,
+      notes: 'Rehab exercise progression + active release technique.',
+      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+      status: 'confirmed',
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'appt-today-7',
+      source: 'booking',
+      name: 'Jessica Moore',
+      email: 'jess.moore@example.com',
+      phone: '(303) 555-0155',
+      condition: 'Prenatal Webster Technique Consult',
+      practitionerName: 'Dr. Elena Rostova',
+      date: today,
+      time: '3:30 PM',
+      durationMinutes: 45,
+      notes: 'UNCONFIRMED: Left voicemail this morning. Needs a follow-up call to confirm slot.',
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      status: 'new', // 2nd Unconfirmed appointment!
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'appt-today-8',
+      source: 'booking',
+      name: 'William Scott',
+      email: 'wscott@example.com',
+      phone: '(303) 555-0171',
+      condition: 'Bi-weekly Spine Maintenance',
+      practitionerName: 'Dr. Alistair Vance',
+      date: today,
+      time: '4:30 PM',
+      durationMinutes: 30,
+      notes: 'Wellness adjustment package.',
+      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+      status: 'confirmed',
+      clinicName: 'Denver Family Chiropractic',
+    },
+
+    // 2 Waitlist Patients
+    {
+      id: 'waitlist-1',
+      source: 'booking',
+      name: 'Claire Thompson',
+      email: 'claire.t@example.com',
+      phone: '(303) 555-0182',
+      condition: 'Acute Neck Spasm',
+      practitionerName: 'Dr. Alistair Vance',
+      preferredTimeWindow: 'Today or Tomorrow Morning (9 AM - 12 PM)',
+      notes: 'Wants immediate notification if anyone cancels their morning slot.',
+      createdAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
+      status: 'waitlist',
+      clinicName: 'Denver Family Chiropractic',
+    },
+    {
+      id: 'waitlist-2',
+      source: 'booking',
+      name: 'Brian K.',
+      email: 'brian.k@example.com',
+      phone: '(303) 555-0196',
+      condition: 'Lower Back Flare-up',
+      practitionerName: 'Dr. Elena Rostova',
+      preferredTimeWindow: 'Afternoons (2 PM - 5 PM)',
+      notes: 'Flexible, works down the street. Can arrive within 20 minutes notice.',
+      createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+      status: 'waitlist',
+      clinicName: 'Denver Family Chiropractic',
+    },
+  ];
+}
+
+export function getDefaultReceptionNotifications(): DispatchedNotification[] {
+  return [
+    {
+      id: 'notif-feed-1',
+      type: 'clinic_alert',
+      recipient: 'Front Desk',
+      channel: 'email',
+      subject: 'New online request from John Doe',
+      message: 'New online request from John Doe. Initial Consultation ($49) for Lower Back & Sciatica.',
+      timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(), // 10m ago
+      status: 'delivered',
+      read: false,
+      priority: 'high',
+    },
+    {
+      id: 'notif-feed-2',
+      type: 'status_update',
+      recipient: 'Front Desk',
+      channel: 'sms',
+      subject: 'Sarah Jenkins cancelled her 3:00 PM appointment',
+      message: 'Sarah Jenkins cancelled her 3:00 PM appointment with Dr. Vance. Slot is now open for waitlist fill.',
+      timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(), // 35m ago
+      status: 'delivered',
+      read: false,
+      priority: 'medium',
+    },
+    {
+      id: 'notif-feed-3',
+      type: 'clinic_alert',
+      recipient: 'Waiting Room',
+      channel: 'sms',
+      subject: "Dr. Vance's 2:00 PM is running 15 minutes late",
+      message: "Dr. Vance's 2:00 PM is running 15 minutes late. Patient Michael notified via SMS courtesy alert.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5m ago
+      status: 'delivered',
+      read: false,
+      priority: 'info',
+    },
+    {
+      id: 'notif-feed-4',
+      type: 'status_update',
+      recipient: 'Lobby',
+      channel: 'sms',
+      subject: 'David Chen checked in',
+      message: 'David Chen has arrived and checked in. Waiting in lobby for Dr. Rostova.',
+      timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(), // 2m ago
+      status: 'delivered',
+      read: true,
+      priority: 'info',
+    },
+  ];
+}
+
 export function getStoredLeads(): PatientLead[] {
   try {
     const raw = localStorage.getItem(LEADS_STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    if (!raw) {
+      const seeds = getDefaultSeedLeads();
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(seeds));
+      return seeds;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      const seeds = getDefaultSeedLeads();
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(seeds));
+      return seeds;
+    }
+    return parsed;
   } catch {
-    return [];
+    return getDefaultSeedLeads();
   }
 }
 
 export function getDispatchedNotifications(): DispatchedNotification[] {
   try {
     const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    if (!raw) {
+      const defaultNotifs = getDefaultReceptionNotifications();
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(defaultNotifs));
+      return defaultNotifs;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      const defaultNotifs = getDefaultReceptionNotifications();
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(defaultNotifs));
+      return defaultNotifs;
+    }
+    return parsed;
   } catch {
-    return [];
+    return getDefaultReceptionNotifications();
   }
 }
 
@@ -252,6 +546,42 @@ export function deleteLead(id: string): PatientLead[] {
   try {
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
+  } catch {
+    // Ignore
+  }
+  return updated;
+}
+
+export function markNotificationAsRead(id: string): DispatchedNotification[] {
+  const current = getDispatchedNotifications();
+  const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
+  try {
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updated }));
+  } catch {
+    // Ignore
+  }
+  return updated;
+}
+
+export function markAllNotificationsAsRead(): DispatchedNotification[] {
+  const current = getDispatchedNotifications();
+  const updated = current.map((n) => ({ ...n, read: true }));
+  try {
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updated }));
+  } catch {
+    // Ignore
+  }
+  return updated;
+}
+
+export function dismissNotification(id: string): DispatchedNotification[] {
+  const current = getDispatchedNotifications();
+  const updated = current.filter((n) => n.id !== id);
+  try {
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updated }));
   } catch {
     // Ignore
   }
