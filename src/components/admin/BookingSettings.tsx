@@ -34,6 +34,8 @@ import {
   CheckCircle,
   XCircle,
   HelpCircle,
+  CreditCard,
+  DollarSign,
 } from 'lucide-react';
 import { useClinic } from '../../data/ClinicContext';
 import {
@@ -44,8 +46,10 @@ import {
   PractitionerSchedulingOverride,
   PublicTeamMember,
   UserRole,
+  ClinicPaymentPolicy,
+  PaymentPolicyMode,
 } from '../../types';
-import { defaultSchedulingRules } from '../../data/clinicData';
+import { defaultSchedulingRules, defaultPaymentPolicy } from '../../data/clinicData';
 import { defaultPublicTeamMembers } from '../../data/defaultTeamData';
 import {
   PatientLead,
@@ -114,7 +118,7 @@ const PLATFORM_PRESETS: PlatformPresetItem[] = [
   }
 ];
 
-type ManagerSubTab = 'calendar' | 'rules' | 'practitioners' | 'crm' | 'integrations';
+type ManagerSubTab = 'calendar' | 'rules' | 'practitioners' | 'payments' | 'crm' | 'integrations';
 
 interface BookingSettingsProps {
   role?: UserRole;
@@ -131,6 +135,27 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
 }) => {
   const { clinicData: clinic, updateClinic } = useClinic();
   const [activeSubTab, setActiveSubTab] = useState<ManagerSubTab>('calendar');
+
+  // Upfront Payment & No-Show Policy State
+  const currentPaymentPolicy: ClinicPaymentPolicy = clinic.paymentPolicy || defaultPaymentPolicy;
+  const [paymentPolicyState, setPaymentPolicyState] = useState<ClinicPaymentPolicy>(currentPaymentPolicy);
+  const [paymentSavedToast, setPaymentSavedToast] = useState(false);
+
+  useEffect(() => {
+    if (clinic.paymentPolicy) {
+      setPaymentPolicyState(clinic.paymentPolicy);
+    }
+  }, [clinic.paymentPolicy]);
+
+  const handleSavePaymentPolicy = (updated: ClinicPaymentPolicy) => {
+    setPaymentPolicyState(updated);
+    updateClinic({
+      ...clinic,
+      paymentPolicy: updated,
+    });
+    setPaymentSavedToast(true);
+    setTimeout(() => setPaymentSavedToast(false), 3000);
+  };
 
   // Leads & Appointments
   const [leads, setLeads] = useState<PatientLead[]>(getStoredLeads);
@@ -537,6 +562,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
               : [
                   { id: 'rules', label: 'Availability & Scheduling Rules', icon: Clock },
                   { id: 'practitioners', label: 'Practitioner Mapping', icon: Users },
+                  { id: 'payments', label: 'Upfront Payments & No-Shows', icon: CreditCard },
                 ]),
             { id: 'crm', label: 'Notifications & CRM Automation', icon: Bell, count: notifications.length },
             { id: 'integrations', label: 'External EHR / Iframe Sync', icon: Link2 },
@@ -1507,6 +1533,338 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: UPFRONT PAYMENTS & NO-SHOW PROTECTION */}
+      {activeSubTab === 'payments' && (
+        <div className="space-y-6">
+          {/* Toast Notification */}
+          {paymentSavedToast && (
+            <div className="p-3 bg-emerald-950 border border-emerald-500/80 text-emerald-200 text-xs font-bold rounded-xl shadow-md flex items-center justify-between animate-fade-in">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>Payment & No-Show Protection Policy successfully updated and live!</span>
+              </div>
+            </div>
+          )}
+
+          {/* Top Overview & Economics Card */}
+          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 sm:p-6 text-stone-100 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Clinical No-Show Elimination</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-serif font-bold text-white">
+                  Upfront Payments, Deposits & Slot Guarantees
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-400 max-w-2xl leading-relaxed">
+                  Protect Dr. Vance and your associates from ghost bookings. Requiring a nominal deposit or holding a card on file reduces practice no-show rates from 18% down to under 2%.
+                </p>
+              </div>
+
+              {/* Master Toggle */}
+              <div className="flex items-center gap-3 bg-stone-850 border border-stone-750 p-3 rounded-xl">
+                <div>
+                  <span className="block text-xs font-bold text-stone-200">
+                    {paymentPolicyState.enabled ? 'Payment Pathway Active' : 'Pathway Disabled (Pay at Desk)'}
+                  </span>
+                  <span className="block text-[10px] text-stone-400">
+                    {paymentPolicyState.enabled ? 'Patients prepay or hold card online' : 'Patients can book without paying'}
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paymentPolicyState.enabled}
+                    onChange={(e) => {
+                      handleSavePaymentPolicy({
+                        ...paymentPolicyState,
+                        enabled: e.target.checked,
+                      });
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+            </div>
+
+            {/* Impact Metric Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-stone-800 text-xs">
+              <div className="p-3 rounded-xl bg-stone-950/70 border border-stone-800 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-stone-400">No-Show Rate With Deposit</span>
+                <div className="text-xl font-bold font-serif text-emerald-400">1.8%</div>
+                <p className="text-[10px] text-stone-500">Down from 18.4% on unreserved requests</p>
+              </div>
+              <div className="p-3 rounded-xl bg-stone-950/70 border border-stone-800 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-stone-400">Recovered Doctor Hours</span>
+                <div className="text-xl font-bold font-serif text-teal-400">~6.5 hrs / wk</div>
+                <p className="text-[10px] text-stone-500">Eliminates sitting idle in treatment rooms</p>
+              </div>
+              <div className="p-3 rounded-xl bg-stone-950/70 border border-stone-800 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-stone-400">Saved Revenue / Doctor</span>
+                <div className="text-xl font-bold font-serif text-amber-400">~{paymentPolicyState.currencySymbol || '£'}1,420 / mo</div>
+                <p className="text-[10px] text-stone-500">Based on standard 45-min consultation fee</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Policy Strategy Selector */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
+            <div>
+              <h4 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-800" />
+                <span>Select Your Clinic Payment Strategy</span>
+              </h4>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Choose how aggressive you want your slot commitment protection to be.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              {/* Option 1: Deposit (Recommended) */}
+              <div
+                onClick={() =>
+                  handleSavePaymentPolicy({
+                    ...paymentPolicyState,
+                    mode: 'deposit',
+                  })
+                }
+                className={`p-4 rounded-xl border transition cursor-pointer space-y-2 relative ${
+                  paymentPolicyState.mode === 'deposit'
+                    ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-700'
+                    : 'border-stone-200 hover:border-stone-300 bg-stone-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 rounded bg-emerald-800 text-white text-[9px] font-bold uppercase tracking-wider">
+                    Recommended
+                  </span>
+                  <input
+                    type="radio"
+                    name="policyMode"
+                    checked={paymentPolicyState.mode === 'deposit'}
+                    onChange={() => {}}
+                    className="text-emerald-700 h-4 w-4"
+                  />
+                </div>
+                <div className="font-bold text-sm text-stone-900 flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-emerald-700" />
+                  <span>Refundable Deposit ({paymentPolicyState.currencySymbol || '£'}{paymentPolicyState.depositAmount || 25})</span>
+                </div>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Patient pays a nominal {paymentPolicyState.currencySymbol || '£'}{paymentPolicyState.depositAmount || 25} deposit online, credited toward their visit. Filters out frivolous bookings while keeping booking conversion high.
+                </p>
+              </div>
+
+              {/* Option 2: Card Hold Guarantee */}
+              <div
+                onClick={() =>
+                  handleSavePaymentPolicy({
+                    ...paymentPolicyState,
+                    mode: 'card_hold',
+                  })
+                }
+                className={`p-4 rounded-xl border transition cursor-pointer space-y-2 ${
+                  paymentPolicyState.mode === 'card_hold'
+                    ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-700'
+                    : 'border-stone-200 hover:border-stone-300 bg-stone-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-900 text-[9px] font-bold uppercase tracking-wider">
+                    Lowest Friction
+                  </span>
+                  <input
+                    type="radio"
+                    name="policyMode"
+                    checked={paymentPolicyState.mode === 'card_hold'}
+                    onChange={() => {}}
+                    className="text-emerald-700 h-4 w-4"
+                  />
+                </div>
+                <div className="font-bold text-sm text-stone-900 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-blue-700" />
+                  <span>Card Hold Guarantee ({paymentPolicyState.currencySymbol || '£'}0 Today)</span>
+                </div>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Zero charge today. A valid card is securely stored on file via Stripe. Patient is only billed if they ghost the appointment without {paymentPolicyState.cancellationNoticeHours || 24} hours notice.
+                </p>
+              </div>
+
+              {/* Option 3: Full Pre-payment */}
+              <div
+                onClick={() =>
+                  handleSavePaymentPolicy({
+                    ...paymentPolicyState,
+                    mode: 'full',
+                  })
+                }
+                className={`p-4 rounded-xl border transition cursor-pointer space-y-2 ${
+                  paymentPolicyState.mode === 'full'
+                    ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-700'
+                    : 'border-stone-200 hover:border-stone-300 bg-stone-50/50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[9px] font-bold uppercase tracking-wider">
+                    VIP / Fast-Track
+                  </span>
+                  <input
+                    type="radio"
+                    name="policyMode"
+                    checked={paymentPolicyState.mode === 'full'}
+                    onChange={() => {}}
+                    className="text-emerald-700 h-4 w-4"
+                  />
+                </div>
+                <div className="font-bold text-sm text-stone-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-700" />
+                  <span>Full Pre-Payment ({paymentPolicyState.currencySymbol || '£'}{paymentPolicyState.fullFeeAmount || 49})</span>
+                </div>
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  Patient pays their entire consultation fee upfront. Streamlines front-desk arrivals with express VIP check-in and zero waiting to pay on the day.
+                </p>
+              </div>
+            </div>
+
+            {/* Granular Fees & Cancellation Window Controls */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-3 border-t border-stone-200">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-600 block mb-1">
+                  Deposit Amount ({paymentPolicyState.currencySymbol || '£'})
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-stone-400 font-bold text-xs">{paymentPolicyState.currencySymbol || '£'}</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={200}
+                    value={paymentPolicyState.depositAmount || 25}
+                    onChange={(e) =>
+                      handleSavePaymentPolicy({
+                        ...paymentPolicyState,
+                        depositAmount: Number(e.target.value),
+                      })
+                    }
+                    className="w-full pl-7 pr-3 py-2 border border-stone-300 rounded-lg text-xs font-semibold bg-white"
+                  />
+                </div>
+                <span className="text-[10px] text-stone-500 mt-0.5 block">Credited toward consultation</span>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-600 block mb-1">
+                  No-Show Penalty Fee ({paymentPolicyState.currencySymbol || '£'})
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-stone-400 font-bold text-xs">{paymentPolicyState.currencySymbol || '£'}</span>
+                  <input
+                    type="number"
+                    min={10}
+                    max={150}
+                    value={paymentPolicyState.noShowFee || 35}
+                    onChange={(e) =>
+                      handleSavePaymentPolicy({
+                        ...paymentPolicyState,
+                        noShowFee: Number(e.target.value),
+                      })
+                    }
+                    className="w-full pl-7 pr-3 py-2 border border-stone-300 rounded-lg text-xs font-semibold bg-white"
+                  />
+                </div>
+                <span className="text-[10px] text-stone-500 mt-0.5 block">Charged only on missed visit</span>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-600 block mb-1">
+                  Cancellation Notice Required
+                </label>
+                <select
+                  value={paymentPolicyState.cancellationNoticeHours || 24}
+                  onChange={(e) =>
+                    handleSavePaymentPolicy({
+                      ...paymentPolicyState,
+                      cancellationNoticeHours: Number(e.target.value),
+                    })
+                  }
+                  className="w-full p-2 border border-stone-300 rounded-lg text-xs font-semibold bg-white"
+                >
+                  <option value={12}>12 Hours Notice</option>
+                  <option value={24}>24 Hours Notice (Industry Standard)</option>
+                  <option value={48}>48 Hours Notice</option>
+                </select>
+                <span className="text-[10px] text-stone-500 mt-0.5 block">100% refund window for patient</span>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-600 block mb-1">
+                  Pay at Clinic Fallback
+                </label>
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="allowPayAtClinicToggle"
+                    checked={paymentPolicyState.allowPayAtClinic}
+                    onChange={(e) =>
+                      handleSavePaymentPolicy({
+                        ...paymentPolicyState,
+                        allowPayAtClinic: e.target.checked,
+                      })
+                    }
+                    className="rounded text-emerald-700 h-4 w-4"
+                  />
+                  <label htmlFor="allowPayAtClinicToggle" className="text-xs text-stone-700 cursor-pointer">
+                    Allow patient to opt to pay at reception
+                  </label>
+                </div>
+                <span className="text-[10px] text-stone-500 mt-1 block">Requires staff telephone confirmation</span>
+              </div>
+            </div>
+
+            {/* Custom Patient Reassurance & Refund Policy Text */}
+            <div className="pt-2 border-t border-stone-200 space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-stone-700 block">
+                Custom Patient Guarantee Note (Shown in Checkout)
+              </label>
+              <textarea
+                rows={2}
+                value={
+                  paymentPolicyState.customExplanation ||
+                  `A small ${paymentPolicyState.currencySymbol || '£'}${paymentPolicyState.depositAmount || 25} deposit reserves Dr. Vance's suite and is fully credited toward your first visit. 100% refundable if cancelled or rescheduled with ${paymentPolicyState.cancellationNoticeHours || 24} hours notice.`
+                }
+                onChange={(e) =>
+                  handleSavePaymentPolicy({
+                    ...paymentPolicyState,
+                    customExplanation: e.target.value,
+                  })
+                }
+                className="w-full p-2.5 border border-stone-300 rounded-lg text-xs text-stone-800 bg-white"
+              />
+            </div>
+
+            {/* Stripe Merchant & Terminal Gateway Integration */}
+            <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="space-y-1">
+                <span className="font-bold text-stone-900 flex items-center gap-2">
+                  <span>Payment Gateway: Stripe & Digital Wallets</span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                    Sandbox Active
+                  </span>
+                </span>
+                <p className="text-stone-600 text-[11px]">
+                  Supports Apple Pay, Google Pay, Visa, Mastercard, and American Express. Test transactions process with card 4242 4242 4242 4242.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-stone-500">Terminal Descriptor: {paymentPolicyState.statementDescriptor || 'VANCE HEALTH'}</span>
+              </div>
             </div>
           </div>
         </div>

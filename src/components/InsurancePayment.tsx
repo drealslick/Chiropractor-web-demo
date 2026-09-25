@@ -65,13 +65,13 @@ export const InsurancePayment: React.FC<InsurancePaymentProps> = ({ clinic }) =>
           ))}
         </motion.div>
 
-        {/* Check My Cover Button */}
+        {/* Action Buttons: Check Cover & Payment Policy */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-20px' }}
           transition={{ duration: 0.4, delay: 0.25 }}
-          className="mb-8"
+          className="mb-8 flex flex-wrap items-center justify-center gap-2.5"
         >
           <button
             type="button"
@@ -80,6 +80,14 @@ export const InsurancePayment: React.FC<InsurancePaymentProps> = ({ clinic }) =>
           >
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Check My Cover</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openBookingModal('Consultation')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold shadow-xs transition-all hover:shadow-md cursor-pointer"
+          >
+            <CreditCard className="w-4 h-4 text-emerald-300" />
+            <span>Secure Your Appointment</span>
           </button>
         </motion.div>
 

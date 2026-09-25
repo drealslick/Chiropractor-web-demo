@@ -17,6 +17,8 @@ import {
   AlertCircle,
   CalendarPlus,
   X,
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   PatientLead,
@@ -294,6 +296,36 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
                       >
                         {lead.source === 'booking' ? 'Booking' : 'Contact'}
                       </span>
+
+                      {/* Payment Status Pill */}
+                      {lead.paymentStatus && (
+                        <span
+                          className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded inline-flex items-center gap-1 ${
+                            lead.paymentStatus === 'paid_full'
+                              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                              : lead.paymentStatus === 'deposit_paid'
+                              ? 'bg-teal-950 text-teal-300 border border-teal-800'
+                              : lead.paymentStatus === 'card_hold'
+                              ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                              : lead.paymentStatus === 'refunded'
+                              ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                              : 'bg-stone-800 text-stone-400 border border-stone-700'
+                          }`}
+                        >
+                          <CreditCard className="w-2.5 h-2.5" />
+                          <span>
+                            {lead.paymentStatus === 'deposit_paid'
+                              ? `Deposit ${lead.paymentAmount || '£25'}`
+                              : lead.paymentStatus === 'paid_full'
+                              ? `Paid ${lead.paymentAmount || '£49'}`
+                              : lead.paymentStatus === 'card_hold'
+                              ? 'Card Hold'
+                              : lead.paymentStatus === 'refunded'
+                              ? 'Refunded'
+                              : 'Pay at Clinic'}
+                          </span>
+                        </span>
+                      )}
 
                       {/* Visual Urgency Dot & Label */}
                       <span className="inline-flex items-center gap-1.5 text-[10px] text-stone-400 font-medium ml-1">

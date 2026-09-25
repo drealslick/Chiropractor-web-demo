@@ -18,6 +18,14 @@ export interface PatientLead {
   clinicName?: string;
   cancellationReason?: string;
   preferredTimeWindow?: string;
+  // Upfront Payment & No-Show Protection tracking
+  paymentStatus?: 'paid_full' | 'deposit_paid' | 'card_hold' | 'unpaid' | 'refunded';
+  paymentAmount?: string;
+  paymentMethod?: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash';
+  cardLast4?: string;
+  cardBrand?: string;
+  transactionId?: string;
+  noShowProtected?: boolean;
 }
 
 export interface DispatchedNotification {
@@ -58,6 +66,13 @@ export function getDefaultSeedLeads(): PatientLead[] {
       createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(), // 18m ago
       status: 'new',
       clinicName: 'Denver Family Chiropractic',
+      paymentStatus: 'deposit_paid',
+      paymentAmount: '£25.00',
+      paymentMethod: 'card',
+      cardLast4: '4242',
+      cardBrand: 'Visa',
+      transactionId: 'pi_3P92kL2eZvKYlo2C',
+      noShowProtected: true,
     },
     {
       id: 'lead-pending-2',
@@ -74,6 +89,13 @@ export function getDefaultSeedLeads(): PatientLead[] {
       createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(), // 55m ago
       status: 'new',
       clinicName: 'Denver Family Chiropractic',
+      paymentStatus: 'card_hold',
+      paymentAmount: '£0.00 (Hold)',
+      paymentMethod: 'apple_pay',
+      cardLast4: '1984',
+      cardBrand: 'Mastercard',
+      transactionId: 'ch_auth_9012481',
+      noShowProtected: true,
     },
     {
       id: 'lead-pending-3',
@@ -90,6 +112,9 @@ export function getDefaultSeedLeads(): PatientLead[] {
       createdAt: new Date(Date.now() - 1000 * 60 * 140).toISOString(), // 2.3h ago
       status: 'new',
       clinicName: 'Denver Family Chiropractic',
+      paymentStatus: 'unpaid',
+      paymentAmount: '£0.00',
+      paymentMethod: 'clinic_cash',
     },
 
     // 8 Appointments Scheduled for Today
@@ -108,6 +133,12 @@ export function getDefaultSeedLeads(): PatientLead[] {
       createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
       status: 'confirmed',
       clinicName: 'Denver Family Chiropractic',
+      paymentStatus: 'paid_full',
+      paymentAmount: '£49.00',
+      paymentMethod: 'card',
+      cardLast4: '3004',
+      cardBrand: 'Visa',
+      transactionId: 'pi_3P00aa123',
     },
     {
       id: 'appt-today-2',
@@ -124,6 +155,13 @@ export function getDefaultSeedLeads(): PatientLead[] {
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       status: 'checked_in', // 1 Checked in patient!
       clinicName: 'Denver Family Chiropractic',
+      paymentStatus: 'deposit_paid',
+      paymentAmount: '£25.00',
+      paymentMethod: 'card',
+      cardLast4: '5521',
+      cardBrand: 'Mastercard',
+      transactionId: 'pi_3M998242',
+      noShowProtected: true,
     },
     {
       id: 'appt-today-3',
@@ -140,6 +178,13 @@ export function getDefaultSeedLeads(): PatientLead[] {
       createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
       status: 'confirmed',
       clinicName: 'Denver Family Chiropractic',
+      paymentStatus: 'card_hold',
+      paymentAmount: '£0.00 (Hold)',
+      paymentMethod: 'card',
+      cardLast4: '9812',
+      cardBrand: 'Amex',
+      transactionId: 'ch_hold_55812',
+      noShowProtected: true,
     },
     {
       id: 'appt-today-4',
@@ -399,6 +444,13 @@ export function saveLead(
     status: leadInput.status || 'new',
     clinicName: leadInput.clinicName || 'Clinic',
     cancellationReason: leadInput.cancellationReason,
+    paymentStatus: leadInput.paymentStatus || 'unpaid',
+    paymentAmount: leadInput.paymentAmount,
+    paymentMethod: leadInput.paymentMethod,
+    cardLast4: leadInput.cardLast4,
+    cardBrand: leadInput.cardBrand,
+    transactionId: leadInput.transactionId,
+    noShowProtected: leadInput.noShowProtected,
   };
 
   const updated = [newLead, ...currentLeads];
@@ -534,6 +586,55 @@ export function updateLeadDetails(id: string, partial: Partial<PatientLead>): Pa
       channel: 'email',
       subject: `Appointment Rescheduled: ${modifiedLead.date} at ${modifiedLead.time}`,
       message: `Dear ${modifiedLead.name}, your appointment has been rescheduled to ${modifiedLead.date} at ${modifiedLead.time} with ${modifiedLead.practitionerName || 'our team'}.`,
+    });
+  }
+
+  return updated;
+}
+
+export function updateLeadPayment(
+  id: string,
+  paymentUpdate: {
+    paymentStatus?: PatientLead['paymentStatus'];
+    paymentAmount?: string;
+    paymentMethod?: PatientLead['paymentMethod'];
+    cardLast4?: string;
+    cardBrand?: string;
+    transactionId?: string;
+    noShowProtected?: boolean;
+    notesAppend?: string;
+  }
+): PatientLead[] {
+  const current = getStoredLeads();
+  let modifiedLead: PatientLead | undefined;
+  const updated = current.map((lead) => {
+    if (lead.id === id) {
+      modifiedLead = {
+        ...lead,
+        ...paymentUpdate,
+        notes: paymentUpdate.notesAppend
+          ? `${lead.notes ? lead.notes + ' • ' : ''}[Payment Action: ${paymentUpdate.notesAppend}]`
+          : lead.notes,
+      };
+      return modifiedLead;
+    }
+    return lead;
+  });
+
+  try {
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
+  } catch {
+    // Ignore
+  }
+
+  if (modifiedLead && paymentUpdate.notesAppend) {
+    logNotification({
+      type: 'status_update',
+      recipient: modifiedLead.email || 'reception@vancehealth.co.uk',
+      channel: 'email',
+      subject: `Payment Record Updated: ${modifiedLead.name}`,
+      message: `Payment status for ${modifiedLead.name} was updated to: ${paymentUpdate.paymentStatus || modifiedLead.paymentStatus}. Details: ${paymentUpdate.notesAppend}`,
     });
   }
 

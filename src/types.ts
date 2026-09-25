@@ -16,6 +16,32 @@ export interface BookingFormData {
   time?: string;
   notes?: string;
   hp_website?: string;
+  // Upfront Payment & No-Show Protection fields
+  paymentChoice?: 'deposit' | 'full' | 'card_hold' | 'pay_at_clinic';
+  paymentStatus?: 'paid_full' | 'deposit_paid' | 'card_hold' | 'unpaid';
+  paymentAmount?: string;
+  paymentMethod?: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash';
+  cardLast4?: string;
+  cardBrand?: string;
+  transactionId?: string;
+}
+
+export type PaymentPolicyMode = 'deposit' | 'full' | 'card_hold' | 'flexible' | 'disabled';
+
+export interface ClinicPaymentPolicy {
+  enabled: boolean;
+  mode: PaymentPolicyMode; // 'deposit' | 'full' | 'card_hold' | 'flexible' | 'disabled'
+  depositAmount: number; // e.g. 25
+  fullFeeAmount: number; // e.g. 49
+  currencySymbol: string; // e.g. '$' | '£' | '€'
+  noShowFee: number; // e.g. 35
+  cancellationNoticeHours: number; // e.g. 24
+  allowPayAtClinic: boolean; // if true, patients can opt to pay on arrival
+  statementDescriptor: string; // e.g. "VANCE HEALTH"
+  stripeMode: 'test' | 'live';
+  stripePublishableKey?: string;
+  requireCardForOnlineBookings: boolean;
+  customExplanation?: string;
 }
 
 export interface DayWorkingHours {
@@ -346,6 +372,7 @@ export interface ClinicInfo {
   aboutMission?: string;
   aboutStory?: string;
   schedulingRules?: ClinicSchedulingRules;
+  paymentPolicy?: ClinicPaymentPolicy;
   [key: string]: any;
 }
 

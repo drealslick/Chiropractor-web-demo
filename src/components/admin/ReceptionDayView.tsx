@@ -23,8 +23,13 @@ import {
   CalendarCheck,
   AlertTriangle,
   MoveHorizontal,
+  CreditCard,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  RotateCcw,
 } from 'lucide-react';
-import { PatientLead, updateLeadDetails, updateLeadStatus, saveLead } from '../../data/leadsStore';
+import { PatientLead, updateLeadDetails, updateLeadStatus, saveLead, updateLeadPayment } from '../../data/leadsStore';
 import { PublicTeamMember } from '../../types';
 
 interface ReceptionDayViewProps {
@@ -191,6 +196,43 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     updateLeadDetails(selectedPatient.id, { notes: updatedNotes });
     setSelectedPatient({ ...selectedPatient, notes: updatedNotes });
     setNewStaffNote('');
+  };
+
+  // Payment action handlers for Receptionist
+  const handleMarkBalancePaid = (patient: PatientLead) => {
+    updateLeadPayment(patient.id, {
+      paymentStatus: 'paid_full',
+      paymentAmount: '£49.00',
+      notesAppend: 'Balance settled at reception on arrival.',
+    });
+    setSelectedPatient((prev) =>
+      prev ? { ...prev, paymentStatus: 'paid_full', paymentAmount: '£49.00' } : null
+    );
+  };
+
+  const handleChargeNoShowFee = (patient: PatientLead) => {
+    const fee = '£35.00';
+    if (confirm(`Authorize no-show penalty fee of ${fee} to ${patient.name}'s card on file?`)) {
+      updateLeadPayment(patient.id, {
+        notesAppend: `No-show fee of ${fee} charged to card ending in ${patient.cardLast4 || 'file'} due to patient non-attendance.`,
+      });
+      updateLeadStatus(patient.id, 'cancelled', 'No-show / fee charged');
+      setSelectedPatient((prev) =>
+        prev ? { ...prev, status: 'cancelled', notes: `${prev.notes} • [No-Show fee ${fee} charged]` } : null
+      );
+    }
+  };
+
+  const handleRefundPayment = (patient: PatientLead) => {
+    if (confirm(`Issue full deposit refund of ${patient.paymentAmount || '£25'} to ${patient.name}'s original card?`)) {
+      updateLeadPayment(patient.id, {
+        paymentStatus: 'refunded',
+        notesAppend: `Deposit of ${patient.paymentAmount || '£25'} refunded to card ending in ${patient.cardLast4 || 'file'} per 24h cancellation guarantee.`,
+      });
+      setSelectedPatient((prev) =>
+        prev ? { ...prev, paymentStatus: 'refunded' } : null
+      );
+    }
   };
 
   // Day's active appointments
@@ -464,6 +506,36 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                                 {lead.condition || 'General Chiropractic Consultation'}
                               </div>
 
+                              {/* Upfront Payment Status Badge */}
+                              {lead.paymentStatus && (
+                                <div className="mt-1 flex items-center gap-1 text-[9px] font-bold">
+                                  {lead.paymentStatus === 'paid_full' ? (
+                                    <span className="inline-flex items-center gap-1 text-emerald-300 bg-emerald-950/80 border border-emerald-800/80 px-1.5 py-0.5 rounded">
+                                      <CreditCard className="w-2.5 h-2.5 text-emerald-400" />
+                                      <span>Paid {lead.paymentAmount || '£49'}</span>
+                                    </span>
+                                  ) : lead.paymentStatus === 'deposit_paid' ? (
+                                    <span className="inline-flex items-center gap-1 text-teal-300 bg-teal-950/80 border border-teal-800/80 px-1.5 py-0.5 rounded">
+                                      <CreditCard className="w-2.5 h-2.5 text-teal-400" />
+                                      <span>Deposit {lead.paymentAmount || '£25'}</span>
+                                    </span>
+                                  ) : lead.paymentStatus === 'card_hold' ? (
+                                    <span className="inline-flex items-center gap-1 text-blue-300 bg-blue-950/80 border border-blue-800/80 px-1.5 py-0.5 rounded">
+                                      <ShieldCheck className="w-2.5 h-2.5 text-blue-400" />
+                                      <span>Card Guaranteed</span>
+                                    </span>
+                                  ) : lead.paymentStatus === 'refunded' ? (
+                                    <span className="inline-flex items-center gap-1 text-rose-300 bg-rose-950/80 border border-rose-800/80 px-1.5 py-0.5 rounded">
+                                      <span>Refunded</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-amber-300/80 bg-amber-950/50 border border-amber-800/50 px-1.5 py-0.5 rounded">
+                                      <span>Pay at Desk</span>
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
                               <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-stone-800/80 text-[10px] text-stone-400">
                                 <span className="flex items-center gap-1 font-mono text-[10px]">
                                   <Clock className="w-3 h-3 text-stone-400" />
@@ -652,6 +724,95 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-stone-400">Duration:</span>
                   <span className="text-stone-200">{selectedPatient.durationMinutes || 45} mins</span>
+                </div>
+              </div>
+
+              {/* Upfront Payment & No-Show Protection Drawer Panel */}
+              <div className="p-3.5 rounded-xl bg-stone-850 border border-stone-800 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                    Payment & Slot Protection
+                  </span>
+                  {selectedPatient.paymentStatus ? (
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        selectedPatient.paymentStatus === 'paid_full'
+                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                          : selectedPatient.paymentStatus === 'deposit_paid'
+                          ? 'bg-teal-950 text-teal-300 border border-teal-800'
+                          : selectedPatient.paymentStatus === 'card_hold'
+                          ? 'bg-blue-950 text-blue-300 border border-blue-800'
+                          : selectedPatient.paymentStatus === 'refunded'
+                          ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                          : 'bg-amber-950 text-amber-300 border border-amber-800'
+                      }`}
+                    >
+                      {selectedPatient.paymentStatus.replace('_', ' ')}
+                    </span>
+                  ) : (
+                    <span className="text-stone-500 text-[11px]">Unrecorded</span>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 text-stone-300 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-stone-400">Amount Recorded:</span>
+                    <span className="font-bold text-white">
+                      {selectedPatient.paymentAmount || (selectedPatient.paymentStatus === 'paid_full' ? '£49.00' : selectedPatient.paymentStatus === 'deposit_paid' ? '£25.00' : '£0.00')}
+                    </span>
+                  </div>
+                  {selectedPatient.cardLast4 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-400">Card on File:</span>
+                      <span className="font-mono text-stone-200">
+                        {selectedPatient.cardBrand || 'Card'} ending •••• {selectedPatient.cardLast4}
+                      </span>
+                    </div>
+                  )}
+                  {selectedPatient.transactionId && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-400">Transaction Ref:</span>
+                      <span className="font-mono text-[10px] text-stone-400 truncate max-w-[160px]">
+                        {selectedPatient.transactionId}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-1 border-t border-stone-800">
+                    <span className="text-stone-400">No-Show Protection:</span>
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>£35 Fee Authorized</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quick Receptionist Payment Action Buttons */}
+                <div className="pt-2 border-t border-stone-800 flex flex-wrap gap-1.5">
+                  {selectedPatient.paymentStatus !== 'paid_full' && (
+                    <button
+                      type="button"
+                      onClick={() => handleMarkBalancePaid(selectedPatient)}
+                      className="flex-1 py-1.5 px-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-200 text-[11px] font-bold rounded-lg transition cursor-pointer"
+                    >
+                      Mark Paid at Desk (£49)
+                    </button>
+                  )}
+                  {selectedPatient.paymentStatus !== 'refunded' && (
+                    <button
+                      type="button"
+                      onClick={() => handleRefundPayment(selectedPatient)}
+                      className="py-1.5 px-2 bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-300 text-[11px] font-medium rounded-lg transition cursor-pointer"
+                    >
+                      Refund Deposit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleChargeNoShowFee(selectedPatient)}
+                    className="py-1.5 px-2 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-200 text-[11px] font-bold rounded-lg transition cursor-pointer"
+                  >
+                    Charge No-Show (£35)
+                  </button>
                 </div>
               </div>
 

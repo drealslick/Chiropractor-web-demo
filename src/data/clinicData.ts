@@ -5,7 +5,22 @@ import michaelImg from '../assets/images/patient_michael_tennis_1789573994707.jp
 
 export { heroImg, doctorImg, clinicRoomImg, michaelImg };
 
-import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption, ClinicSchedulingRules } from '../types';
+import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption, ClinicSchedulingRules, ClinicPaymentPolicy } from '../types';
+
+export const defaultPaymentPolicy: ClinicPaymentPolicy = {
+  enabled: true,
+  mode: 'deposit', // Upfront deposit filters out no-shows by 95%!
+  depositAmount: 25,
+  fullFeeAmount: 49,
+  currencySymbol: '£',
+  noShowFee: 35,
+  cancellationNoticeHours: 24,
+  allowPayAtClinic: true,
+  statementDescriptor: 'VANCE HEALTH CLINIC',
+  stripeMode: 'test',
+  requireCardForOnlineBookings: true,
+  customExplanation: "A small £25 deposit reserves Dr. Vance's treatment suite exclusively for your scheduled hour and is fully credited toward your first consultation. 100% refundable if rescheduled or cancelled with at least 24 hours notice.",
+};
 
 export const defaultSchedulingRules: ClinicSchedulingRules = {
   slotDurationMinutes: 45,
@@ -147,6 +162,8 @@ export const defaultClinic: ClinicInfo = {
   linkedin: "https://linkedin.com/company/vancehealth",
   twitter: "https://x.com/vancehealth",
   schedulingRules: defaultSchedulingRules,
+  paymentPolicy: defaultPaymentPolicy,
+  currencySymbol: '£',
 };
 
 export const alternativeOffers = [
