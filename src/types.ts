@@ -2,6 +2,29 @@ import { ColorPaletteId } from './data/colorPalettes';
 
 export type UserRole = 'admin' | 'editor' | 'staff';
 
+export interface ClinicLocation {
+  id: string;
+  name: string;
+  tagline?: string;
+  isPrimary?: boolean;
+  address: string;
+  city: string;
+  state?: string;
+  cityState?: string;
+  zip: string;
+  phone: string;
+  phoneRaw: string;
+  email?: string;
+  hoursWeekday?: string;
+  hoursSaturday?: string;
+  parkingNote?: string;
+  transitNote?: string;
+  mapEmbedUrl?: string;
+  assignedPractitionerIds?: string[];
+  imageUrl?: string;
+  active?: boolean;
+}
+
 export interface BookingFormData {
   fullName?: string;
   name: string;
@@ -12,6 +35,9 @@ export interface BookingFormData {
   serviceTitle?: string;
   servicePrice?: string;
   serviceDuration?: number;
+  locationId?: string;
+  locationName?: string;
+  locationAddress?: string;
   preferredPractitionerId?: string;
   preferredPractitionerName?: string;
   preferredDate?: string;
@@ -383,6 +409,9 @@ export interface ClinicInfo {
   paymentPolicy?: ClinicPaymentPolicy;
   portalSettings?: PatientPortalSettings;
   marketRegion?: 'UK' | 'US' | 'GLOBAL';
+  locations?: ClinicLocation[];
+  activeLocationId?: string;
+  showLocationSelector?: boolean;
   [key: string]: any;
 }
 

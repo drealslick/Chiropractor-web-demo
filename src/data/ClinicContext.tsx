@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode, useCallback } from 'react';
-import { ClinicInfo } from '../types';
-import { defaultClinic } from './clinicData';
+import { ClinicInfo, ClinicLocation } from '../types';
+import { defaultClinic, defaultLocations } from './clinicData';
 import { agencyDemoPresets } from './presets';
 import { clinicRowId, supabase } from './supabaseClient';
 
@@ -19,6 +19,10 @@ interface ClinicContextType {
   errorMessage: string | null;
   hasSupabase: boolean;
   importClinicBlueprint: (blueprint: Partial<ClinicInfo>) => boolean;
+  // Multi-Location Practice Switcher
+  activeLocation: ClinicLocation;
+  setActiveLocationId: (locationId: string) => void;
+  allLocations: ClinicLocation[];
   // Global Booking State & Triggers
   isBookingModalOpen: boolean;
   bookingInitialCondition: string;
@@ -276,6 +280,16 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     [persist]
   );
 
+  const allLocations = clinicData.locations && clinicData.locations.length > 0 ? clinicData.locations : defaultLocations;
+  const activeLocationId = clinicData.activeLocationId || allLocations[0]?.id || 'loc-marylebone';
+  const activeLocation = allLocations.find((l) => l.id === activeLocationId) || allLocations[0] || defaultLocations[0];
+
+  const setActiveLocationId = useCallback((locationId: string) => {
+    const next = { ...clinicData, activeLocationId: locationId };
+    setClinicData(next);
+    persist(next);
+  }, [clinicData, persist]);
+
   const value = useMemo<ClinicContextType>(
     () => ({
       clinicData,
@@ -288,6 +302,9 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       errorMessage,
       hasSupabase,
       importClinicBlueprint,
+      activeLocation,
+      setActiveLocationId,
+      allLocations,
       isBookingModalOpen,
       bookingInitialCondition,
       bookingInitialServiceType,
@@ -311,6 +328,9 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       errorMessage,
       hasSupabase,
       importClinicBlueprint,
+      activeLocation,
+      setActiveLocationId,
+      allLocations,
       isBookingModalOpen,
       bookingInitialCondition,
       bookingInitialServiceType,

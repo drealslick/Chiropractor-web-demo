@@ -77,6 +77,8 @@ import { PresetBackupManager } from './admin/PresetBackupManager';
 import { NotificationHub } from './admin/NotificationHub';
 import { BookingEngineManager } from './admin/BookingEngineManager';
 import { PatientPortalManager } from './admin/PatientPortalManager';
+import { LiveGatewayManager } from './admin/LiveGatewayManager';
+import { LocationManager } from './admin/LocationManager';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -125,6 +127,8 @@ export type AdminTabId =
   | 'typography'
   | 'sections'
   // Settings & Tools
+  | 'gateway'
+  | 'locations'
   | 'clinic_info'
   | 'seo'
   | 'announcement'
@@ -258,6 +262,8 @@ export function AgencyWorkspace({
       collapsible: true,
       items: [
         ...(isExternalSync ? [{ id: 'booking' as AdminTabId, label: 'Booking Engine & Sync', icon: Sliders, minRole: 'admin' as UserRole }] : []),
+        { id: 'gateway' as AdminTabId, label: 'Live SMS & Twilio Gateway', icon: MessageSquare, badge: 'Live', highlight: true },
+        { id: 'locations' as AdminTabId, label: 'Clinic Locations & Switcher', icon: MapPin, badge: (clinic.locations?.length || 3).toString() },
         { id: 'clinic_info' as AdminTabId, label: 'Clinic Information', icon: Building2 },
         { id: 'seo' as AdminTabId, label: 'SEO & Meta Tags', icon: Globe },
         { id: 'announcement' as AdminTabId, label: 'Announcement Alert', icon: Bell },
@@ -2004,6 +2010,16 @@ export function AgencyWorkspace({
                 activeRolePreview={activeRolePreview}
                 onSelectRolePreview={setActiveRolePreview}
               />
+            )}
+
+            {/* 19. LIVE SMS & TWILIO GATEWAY */}
+            {activeTab === 'gateway' && (
+              <LiveGatewayManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+            )}
+
+            {/* 19.5. CLINIC LOCATIONS */}
+            {activeTab === 'locations' && (
+              <LocationManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
             {/* 20. PRESETS & BACKUPS */}

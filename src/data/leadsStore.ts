@@ -1,4 +1,9 @@
 import { supabase, clinicRowId } from './supabaseClient';
+import {
+  getGatewaySettings,
+  sendLiveOrSimulatedSms,
+  interpolateTemplate,
+} from './gatewayStore';
 
 export interface PatientLead {
   id: string;
@@ -14,6 +19,9 @@ export interface PatientLead {
   date?: string;
   time?: string;
   durationMinutes?: number;
+  locationId?: string;
+  locationName?: string;
+  locationAddress?: string;
   notes?: string;
   createdAt: string;
   status: 'new' | 'contacted' | 'booked' | 'confirmed' | 'cancelled' | 'archived' | 'checked_in' | 'waitlist';
@@ -323,6 +331,9 @@ export function saveLead(
     date: leadInput.date,
     time: leadInput.time,
     durationMinutes: leadInput.durationMinutes || 45,
+    locationId: leadInput.locationId,
+    locationName: leadInput.locationName,
+    locationAddress: leadInput.locationAddress,
     notes: leadInput.notes || '',
     createdAt: leadInput.createdAt || new Date().toISOString(),
     status: leadInput.status || 'new',
@@ -367,14 +378,29 @@ export function saveLead(
       });
     }
 
-    // 3. Optional SMS receipt to Patient
+    // 3. Live or Simulated SMS Dispatch to Patient via Twilio / Gateway
     if (newLead.phone) {
+      const gwSettings = getGatewaySettings();
+      if (gwSettings.autoSendBookingConfirmation !== false) {
+        const templateVars = {
+          patient_name: newLead.name,
+          clinic_name: newLead.clinicName || 'Vance Health',
+          doctor_name: newLead.practitionerName || 'Doctor of Chiropractic',
+          date: newLead.date || 'Upcoming',
+          time: newLead.time || 'Scheduled Time',
+          ref_code: newLead.id,
+          portal_url: `${window.location.origin}/portal?ref=${newLead.id}`,
+        };
+        const smsBody = interpolateTemplate(gwSettings.customSmsBookingTemplate, templateVars);
+        sendLiveOrSimulatedSms(newLead.phone, smsBody, 'booking_confirmation');
+      }
+
       logNotification({
         type: 'patient_autoresponder',
         recipient: newLead.phone,
         channel: 'sms',
-        subject: 'SMS Request Received',
-        message: `${newLead.clinicName}: We received your booking request for ${newLead.date} @ ${newLead.time}. Our reception will confirm within 24h. Call us if urgent!`,
+        subject: 'SMS Confirmation Sent',
+        message: `${newLead.clinicName}: We received your booking request for ${newLead.date} @ ${newLead.time}. Ref: ${newLead.id}.`,
       });
     }
   }
@@ -795,6 +821,24 @@ export function requestPatientReschedule(
       read: false,
     };
 
+    // Dispatch patient SMS confirmation for reschedule
+    if (updatedLead.phone) {
+      const gwSettings = getGatewaySettings();
+      if (gwSettings.autoSendRescheduleAlert !== false) {
+        const templateVars = {
+          patient_name: updatedLead.name,
+          clinic_name: updatedLead.clinicName || 'Vance Health',
+          doctor_name: updatedLead.practitionerName || 'Doctor of Chiropractic',
+          date: newDate,
+          time: newTime,
+          ref_code: updatedLead.id,
+          portal_url: `${window.location.origin}/portal?ref=${updatedLead.id}`,
+        };
+        const smsBody = interpolateTemplate(gwSettings.customSmsRescheduleTemplate, templateVars);
+        sendLiveOrSimulatedSms(updatedLead.phone, smsBody, 'reschedule');
+      }
+    }
+
     const currentNotifs = getDispatchedNotifications();
     const updatedNotifs = [newNotif, ...currentNotifs];
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
@@ -830,6 +874,24 @@ export function requestPatientCancellation(
   try {
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
     window.dispatchEvent(new CustomEvent('leads_updated', { detail: leads }));
+
+    // Dispatch patient SMS cancellation receipt
+    if (updatedLead.phone) {
+      const gwSettings = getGatewaySettings();
+      if (gwSettings.autoSendCancellationAlert !== false) {
+        const templateVars = {
+          patient_name: updatedLead.name,
+          clinic_name: updatedLead.clinicName || 'Vance Health',
+          doctor_name: updatedLead.practitionerName || 'Doctor of Chiropractic',
+          date: existing.date || 'Scheduled Date',
+          time: existing.time || 'Scheduled Time',
+          ref_code: updatedLead.id,
+          portal_url: `${window.location.origin}/portal`,
+        };
+        const smsBody = interpolateTemplate(gwSettings.customSmsCancellationTemplate, templateVars);
+        sendLiveOrSimulatedSms(updatedLead.phone, smsBody, 'cancellation');
+      }
+    }
 
     // Dispatch front desk alert
     const newNotif: DispatchedNotification = {

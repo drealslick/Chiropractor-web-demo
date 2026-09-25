@@ -18,13 +18,41 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
     return null; 
   }
   
-  // We grab clinicData and call it 'clinic' so the rest of your code works perfectly
-  const { clinicData: clinic } = context; 
+  const { clinicData: clinic, activeLocation, setActiveLocationId, allLocations } = context; 
   const activeLogo = clinic.logoUrl || clinic.logoImage || (clinic as any).logo;
   const [logoImageError, setLogoImageError] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
+      {/* Top Multi-Location Utility Ribbon */}
+      {allLocations && allLocations.length > 1 && (
+        <div className="bg-stone-900 text-stone-300 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between border-b border-stone-800">
+          <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
+                <span>📍 Active Clinic Branch:</span>
+              </span>
+              <select
+                value={activeLocation.id}
+                onChange={(e) => setActiveLocationId(e.target.value)}
+                className="bg-stone-800 border border-stone-700 text-stone-100 text-xs rounded-md px-2.5 py-0.5 font-semibold cursor-pointer focus:outline-none focus:border-emerald-500"
+              >
+                {allLocations.map((loc) => (
+                  <option key={loc.id} value={loc.id} className="bg-stone-900 text-stone-100">
+                    {loc.name} ({loc.city})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-4 text-[11px] text-stone-400">
+              <span>{activeLocation.address}, {activeLocation.city}</span>
+              <span className="font-mono text-emerald-300">{activeLocation.phone}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         
         {/* LOGO & Home Link */}
@@ -104,11 +132,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           </button>
 
           <a
-            href={`tel:${clinic.phoneRaw}`}
+            href={`tel:${activeLocation.phoneRaw}`}
             className="hidden lg:flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-700 hover:text-emerald-800 px-3 py-2 rounded-md hover:bg-stone-200/60 transition-all"
           >
             <Phone className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{clinic.phone}</span>
+            <span>{activeLocation.phone}</span>
           </a>
 
           <button
