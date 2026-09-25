@@ -315,6 +315,11 @@ export interface ClinicInfo {
   announcementBanner?: AnnouncementBannerConfig;
   customPosts?: ClinicPost[];
   customTeamMembers?: any[];
+  seoTitle?: string;
+  seoDescription?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
   privacyPolicyText?: string;
   termsOfServiceText?: string;
   cancellationPolicyText?: string;

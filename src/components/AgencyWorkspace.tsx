@@ -48,6 +48,8 @@ import {
   User,
   ChevronDown,
   Home,
+  Share2,
+  Smartphone,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { colorPalettes, resolvePalette } from '../data/colorPalettes';
@@ -134,6 +136,8 @@ export function AgencyWorkspace({
   const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
+  const [socialPlatformPreview, setSocialPlatformPreview] = useState<'imessage' | 'twitter' | 'facebook'>('imessage');
+  const [copiedSocialLink, setCopiedSocialLink] = useState(false);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -1422,26 +1426,61 @@ export function AgencyWorkspace({
               </div>
             )}
 
-            {/* 17. SEO & META TAGS */}
+            {/* 17. SEO & SOCIAL SHARE CARDS */}
             {activeTab === 'seo' && (
               <div className="space-y-6">
-                <div className="border-b border-stone-800 pb-3">
-                  <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-emerald-400" />
-                    <span>Search Engine Optimization (SEO)</span>
-                  </h3>
-                  <p className="text-xs text-stone-400 mt-0.5">
-                    Meta tags and search engine titles for Google and local map rankings.
-                  </p>
+                <div className="border-b border-stone-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-emerald-400" />
+                      <span>Search Engine Optimization & Social Cards</span>
+                    </h3>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Configure Google search meta tags and preview how your practice link looks when shared on iMessage, WhatsApp, Twitter/X, and Facebook.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        navigator.clipboard.writeText(window.location.origin);
+                        setCopiedSocialLink(true);
+                        setTimeout(() => setCopiedSocialLink(false), 2000);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-750 text-stone-200 border border-stone-700 text-xs font-semibold flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
+                  >
+                    {copiedSocialLink ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-300">Link Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Copy Link for Social Sharing</span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
+                {/* 1. GOOGLE SEARCH SNIPPET */}
                 <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-stone-800 pb-2.5">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-stone-300 flex items-center gap-2">
+                      <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>1. Google Search Metadata</span>
+                    </h4>
+                    <span className="text-[10px] text-stone-500 font-mono">SERP Indexing</span>
+                  </div>
+
                   <Field
                     label="SEO Page Title"
                     value={clinic.seoTitle || ''}
-                    placeholder="Columbus Chiropractic Care | Dr. Marcus Vance | Relief in Columbus, OH"
-                    helperText="Displayed on Google search results tabs and browser title."
-                    locationBadge="<title>"
+                    placeholder={`${clinic.name || 'Practice Name'} | Pain Recovery & Chiropractic in ${clinic.city || 'Your City'}, ${clinic.state || 'State'}`}
+                    helperText="Displayed on Google search results tabs and browser title (30–60 chars recommended)."
+                    locationBadge="<title> & og:title"
                     onChange={(v) => onUpdateClinic({ ...clinic, seoTitle: v })}
                   />
 
@@ -1449,11 +1488,189 @@ export function AgencyWorkspace({
                     label="SEO Meta Description"
                     textarea
                     value={clinic.seoDescription || ''}
-                    placeholder="Columbus Chiropractic Care provides evidence-based spinal decompression, pain relief, and movement rehabilitation. Book your $49 exam today."
-                    helperText="150-160 character snippet shown in Google search result snippets."
+                    placeholder={`${clinic.name || 'Our clinic'} provides evidence-informed chiropractic care, back and neck pain recovery, and sports rehabilitation in ${clinic.cityState || 'our local community'}. Book your first visit today.`}
+                    helperText="150–160 character snippet shown in Google search result snippets."
                     locationBadge="<meta description>"
                     onChange={(v) => onUpdateClinic({ ...clinic, seoDescription: v })}
                   />
+                </div>
+
+                {/* 2. SOCIAL SHARE CARDS (OPENGRAPH & TWITTER) */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-800 pb-3">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-stone-200 flex items-center gap-2">
+                        <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>2. Social Share Cards (OpenGraph & Twitter / X)</span>
+                      </h4>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
+                        These tags generate the preview card when someone shares your URL in text messages or social feeds.
+                      </p>
+                    </div>
+
+                    {/* Platform Selector Buttons */}
+                    <div className="flex items-center gap-1 bg-stone-900 p-1 rounded-xl border border-stone-750 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setSocialPlatformPreview('imessage')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                          socialPlatformPreview === 'imessage'
+                            ? 'bg-emerald-500 text-stone-950 shadow-xs'
+                            : 'text-stone-400 hover:text-stone-200'
+                        }`}
+                      >
+                        <Smartphone className="w-3 h-3" />
+                        <span>iMessage / WhatsApp</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSocialPlatformPreview('twitter')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                          socialPlatformPreview === 'twitter'
+                            ? 'bg-emerald-500 text-stone-950 shadow-xs'
+                            : 'text-stone-400 hover:text-stone-200'
+                        }`}
+                      >
+                        <span>X / Twitter</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSocialPlatformPreview('facebook')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                          socialPlatformPreview === 'facebook'
+                            ? 'bg-emerald-500 text-stone-950 shadow-xs'
+                            : 'text-stone-400 hover:text-stone-200'
+                        }`}
+                      >
+                        <span>Facebook / LinkedIn</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* LIVE SOCIAL CARD PREVIEW SIMULATOR */}
+                  <div className="bg-stone-950 p-4 sm:p-6 rounded-xl border border-stone-800 flex flex-col items-center">
+                    <span className="text-[10px] uppercase tracking-wider text-stone-500 font-bold mb-3 self-start flex items-center gap-1.5">
+                      <Eye className="w-3 h-3 text-emerald-400" />
+                      <span>Live Share Preview: {socialPlatformPreview === 'imessage' ? 'iMessage & WhatsApp' : socialPlatformPreview === 'twitter' ? 'Twitter / X (Summary Large Image)' : 'Facebook & LinkedIn Link Post'}</span>
+                    </span>
+
+                    {/* Preview 1: iMessage & WhatsApp Message Bubble */}
+                    {socialPlatformPreview === 'imessage' && (
+                      <div className="w-full max-w-sm bg-stone-900 border border-stone-750 rounded-2xl overflow-hidden shadow-xl text-left animate-fade-in">
+                        <div className="h-44 w-full bg-stone-950 relative overflow-hidden flex items-center justify-center">
+                          <img
+                            src={clinic.ogImage || clinic.heroImage || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80'}
+                            alt="Social Share Thumbnail"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[10px] text-white font-medium">
+                            Preview
+                          </div>
+                        </div>
+                        <div className="p-3.5 space-y-1">
+                          <span className="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">
+                            {(clinic.name ? clinic.name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'clinic')}.com
+                          </span>
+                          <h5 className="text-xs font-bold text-stone-100 leading-snug line-clamp-2">
+                            {clinic.ogTitle || clinic.seoTitle || clinic.name || 'Private Chiropractic Clinic'}
+                          </h5>
+                          <p className="text-[11px] text-stone-400 line-clamp-2 leading-relaxed">
+                            {clinic.ogDescription || clinic.seoDescription || clinic.tagline || 'Evidence-informed private chiropractic care and pain relief.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview 2: Twitter / X Large Summary Card */}
+                    {socialPlatformPreview === 'twitter' && (
+                      <div className="w-full max-w-md bg-stone-900 border border-stone-750 rounded-2xl overflow-hidden shadow-xl text-left animate-fade-in">
+                        <div className="aspect-[1.91/1] w-full bg-stone-950 relative overflow-hidden flex items-center justify-center">
+                          <img
+                            src={clinic.ogImage || clinic.heroImage || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80'}
+                            alt="Twitter Card Banner"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[11px] text-stone-200 font-mono">
+                            {(clinic.name ? clinic.name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'clinic')}.com
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-1 bg-stone-850">
+                          <h5 className="text-xs font-bold text-stone-100 leading-snug">
+                            {clinic.ogTitle || clinic.seoTitle || clinic.name || 'Private Chiropractic Clinic'}
+                          </h5>
+                          <p className="text-[11px] text-stone-400 line-clamp-2 leading-relaxed">
+                            {clinic.ogDescription || clinic.seoDescription || clinic.tagline || 'Evidence-informed private chiropractic care and pain relief.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview 3: Facebook & LinkedIn Post Card */}
+                    {socialPlatformPreview === 'facebook' && (
+                      <div className="w-full max-w-md bg-stone-900 border border-stone-750 rounded-xl overflow-hidden shadow-xl text-left animate-fade-in">
+                        <div className="aspect-[1.91/1] w-full bg-stone-950 relative overflow-hidden">
+                          <img
+                            src={clinic.ogImage || clinic.heroImage || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80'}
+                            alt="Facebook Share Card"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="p-3 bg-stone-800/80 border-t border-stone-700/60 space-y-1">
+                          <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider">
+                            {(clinic.name ? clinic.name.toUpperCase().replace(/[^a-zA-Z0-9]/g, '') : 'CLINIC')}.COM
+                          </span>
+                          <h5 className="text-xs font-bold text-white leading-snug line-clamp-1">
+                            {clinic.ogTitle || clinic.seoTitle || clinic.name || 'Private Chiropractic Clinic'}
+                          </h5>
+                          <p className="text-[11px] text-stone-300 line-clamp-2 leading-relaxed">
+                            {clinic.ogDescription || clinic.seoDescription || clinic.tagline || 'Evidence-informed private chiropractic care and pain relief.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CUSTOMIZE SOCIAL CARD TAGS */}
+                  <div className="space-y-4 pt-2">
+                    <Field
+                      label="Social Share Title"
+                      value={clinic.ogTitle || ''}
+                      placeholder={clinic.seoTitle || clinic.name || 'Practice Title on Social'}
+                      helperText="Title rendered on social cards (defaults to SEO title if blank)."
+                      locationBadge="og:title & twitter:title"
+                      onChange={(v) => onUpdateClinic({ ...clinic, ogTitle: v })}
+                    />
+
+                    <Field
+                      label="Social Share Description"
+                      textarea
+                      value={clinic.ogDescription || ''}
+                      placeholder={clinic.seoDescription || clinic.tagline || 'Brief description for social feeds...'}
+                      helperText="Summary line displayed in link cards (defaults to SEO description if blank)."
+                      locationBadge="og:description & twitter:description"
+                      onChange={(v) => onUpdateClinic({ ...clinic, ogDescription: v })}
+                    />
+
+                    <Field
+                      label="Social Share Card Image (og:image)"
+                      value={clinic.ogImage || ''}
+                      placeholder={clinic.heroImage || 'https://... image URL (1200 × 630px recommended)'}
+                      helperText="1200 × 630px image displayed when your link is shared. If blank, automatically uses your custom Hero Photo."
+                      locationBadge="og:image & twitter:image"
+                      onChange={(v) => onUpdateClinic({ ...clinic, ogImage: v })}
+                    />
+                  </div>
+
+                  {/* Informational Callout */}
+                  <div className="p-3 rounded-xl bg-stone-900/60 border border-stone-750 text-xs text-stone-300 space-y-1">
+                    <strong className="text-stone-100 font-semibold flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>How Social Share Cards Work:</span>
+                    </strong>
+                    <p className="text-stone-400 text-[11px] leading-relaxed">
+                      Whenever someone pastes your website URL into WhatsApp, iMessage, Twitter/X, LinkedIn, Slack, or Facebook, the app provides these exact <code className="text-emerald-300 bg-stone-950 px-1 py-0.5 rounded font-mono">og:</code> and <code className="text-emerald-300 bg-stone-950 px-1 py-0.5 rounded font-mono">twitter:</code> meta tags so the recipient sees a branded thumbnail card instead of an unformatted plain link.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
