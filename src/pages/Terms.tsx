@@ -2,12 +2,14 @@ import React from 'react';
 import { FileCheck, ArrowLeft, Phone, Mail, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
-import { defaultTermsText } from '../components/admin/LegalPolicyManager';
+import { getMarketCompliance, generateMarketTerms } from '../data/marketCompliance';
 
 export default function Terms() {
   const { clinicData: clinic } = useClinic();
+  const compliance = getMarketCompliance(clinic.marketRegion);
+
   const termsText =
-    clinic.termsOfServiceText || defaultTermsText(clinic.name || 'Private Practice');
+    clinic.termsOfServiceText || generateMarketTerms(clinic.name || 'Private Practice', clinic.marketRegion || 'UK');
 
   const paragraphs = termsText.split('\n\n').filter((p) => p.trim());
 

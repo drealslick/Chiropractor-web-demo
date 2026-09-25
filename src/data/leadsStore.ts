@@ -615,6 +615,123 @@ export function exportLeadsToCSV(leads: PatientLead[], clinicName: string = 'Cli
 }
 
 /**
+ * Patient Accounts Store (Email + Password Authentication)
+ * Allows repeat patients to log in and access all their appointments without needing reference IDs.
+ */
+export interface PatientAccount {
+  id: string;
+  email: string;
+  password?: string;
+  name: string;
+  phone?: string;
+  createdAt: string;
+}
+
+const PATIENT_ACCOUNTS_KEY = 'agency_patient_accounts_v1';
+
+export function getDefaultSeedPatientAccounts(): PatientAccount[] {
+  return [
+    {
+      id: 'acc-john-doe',
+      email: 'johndoe@example.com',
+      password: 'password123',
+      name: 'John Doe',
+      phone: '(303) 555-0199',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'acc-emily-watson',
+      email: 'emily.w@example.com',
+      password: 'password123',
+      name: 'Emily Watson',
+      phone: '(303) 555-0194',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+}
+
+export function getStoredPatientAccounts(): PatientAccount[] {
+  try {
+    const raw = localStorage.getItem(PATIENT_ACCOUNTS_KEY);
+    if (!raw) {
+      const seeds = getDefaultSeedPatientAccounts();
+      localStorage.setItem(PATIENT_ACCOUNTS_KEY, JSON.stringify(seeds));
+      return seeds;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      const seeds = getDefaultSeedPatientAccounts();
+      localStorage.setItem(PATIENT_ACCOUNTS_KEY, JSON.stringify(seeds));
+      return seeds;
+    }
+    return parsed;
+  } catch {
+    return getDefaultSeedPatientAccounts();
+  }
+}
+
+export function registerPatientAccount(
+  name: string,
+  email: string,
+  password: string,
+  phone?: string
+): { success: boolean; account?: PatientAccount; message: string } {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !password || !name) {
+    return { success: false, message: 'Please provide full name, email, and password.' };
+  }
+
+  const accounts = getStoredPatientAccounts();
+  if (accounts.some((acc) => acc.email.toLowerCase() === cleanEmail)) {
+    return { success: false, message: 'An account with this email address already exists. Please log in.' };
+  }
+
+  const newAccount: PatientAccount = {
+    id: `acc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    name: name.trim(),
+    email: cleanEmail,
+    password: password.trim(),
+    phone: phone?.trim() || '',
+    createdAt: new Date().toISOString(),
+  };
+
+  const updated = [...accounts, newAccount];
+  try {
+    localStorage.setItem(PATIENT_ACCOUNTS_KEY, JSON.stringify(updated));
+  } catch {
+    // Ignore
+  }
+
+  return { success: true, account: newAccount, message: 'Account created successfully!' };
+}
+
+export function authenticatePatientAccount(
+  email: string,
+  password: string
+): { success: boolean; account?: PatientAccount; message: string } {
+  const cleanEmail = email.trim().toLowerCase();
+  const accounts = getStoredPatientAccounts();
+  const match = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
+
+  if (!match) {
+    return { success: false, message: 'No patient account found with that email. Please check your spelling or sign up.' };
+  }
+
+  if (match.password && match.password !== password.trim()) {
+    return { success: false, message: 'Incorrect password. Please try again.' };
+  }
+
+  return { success: true, account: match, message: 'Login successful.' };
+}
+
+export function findPatientAppointmentsByEmail(email: string): PatientLead[] {
+  const clean = email.trim().toLowerCase();
+  if (!clean) return [];
+  const leads = getStoredLeads();
+  return leads.filter((l) => l.email && l.email.trim().toLowerCase() === clean);
+}
+
+/**
  * Patient Self-Service Portal Helpers (Search, Reschedule, Cancellation)
  * STRICT SECURITY: Access is strictly locked to the cryptographically unique Booking Reference Key
  * or Transaction ID to prevent unauthorized access via guessing names/phones.

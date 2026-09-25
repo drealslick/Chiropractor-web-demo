@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { ClinicPost, BlogBlock, PublicTeamMember } from '../types';
 import { usePageMeta } from '../data/usePageMeta';
+import { getMarketCompliance } from '../data/marketCompliance';
 
 function slugify(title: string) {
   return title
@@ -45,6 +46,8 @@ export default function ConditionDetail() {
   const list = clinic.customConditions?.length
     ? clinic.customConditions
     : conditionsData;
+
+  const compliance = getMarketCompliance(clinic.marketRegion);
 
   const condition = list.find((c) => {
     const rawSlug = c.slug || slugify(c.title || c.id || '');
@@ -204,6 +207,21 @@ export default function ConditionDetail() {
             <p className="text-lg sm:text-xl text-stone-600 leading-relaxed font-sans max-w-3xl">
               {condition.description}
             </p>
+
+            {/* E-E-A-T Medical Review & Governance Badge */}
+            <div className="pt-3 pb-2 border-t border-stone-200/80 flex flex-wrap items-center gap-3 text-xs text-stone-600">
+              <span className="font-bold text-emerald-900 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                <span>Medically Reviewed by:</span>
+              </span>
+              <Link to="/team" className="font-bold text-stone-900 hover:text-emerald-800 underline underline-offset-2">
+                {compliance.sampleDoctorTitle}
+              </Link>
+              <span className="text-stone-400">•</span>
+              <span>{compliance.clinicianIdLabel}: <strong className="font-mono text-stone-800">{compliance.sampleDoctorId}</strong> ({compliance.governingBodyShort})</span>
+              <span className="text-stone-400">•</span>
+              <span>Last Reviewed: <strong className="text-stone-800">25 September 2026</strong></span>
+            </div>
           </div>
 
           {/* Clinical Anatomical Diagram / Visual directly below H1 */}
@@ -726,6 +744,29 @@ export default function ConditionDetail() {
             </div>
           </section>
         )}
+
+        {/* 4. E-E-A-T CLINICAL EVIDENCE & STATUTORY GUIDELINES */}
+        <section className="p-6 bg-stone-100/90 border border-stone-200 rounded-3xl space-y-3 text-xs">
+          <div className="flex items-center gap-2 text-stone-900 font-bold uppercase tracking-wider text-[11px]">
+            <FileText className="w-4 h-4 text-emerald-800" />
+            <span>Clinical Evidence, Guidelines & Regulatory Oversight ({compliance.regionLabel})</span>
+          </div>
+          <p className="text-stone-600 leading-relaxed">
+            All clinical content, assessment methods, and treatment plans at {clinic.name || 'Vance Health'} adhere strictly to evidence-based clinical standards and statutory regulations under the <strong>{compliance.statuteReference}</strong>.
+          </p>
+          <div className="space-y-2 pt-1 text-stone-600 font-sans">
+            {compliance.evidenceGuidelines.map((eg, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <span className="text-emerald-700 font-bold">•</span>
+                <span><strong>{eg.title} ({eg.authority}):</strong> {eg.description}</span>
+              </div>
+            ))}
+            <div className="flex items-start gap-2 pt-0.5">
+              <span className="text-emerald-700 font-bold">•</span>
+              <span><strong>Governing Body:</strong> {compliance.governingBodyName} — Statutory code of professional conduct and practice standards.</span>
+            </div>
+          </div>
+        </section>
 
         {/* The CTA: The Dark "Start with an Exam" Card (Kept exactly as requested) */}
         <section className="p-8 sm:p-10 bg-stone-900 text-white rounded-3xl text-center space-y-4 shadow-xl border border-stone-800">

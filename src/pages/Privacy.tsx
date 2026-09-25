@@ -2,16 +2,19 @@ import React from 'react';
 import { Shield, ArrowLeft, Phone, Mail, CheckCircle2, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
-import { defaultPrivacyPolicyText } from '../components/admin/LegalPolicyManager';
+import { getMarketCompliance, generateMarketPrivacyPolicy } from '../data/marketCompliance';
 
 export default function Privacy() {
   const { clinicData: clinic } = useClinic();
+  const compliance = getMarketCompliance(clinic.marketRegion);
+
   const policyText =
     clinic.privacyPolicyText ||
-    defaultPrivacyPolicyText(
+    generateMarketPrivacyPolicy(
       clinic.name || 'Private Practice',
-      clinic.phone || '(614) 555-0192',
-      clinic.email || 'care@columbuschiropractic.com'
+      clinic.phone || '+44 20 7946 0192',
+      clinic.email || 'reception@vancehealth.co.uk',
+      clinic.marketRegion || 'UK'
     );
 
   const paragraphs = policyText.split('\n\n').filter((p) => p.trim());
@@ -35,23 +38,23 @@ export default function Privacy() {
               <Lock className="w-4 h-4" />
             </span>
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-              HIPAA & GDPR Compliance
+              {compliance.flag} {compliance.privacyFramework}
             </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight">
-            Privacy Policy & Data Security
+            Privacy Policy & Health Data Protection
           </h1>
 
           <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">
-            How {clinic.name || 'our practice'} protects patient confidentiality, handles inquiries, and secures electronic communication.
+            How {clinic.name || 'our practice'} protects patient confidentiality, handles inquiries, and secures protected health records in accordance with {compliance.privacyFramework}.
           </p>
 
           <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center gap-4 text-xs text-stone-500">
             <span>Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
             <span>•</span>
             <span className="flex items-center gap-1 text-emerald-700 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Direct Doctor Confidentiality
+              <CheckCircle2 className="w-3.5 h-3.5" /> Statutory Doctor-Patient Confidentiality
             </span>
           </div>
         </div>

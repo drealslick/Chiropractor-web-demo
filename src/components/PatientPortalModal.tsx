@@ -3,6 +3,7 @@ import { useClinic } from '../data/ClinicContext';
 import {
   PatientLead,
   findPatientAppointments,
+  findPatientAppointmentsByEmail,
   requestPatientReschedule,
   requestPatientCancellation,
   getStoredLeads,
@@ -93,7 +94,10 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
       return;
     }
 
-    const matches = findPatientAppointments(q);
+    let matches = findPatientAppointments(q);
+    if (matches.length === 0 && q.includes('@')) {
+      matches = findPatientAppointmentsByEmail(q);
+    }
     setSearchResults(matches);
     setHasSearched(true);
 

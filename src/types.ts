@@ -381,7 +381,26 @@ export interface ClinicInfo {
   aboutStory?: string;
   schedulingRules?: ClinicSchedulingRules;
   paymentPolicy?: ClinicPaymentPolicy;
+  portalSettings?: PatientPortalSettings;
+  marketRegion?: 'UK' | 'US' | 'GLOBAL';
   [key: string]: any;
+}
+
+export interface PatientPortalSettings {
+  enabled: boolean;
+  pageTitle: string;
+  pageSubtitle: string;
+  welcomeMessage: string;
+  allowSelfReschedule: boolean;
+  allowSelfCancellation: boolean;
+  allowReceiptDownload: boolean;
+  allowExerciseGuides: boolean;
+  cancellationNoticeHours: number;
+  emergencyBannerText?: string;
+  showEmergencyBanner: boolean;
+  supportPhone?: string;
+  supportEmail?: string;
+  requirePhoneLast4?: boolean;
 }
 
 export interface ClientData {

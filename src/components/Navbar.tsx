@@ -207,6 +207,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             Contact
           </Link>
+          <Link
+            to="/portal"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center justify-between py-2.5 px-3 text-base font-semibold text-emerald-900 bg-emerald-50/80 hover:bg-emerald-100/80 rounded-xl transition border border-emerald-200/80"
+          >
+            <div className="flex items-center gap-2">
+              <CalendarCheck2 className="w-5 h-5 text-emerald-700" />
+              <span>Patient Portal / Login</span>
+            </div>
+            <span className="text-[10px] uppercase font-bold tracking-wider bg-emerald-800 text-white px-2 py-0.5 rounded-full">
+              Access
+            </span>
+          </Link>
           <div className="pt-2 border-t border-stone-200 space-y-1">
             <button
               type="button"
@@ -217,7 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
               className="w-full flex items-center gap-2 py-2 px-3 text-sm font-semibold text-stone-800 hover:bg-stone-200/60 rounded-md transition text-left cursor-pointer"
             >
               <CalendarCheck2 className="w-4 h-4 text-emerald-700" />
-              <span>Manage Booking & Receipts</span>
+              <span>Quick Booking Lookup</span>
             </button>
             <button
               type="button"

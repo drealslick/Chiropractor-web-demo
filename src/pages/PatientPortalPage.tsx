@@ -4,9 +4,13 @@ import { useClinic } from '../data/ClinicContext';
 import {
   PatientLead,
   findPatientAppointments,
+  findPatientAppointmentsByEmail,
+  registerPatientAccount,
+  authenticatePatientAccount,
   getStoredLeads,
   requestPatientReschedule,
   requestPatientCancellation,
+  PatientAccount,
 } from '../data/leadsStore';
 import {
   Calendar,
@@ -34,23 +38,52 @@ import {
   Shield,
   HelpCircle,
   ChevronRight,
+  UserPlus,
+  KeyRound,
 } from 'lucide-react';
 
-const PATIENT_SESSION_KEY = 'vance_patient_portal_session_v1';
+const PATIENT_SESSION_KEY = 'vance_patient_portal_session_v2';
 
 export default function PatientPortalPage() {
   const { clinicData: clinic, openBookingModal } = useClinic();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Authentication & Session state
+  const portalConfig = {
+    pageTitle: clinic.portalSettings?.pageTitle || 'Patient Self-Service Hub',
+    pageSubtitle: clinic.portalSettings?.pageSubtitle || `Secure patient access for ${clinic.name}. View appointments, download receipts, and manage your care.`,
+    welcomeMessage: clinic.portalSettings?.welcomeMessage || 'Sign in with your email account or enter your unique Booking Reference Key to manage your visits.',
+    showEmergencyBanner: clinic.portalSettings?.showEmergencyBanner !== false,
+    emergencyBannerText: clinic.portalSettings?.emergencyBannerText || 'For sudden loss of bowel/bladder sensation, acute trauma, or progressive limb numbness, please contact emergency medical services immediately.',
+    allowSelfReschedule: clinic.portalSettings?.allowSelfReschedule !== false,
+    allowSelfCancellation: clinic.portalSettings?.allowSelfCancellation !== false,
+    allowReceiptDownload: clinic.portalSettings?.allowReceiptDownload !== false,
+    allowExerciseGuides: clinic.portalSettings?.allowExerciseGuides !== false,
+    supportPhone: clinic.portalSettings?.supportPhone || clinic.phone || '+44 20 7946 0192',
+    supportEmail: clinic.portalSettings?.supportEmail || clinic.email || 'reception@vancehealth.co.uk',
+  };
+
+  // Auth Mode: 'account' (Email/Password) vs 'quickRef' (Booking ID)
+  const [authMode, setAuthMode] = useState<'account' | 'quickRef'>('account');
+  const [accountTab, setAccountTab] = useState<'login' | 'register'>('login');
+
+  // Account Form Fields
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
+
+  // Quick Ref Form Fields
   const [refInput, setRefInput] = useState('');
   const [phoneLast4, setPhoneLast4] = useState('');
+
+  // State & Loading
   const [loginError, setLoginError] = useState('');
+  const [loginSuccessMessage, setLoginSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Active Authenticated State
-  const [activePatient, setActivePatient] = useState<{ email?: string; name: string } | null>(null);
+  // Active Authenticated Patient State
+  const [activePatient, setActivePatient] = useState<{ email?: string; name: string; isAccount?: boolean } | null>(null);
   const [patientAppointments, setPatientAppointments] = useState<PatientLead[]>([]);
   const [selectedAppt, setSelectedAppt] = useState<PatientLead | null>(null);
   const [activeTab, setActiveTab] = useState<'itinerary' | 'receipts' | 'reschedule' | 'cancel'>('itinerary');
@@ -71,7 +104,8 @@ export default function PatientPortalPage() {
   useEffect(() => {
     const urlRef = searchParams.get('ref') || searchParams.get('query');
     if (urlRef) {
-      handleDirectLookup(urlRef);
+      setAuthMode('quickRef');
+      handleDirectRefLookup(urlRef);
       return;
     }
 
@@ -79,8 +113,13 @@ export default function PatientPortalPage() {
       const savedSession = sessionStorage.getItem(PATIENT_SESSION_KEY);
       if (savedSession) {
         const parsed = JSON.parse(savedSession);
-        if (parsed?.id) {
-          handleDirectLookup(parsed.id);
+        if (parsed?.email) {
+          const appts = findPatientAppointmentsByEmail(parsed.email);
+          setActivePatient({ name: parsed.name || 'Patient', email: parsed.email, isAccount: true });
+          setPatientAppointments(appts);
+          if (appts.length > 0) setSelectedAppt(appts[0]);
+        } else if (parsed?.id) {
+          handleDirectRefLookup(parsed.id);
         }
       }
     } catch {
@@ -88,7 +127,7 @@ export default function PatientPortalPage() {
     }
   }, [searchParams]);
 
-  const handleDirectLookup = (query: string, phoneCheck?: string) => {
+  const handleDirectRefLookup = (query: string, phoneCheck?: string) => {
     setLoginError('');
     const cleanId = query.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
     if (!cleanId) {
@@ -100,7 +139,6 @@ export default function PatientPortalPage() {
     if (matches.length > 0) {
       const primary = matches[0];
 
-      // If phone check provided, verify last 4 digits
       if (phoneCheck && phoneCheck.trim().length === 4) {
         const leadDigits = (primary.phone || '').replace(/\D/g, '');
         const last4 = leadDigits.slice(-4);
@@ -110,13 +148,13 @@ export default function PatientPortalPage() {
         }
       }
 
-      setActivePatient({ name: primary.name, email: primary.email });
+      setActivePatient({ name: primary.name, email: primary.email, isAccount: false });
       setPatientAppointments(matches);
       setSelectedAppt(primary);
       try {
         sessionStorage.setItem(
           PATIENT_SESSION_KEY,
-          JSON.stringify({ id: primary.id, name: primary.name, email: primary.email })
+          JSON.stringify({ id: primary.id, name: primary.name, email: primary.email, isAccount: false })
         );
       } catch {
         // Ignore
@@ -126,7 +164,7 @@ export default function PatientPortalPage() {
     }
   };
 
-  const handleSecureLogin = (e: React.FormEvent) => {
+  const handleQuickRefLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     if (!refInput.trim()) {
@@ -137,8 +175,73 @@ export default function PatientPortalPage() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      handleDirectLookup(refInput, phoneLast4);
+      handleDirectRefLookup(refInput, phoneLast4);
     }, 400);
+  };
+
+  const handleAccountAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginSuccessMessage('');
+
+    if (accountTab === 'register') {
+      if (!nameInput.trim() || !emailInput.trim() || !passwordInput.trim()) {
+        setLoginError('Please complete your name, email, and password.');
+        return;
+      }
+
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        const res = registerPatientAccount(nameInput, emailInput, passwordInput, phoneInput);
+        if (res.success && res.account) {
+          const appts = findPatientAppointmentsByEmail(res.account.email);
+          setActivePatient({ name: res.account.name, email: res.account.email, isAccount: true });
+          setPatientAppointments(appts);
+          if (appts.length > 0) setSelectedAppt(appts[0]);
+
+          try {
+            sessionStorage.setItem(
+              PATIENT_SESSION_KEY,
+              JSON.stringify({ id: res.account.id, name: res.account.name, email: res.account.email, isAccount: true })
+            );
+          } catch {
+            // Ignore
+          }
+        } else {
+          setLoginError(res.message);
+        }
+      }, 400);
+    } else {
+      // Login
+      if (!emailInput.trim() || !passwordInput.trim()) {
+        setLoginError('Please provide your account email and password.');
+        return;
+      }
+
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        const res = authenticatePatientAccount(emailInput, passwordInput);
+        if (res.success && res.account) {
+          const appts = findPatientAppointmentsByEmail(res.account.email);
+          setActivePatient({ name: res.account.name, email: res.account.email, isAccount: true });
+          setPatientAppointments(appts);
+          if (appts.length > 0) setSelectedAppt(appts[0]);
+
+          try {
+            sessionStorage.setItem(
+              PATIENT_SESSION_KEY,
+              JSON.stringify({ id: res.account.id, name: res.account.name, email: res.account.email, isAccount: true })
+            );
+          } catch {
+            // Ignore
+          }
+        } else {
+          setLoginError(res.message);
+        }
+      }, 400);
+    }
   };
 
   const handleLogout = () => {
@@ -148,6 +251,10 @@ export default function PatientPortalPage() {
     setPatientAppointments([]);
     setRefInput('');
     setPhoneLast4('');
+    setEmailInput('');
+    setPasswordInput('');
+    setNameInput('');
+    setPhoneInput('');
     setLoginError('');
   };
 
@@ -230,10 +337,10 @@ export default function PatientPortalPage() {
               <span className="text-emerald-800">Patient Portal</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-950 mt-1">
-              Patient Self-Service Hub
+              {portalConfig.pageTitle}
             </h1>
             <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
-              Secure patient access for {clinic.name}. View appointments, download receipts, and manage your care.
+              {portalConfig.pageSubtitle}
             </p>
           </div>
 
@@ -244,7 +351,9 @@ export default function PatientPortalPage() {
               </div>
               <div className="text-left">
                 <span className="font-bold text-xs text-stone-900 block">{activePatient.name}</span>
-                <span className="text-[10px] text-emerald-800 font-mono">Patient Verified ✓</span>
+                <span className="text-[10px] text-emerald-800 font-mono">
+                  {activePatient.isAccount ? 'Account Active ✓' : 'Patient Verified ✓'}
+                </span>
               </div>
               <button
                 type="button"
@@ -258,23 +367,56 @@ export default function PatientPortalPage() {
           )}
         </div>
 
+        {/* Dynamic Emergency Red-Flag Banner */}
+        {portalConfig.showEmergencyBanner && (
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 flex items-start gap-3 text-xs">
+            <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <strong className="font-bold block mb-0.5 text-amber-950">Clinical Red-Flag Advisory:</strong>
+              <span>{portalConfig.emergencyBannerText}</span>
+            </div>
+          </div>
+        )}
+
         {/* ----------------- STATE 1: PATIENT LOGIN CARD (If Not Signed In) ----------------- */}
         {!activePatient && (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
             
-            {/* Left Column: Login Form */}
+            {/* Left Column: Login / Account Card */}
             <div className="md:col-span-7 bg-white rounded-3xl border border-stone-200 shadow-md p-6 sm:p-8 space-y-6">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold mb-3">
-                  <Lock className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Encrypted Patient Security Passkey</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-serif font-bold text-stone-950">
-                  Patient Portal Access
-                </h2>
-                <p className="text-xs text-stone-600 mt-1">
-                  To protect your medical privacy, access requires the unique, non-predictable Booking Reference Key provided when scheduling your visit.
-                </p>
+              
+              {/* Access Method Tabs */}
+              <div className="flex bg-stone-100 p-1 rounded-2xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('account');
+                    setLoginError('');
+                  }}
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    authMode === 'account'
+                      ? 'bg-white text-stone-950 shadow-xs'
+                      : 'text-stone-500 hover:text-stone-900'
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Patient Account</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('quickRef');
+                    setLoginError('');
+                  }}
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    authMode === 'quickRef'
+                      ? 'bg-white text-stone-950 shadow-xs'
+                      : 'text-stone-500 hover:text-stone-900'
+                  }`}
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Quick Booking ID</span>
+                </button>
               </div>
 
               {loginError && (
@@ -284,80 +426,233 @@ export default function PatientPortalPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSecureLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1.5">
-                    Booking Reference Key *
-                  </label>
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. VH-9428-K82X"
-                      value={refInput}
-                      onChange={(e) => setRefInput(e.target.value.toUpperCase())}
-                      className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-sm text-stone-900 font-mono tracking-wider focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
-                    />
+              {/* TAB 1: PATIENT ACCOUNT (EMAIL & PASSWORD) */}
+              {authMode === 'account' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-serif font-bold text-stone-950">
+                        {accountTab === 'login' ? 'Patient Sign In' : 'Create Patient Account'}
+                      </h2>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        {accountTab === 'login'
+                          ? 'Access all your visits, receipts & recovery plan without booking IDs.'
+                          : 'Set up your credentials to automatically link all current and future bookings.'}
+                      </p>
+                    </div>
+                    <div className="flex gap-1 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountTab(accountTab === 'login' ? 'register' : 'login');
+                          setLoginError('');
+                        }}
+                        className="text-emerald-800 hover:text-emerald-950 font-bold underline underline-offset-2 cursor-pointer"
+                      >
+                        {accountTab === 'login' ? 'Create Account' : 'Already have account?'}
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-stone-400 mt-1">
-                    Found on your appointment confirmation screen and email receipt.
-                  </p>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1.5 flex items-center justify-between">
-                    <span>2FA Phone Verification (Last 4 Digits)</span>
-                    <span className="text-[10px] text-stone-400 font-normal">Optional Extra Security</span>
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    placeholder="e.g. 0199"
-                    value={phoneLast4}
-                    onChange={(e) => setPhoneLast4(e.target.value.replace(/\D/g, ''))}
-                    className="w-full py-2.5 px-3 bg-stone-50 border border-stone-300 rounded-xl text-sm text-stone-900 font-mono tracking-widest focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
-                  />
-                </div>
+                  <form onSubmit={handleAccountAuth} className="space-y-3.5">
+                    {accountTab === 'register' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                            Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. John Doe"
+                            value={nameInput}
+                            onChange={(e) => setNameInput(e.target.value)}
+                            className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                          />
+                        </div>
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 px-4 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white font-semibold text-xs sm:text-sm transition cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <Lock className="w-4 h-4 text-emerald-400" />
-                  <span>{isLoading ? 'Verifying Key...' : 'Unlock Patient Record →'}</span>
-                </button>
-              </form>
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                            Phone Number
+                          </label>
+                          <input
+                            type="tel"
+                            placeholder="e.g. (303) 555-0199"
+                            value={phoneInput}
+                            onChange={(e) => setPhoneInput(e.target.value)}
+                            className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                          />
+                        </div>
+                      </>
+                    )}
 
-              {/* Instant Test Accounts */}
-              <div className="pt-4 border-t border-stone-100 space-y-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block">
-                  Quick Demo Passkeys (Click to Test):
-                </span>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRefInput('VH-9428-K82X');
-                      handleDirectLookup('VH-9428-K82X');
-                    }}
-                    className="px-3 py-2 rounded-lg bg-stone-100 hover:bg-emerald-50 hover:text-emerald-900 text-stone-700 text-xs font-semibold transition cursor-pointer border border-stone-200 text-left"
-                  >
-                    🔑 <strong>VH-9428-K82X</strong> — John Doe
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRefInput('VH-4402-Z33W');
-                      handleDirectLookup('VH-4402-Z33W');
-                    }}
-                    className="px-3 py-2 rounded-lg bg-stone-100 hover:bg-emerald-50 hover:text-emerald-900 text-stone-700 text-xs font-semibold transition cursor-pointer border border-stone-200 text-left"
-                  >
-                    🔑 <strong>VH-4402-Z33W</strong> — Emily Watson
-                  </button>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="e.g. patient@example.com"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                        Password *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3 px-4 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white font-semibold text-xs sm:text-sm transition cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+                    >
+                      {accountTab === 'register' ? (
+                        <>
+                          <UserPlus className="w-4 h-4 text-emerald-400" />
+                          <span>{isLoading ? 'Creating Account...' : 'Register & Enter Portal →'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4 text-emerald-400" />
+                          <span>{isLoading ? 'Authenticating...' : 'Sign In to Portal →'}</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  {/* Demo Account Passkeys */}
+                  <div className="pt-3 border-t border-stone-100 space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                      Quick Demo Credentials (Click to Autofill):
+                    </span>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountTab('login');
+                          setEmailInput('johndoe@example.com');
+                          setPasswordInput('password123');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-emerald-50 hover:text-emerald-900 text-stone-700 text-xs font-semibold transition cursor-pointer border border-stone-200 text-left flex items-center justify-between"
+                      >
+                        <span>👤 <strong>John Doe</strong></span>
+                        <span className="text-[10px] text-stone-400">johndoe@example.com</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountTab('login');
+                          setEmailInput('emily.w@example.com');
+                          setPasswordInput('password123');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-emerald-50 hover:text-emerald-900 text-stone-700 text-xs font-semibold transition cursor-pointer border border-stone-200 text-left flex items-center justify-between"
+                      >
+                        <span>👤 <strong>Emily Watson</strong></span>
+                        <span className="text-[10px] text-stone-400">emily.w@example.com</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* TAB 2: QUICK BOOKING ID LOOKUP */}
+              {authMode === 'quickRef' && (
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-serif font-bold text-stone-950">
+                      Quick Booking ID Lookup
+                    </h2>
+                    <p className="text-xs text-stone-600 mt-0.5">
+                      Don't have an account? Enter the booking key sent on your receipt screen or email.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleQuickRefLogin} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                        Booking Reference Key *
+                      </label>
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-2.5" />
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. VH-9428-K82X"
+                          value={refInput}
+                          onChange={(e) => setRefInput(e.target.value.toUpperCase())}
+                          className="w-full pl-10 pr-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 font-mono tracking-wider focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1 flex items-center justify-between">
+                        <span>Phone Last 4 Digits</span>
+                        <span className="text-[10px] text-stone-400 font-normal">Optional 2FA</span>
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={4}
+                        placeholder="e.g. 0199"
+                        value={phoneLast4}
+                        onChange={(e) => setPhoneLast4(e.target.value.replace(/\D/g, ''))}
+                        className="w-full py-2 px-3 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 font-mono tracking-widest focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3 px-4 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white font-semibold text-xs sm:text-sm transition cursor-pointer shadow-xs disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <Lock className="w-4 h-4 text-emerald-400" />
+                      <span>{isLoading ? 'Verifying Key...' : 'Lookup Booking Itinerary →'}</span>
+                    </button>
+                  </form>
+
+                  {/* Demo Reference Passkeys */}
+                  <div className="pt-3 border-t border-stone-100 space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                      Quick Demo Passkeys:
+                    </span>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRefInput('VH-9428-K82X');
+                          handleDirectRefLookup('VH-9428-K82X');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-emerald-50 hover:text-emerald-900 text-stone-700 text-xs font-semibold transition cursor-pointer border border-stone-200 text-left"
+                      >
+                        🔑 <strong>VH-9428-K82X</strong> — John Doe
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRefInput('VH-4402-Z33W');
+                          handleDirectRefLookup('VH-4402-Z33W');
+                        }}
+                        className="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-emerald-50 hover:text-emerald-900 text-stone-700 text-xs font-semibold transition cursor-pointer border border-stone-200 text-left"
+                      >
+                        🔑 <strong>VH-4402-Z33W</strong> — Emily Watson
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Column: Portal Capabilities Guide */}
@@ -365,7 +660,7 @@ export default function PatientPortalPage() {
               <div className="bg-stone-900 text-white rounded-3xl p-6 sm:p-7 space-y-4 shadow-md">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-emerald-400" />
-                  <h3 className="font-serif font-bold text-base text-white">What You Can Do Here</h3>
+                  <h3 className="font-serif font-bold text-base text-white">Patient Portal Features</h3>
                 </div>
 
                 <div className="space-y-3 text-xs text-stone-300">
@@ -373,7 +668,7 @@ export default function PatientPortalPage() {
                     <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-white block">Official Medical Receipts</strong>
-                      <span>Download itemized invoices with VAT exemption codes for Bupa, AXA, HSA/FSA claims.</span>
+                      <span>Download itemized invoices with VAT exemption codes for private insurance claims.</span>
                     </div>
                   </div>
 
@@ -398,10 +693,10 @@ export default function PatientPortalPage() {
               <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 text-xs text-emerald-950 space-y-2">
                 <div className="font-bold flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  <span>Need Assistance from Front Desk?</span>
+                  <span>Need Assistance from Reception?</span>
                 </div>
                 <p className="text-stone-700 leading-relaxed text-[11px]">
-                  If you need emergency triage or have questions regarding private insurance pre-authorization, our reception team is available:
+                  If you need urgent clinical triage or have questions regarding insurance pre-authorization:
                 </p>
                 <div className="pt-1">
                   <a
@@ -418,7 +713,30 @@ export default function PatientPortalPage() {
           </div>
         )}
 
-        {/* ----------------- STATE 2: AUTHENTICATED DASHBOARD (Once Signed In) ----------------- */}
+        {/* ----------------- STATE 2A: LOGGED IN WITH NO BOOKINGS YET ----------------- */}
+        {activePatient && patientAppointments.length === 0 && (
+          <div className="bg-white rounded-3xl border border-stone-200 shadow-sm p-8 text-center space-y-4 max-w-xl mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-900 flex items-center justify-center mx-auto">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-serif font-bold text-stone-950">Welcome, {activePatient.name}!</h2>
+              <p className="text-xs sm:text-sm text-stone-600 mt-1">
+                You have no scheduled appointments on file under <strong className="text-stone-900">{activePatient.email}</strong>.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openBookingModal()}
+              className="px-6 py-3 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white text-xs font-bold uppercase tracking-wider transition cursor-pointer shadow-md inline-flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span>Book Your First Consultation</span>
+            </button>
+          </div>
+        )}
+
+        {/* ----------------- STATE 2B: AUTHENTICATED DASHBOARD (With Appointments) ----------------- */}
         {activePatient && selectedAppt && (
           <div className="space-y-6 animate-fade-in">
             
@@ -494,288 +812,244 @@ export default function PatientPortalPage() {
                   >
                     Itinerary
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('receipts')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                      activeTab === 'receipts'
-                        ? 'bg-emerald-700 text-white shadow-2xs'
-                        : 'text-stone-400 hover:text-stone-200'
-                    }`}
-                  >
-                    Medical Receipt
-                  </button>
-                  {selectedAppt.status !== 'cancelled' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('reschedule')}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                          activeTab === 'reschedule'
-                            ? 'bg-emerald-700 text-white shadow-2xs'
-                            : 'text-stone-400 hover:text-stone-200'
-                        }`}
-                      >
-                        Reschedule
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('cancel')}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                          activeTab === 'cancel'
-                            ? 'bg-rose-900 text-white shadow-2xs'
-                            : 'text-stone-400 hover:text-stone-200'
-                        }`}
-                      >
-                        Cancel
-                      </button>
-                    </>
+                  {portalConfig.allowReceiptDownload && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('receipts')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                        activeTab === 'receipts'
+                          ? 'bg-emerald-700 text-white shadow-2xs'
+                          : 'text-stone-400 hover:text-stone-200'
+                      }`}
+                    >
+                      Receipt
+                    </button>
+                  )}
+                  {portalConfig.allowSelfReschedule && selectedAppt.status !== 'cancelled' && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('reschedule')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                        activeTab === 'reschedule'
+                          ? 'bg-emerald-700 text-white shadow-2xs'
+                          : 'text-stone-400 hover:text-stone-200'
+                      }`}
+                    >
+                      Reschedule
+                    </button>
+                  )}
+                  {portalConfig.allowSelfCancellation && selectedAppt.status !== 'cancelled' && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('cancel')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                        activeTab === 'cancel'
+                          ? 'bg-rose-900 text-white shadow-2xs'
+                          : 'text-stone-400 hover:text-rose-400'
+                      }`}
+                    >
+                      Cancel
+                    </button>
                   )}
                 </div>
               </div>
 
-              {/* TAB 1: ITINERARY & VISIT PREPARATION */}
+              {/* TAB 1: ITINERARY VIEW */}
               {activeTab === 'itinerary' && (
                 <div className="p-6 sm:p-8 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Appointment Details */}
-                    <div className="p-5 bg-stone-50 border border-stone-200 rounded-2xl space-y-4">
-                      <span className="text-xs font-bold uppercase tracking-wider text-stone-500 block">
-                        Scheduled Time & Clinician
+                  
+                  {/* Appointment Highlights Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-800" />
+                        <span>Appointment Date</span>
                       </span>
-
-                      <div className="space-y-3 text-xs sm:text-sm">
-                        <div className="flex items-center gap-3 text-stone-800">
-                          <Calendar className="w-5 h-5 text-emerald-700 shrink-0" />
-                          <div>
-                            <span className="text-[11px] text-stone-500 block">Date</span>
-                            <span className="font-bold text-stone-900">{selectedAppt.date || 'TBD'}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-stone-800">
-                          <Clock className="w-5 h-5 text-emerald-700 shrink-0" />
-                          <div>
-                            <span className="text-[11px] text-stone-500 block">Arrival Time</span>
-                            <span className="font-bold text-stone-900">
-                              {selectedAppt.time || 'Pending Review'} ({selectedAppt.durationMinutes || 45} mins)
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-stone-800">
-                          <User className="w-5 h-5 text-emerald-700 shrink-0" />
-                          <div>
-                            <span className="text-[11px] text-stone-500 block">Assigned Doctor</span>
-                            <span className="font-bold text-stone-900">
-                              {selectedAppt.practitionerName || clinic.leadPractitionerName || 'Chiropractor'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Clinic Address & Navigation */}
-                    <div className="p-5 bg-stone-50 border border-stone-200 rounded-2xl space-y-4 flex flex-col justify-between">
-                      <div>
-                        <span className="text-xs font-bold uppercase tracking-wider text-stone-500 block">
-                          Clinic Location & Access
-                        </span>
-                        <h4 className="font-bold text-stone-900 text-sm mt-1">{clinic.name}</h4>
-                        <p className="text-xs text-stone-600 mt-0.5">{fullAddress}</p>
-                        <p className="text-[11px] text-stone-500 mt-2">
-                          {clinic.parkingNote || 'Free designated patient parking on site.'}
-                        </p>
-                      </div>
-
-                      <div className="pt-2 flex flex-wrap gap-2">
-                        <a
-                          href={mapDirectionsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white text-xs font-semibold transition cursor-pointer shadow-2xs"
-                        >
-                          <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Google Maps Directions</span>
-                          <ExternalLink className="w-3 h-3 text-stone-400" />
-                        </a>
-                        <button
-                          type="button"
-                          onClick={handleDownloadCalendarFile}
-                          className="px-3 py-2.5 rounded-xl bg-white border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        >
-                          <Download className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>.ICS</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Payment & Insurance Protection Banner */}
-                  <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-800 text-white flex items-center justify-center shrink-0">
-                        <CreditCard className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <span className="font-bold text-stone-900 block text-xs sm:text-sm">
-                          {selectedAppt.paymentStatus === 'deposit_paid'
-                            ? `Deposit Paid: ${selectedAppt.paymentAmount || '£25.00'}`
-                            : selectedAppt.paymentStatus === 'paid_full'
-                            ? `Paid in Full: ${selectedAppt.paymentAmount}`
-                            : selectedAppt.paymentStatus === 'card_hold'
-                            ? 'Card-Hold Active (No-Show Protection)'
-                            : 'Pay at Clinic Arrival'}
-                        </span>
-                        <span className="text-[11px] text-stone-600">
-                          {selectedAppt.cardLast4
-                            ? `Card ending in •••• ${selectedAppt.cardLast4} (${selectedAppt.cardBrand || 'Card'})`
-                            : 'Itemized claim receipt generated automatically for insurance reimbursement'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('receipts')}
-                      className="px-3.5 py-1.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-950 font-bold text-xs cursor-pointer shrink-0"
-                    >
-                      View Invoice Receipt →
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: PRINTABLE MEDICAL RECEIPT */}
-              {activeTab === 'receipts' && (
-                <div className="p-6 sm:p-8 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-serif font-bold text-base text-stone-950">
-                        Official Medical Receipt & Claim Invoice
-                      </h3>
-                      <p className="text-xs text-stone-500">
-                        Zero-rated medical healthcare services for UK / US insurance claims.
+                      <p className="text-base font-bold text-stone-900">
+                        {selectedAppt.date || 'To be scheduled'}
+                      </p>
+                      <p className="text-xs text-stone-500 font-medium">
+                        {selectedAppt.time || '10:00 AM'} ({selectedAppt.durationMinutes || 45} mins)
                       </p>
                     </div>
 
+                    <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-emerald-800" />
+                        <span>Attending Doctor</span>
+                      </span>
+                      <p className="text-base font-bold text-stone-900">
+                        {selectedAppt.practitionerName || clinic.leadPractitionerName || 'Doctor of Chiropractic'}
+                      </p>
+                      <p className="text-xs text-emerald-800 font-medium">
+                        GCC Registered Practitioner
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5 text-emerald-800" />
+                        <span>Payment / Protection</span>
+                      </span>
+                      <p className="text-base font-bold text-stone-900">
+                        {selectedAppt.paymentAmount || '£49.00 Consultation'}
+                      </p>
+                      <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{selectedAppt.paymentStatus === 'paid_full' ? 'Paid in Full' : selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit Paid (£25)' : 'No-Show Card Protected'}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions & Calendar Export */}
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadCalendarFile}
+                      className="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-2 shadow-2xs"
+                    >
+                      <Download className="w-4 h-4 text-emerald-400" />
+                      <span>Add to Calendar (.ics)</span>
+                    </button>
+
+                    <a
+                      href={mapDirectionsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition cursor-pointer flex items-center gap-2 border border-stone-200"
+                    >
+                      <MapPin className="w-4 h-4 text-emerald-800" />
+                      <span>Directions to Practice</span>
+                      <ExternalLink className="w-3 h-3 text-stone-400" />
+                    </a>
+                  </div>
+
+                  {/* Pre-Visit Checklist & Clinical Instructions */}
+                  <div className="p-5 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
+                    <h4 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-800" />
+                      <span>Before You Arrive</span>
+                    </h4>
+                    <ul className="text-xs text-stone-600 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-700 font-bold">•</span>
+                        <span><strong>Attire:</strong> Please wear comfortable, athletic clothing or loose trousers for unrestricted range of motion testing.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-700 font-bold">•</span>
+                        <span><strong>Medical Records:</strong> Bring any recent spinal MRI scans, X-rays, or relevant surgical discharge summaries on a USB drive or printed report.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-700 font-bold">•</span>
+                        <span><strong>Arrival:</strong> Please arrive 10 minutes prior to your scheduled consultation time to complete your digital intake review.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 2: OFFICIAL MEDICAL RECEIPT */}
+              {activeTab === 'receipts' && (
+                <div className="p-6 sm:p-8 space-y-6">
+                  <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+                    <div>
+                      <h3 className="font-serif font-bold text-lg text-stone-950">Official Health Insurance Receipt</h3>
+                      <p className="text-xs text-stone-500">Itemized with GCC provider credentials for Bupa, AXA, Aviva & HSA reimbursement.</p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => window.print()}
-                      className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-xs"
+                      className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition cursor-pointer flex items-center gap-2"
                     >
-                      <Printer className="w-4 h-4 text-emerald-400" />
+                      <Printer className="w-3.5 h-3.5" />
                       <span>Print / PDF</span>
                     </button>
                   </div>
 
-                  <div
-                    ref={receiptRef}
-                    className="p-6 sm:p-8 bg-white border border-stone-300 rounded-3xl shadow-xs space-y-6 text-stone-900"
-                  >
-                    {/* Invoice Header */}
-                    <div className="flex justify-between items-start border-b border-stone-200 pb-5">
+                  {/* Printable Invoice Card */}
+                  <div ref={receiptRef} className="p-6 sm:p-8 rounded-2xl border border-stone-200 bg-white space-y-6 text-stone-900 shadow-2xs font-sans">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-stone-200 pb-6">
                       <div>
-                        <h4 className="font-serif font-extrabold text-lg tracking-tight text-stone-950">
-                          {clinic.name}
-                        </h4>
-                        <p className="text-xs text-stone-500 mt-1">{fullAddress}</p>
-                        <p className="text-xs text-stone-500">Tel: {clinic.phone}</p>
+                        <div className="font-serif font-bold text-xl text-stone-950">{clinic.name}</div>
+                        <p className="text-xs text-stone-500 mt-0.5">{clinic.address}, {clinic.cityState || clinic.city} {clinic.zip}</p>
+                        <p className="text-xs text-stone-500">Phone: {clinic.phone} • Email: {clinic.email}</p>
+                        <p className="text-xs font-mono text-emerald-800 mt-1 font-semibold">GCC Registration: 04182 • Statutory Regulated Healthcare Provider</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 block">
-                          Claim Receipt / Invoice
-                        </span>
-                        <span className="text-xs font-mono text-stone-500">
-                          INV-{selectedAppt.id.slice(0, 8).toUpperCase()}
-                        </span>
-                        <p className="text-[11px] text-stone-400 mt-0.5">
-                          Date: {new Date(selectedAppt.createdAt).toLocaleDateString()}
-                        </p>
+                      <div className="text-left sm:text-right">
+                        <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">RECEIPT / INVOICE</span>
+                        <span className="font-mono font-bold text-sm text-stone-900">INV-{selectedAppt.id}</span>
+                        <p className="text-xs text-stone-500 mt-1">Date: {selectedAppt.date || new Date().toISOString().split('T')[0]}</p>
                       </div>
                     </div>
 
-                    {/* Patient / Provider Info */}
-                    <div className="grid grid-cols-2 gap-6 text-xs sm:text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block mb-1">
-                          Billed To (Patient):
-                        </span>
-                        <p className="font-bold text-stone-900">{selectedAppt.name}</p>
-                        <p className="text-stone-600 text-xs">{selectedAppt.email}</p>
-                        <p className="text-stone-600 text-xs">{selectedAppt.phone}</p>
+                        <span className="font-bold text-stone-400 uppercase tracking-wider block text-[10px]">PATIENT DETAILS</span>
+                        <strong className="text-stone-900 text-sm block mt-0.5">{selectedAppt.name}</strong>
+                        <span className="text-stone-500">{selectedAppt.email}</span>
+                        <span className="text-stone-500 block">{selectedAppt.phone}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase font-bold text-stone-400 block mb-1">
-                          Treating Clinician:
-                        </span>
-                        <p className="font-bold text-stone-900">
-                          {selectedAppt.practitionerName || clinic.leadPractitionerName || 'Chiropractor'}
-                        </p>
-                        <p className="text-stone-600 text-xs">
-                          Condition Focus: {selectedAppt.condition || 'Spinal Assessment'}
-                        </p>
+                        <span className="font-bold text-stone-400 uppercase tracking-wider block text-[10px]">ATTENDING CLINICIAN</span>
+                        <strong className="text-stone-900 text-sm block mt-0.5">{selectedAppt.practitionerName || clinic.leadPractitionerName || 'Chiropractic Specialist'}</strong>
+                        <span className="text-stone-500">Doctor of Chiropractic (DC, MChiro)</span>
                       </div>
                     </div>
 
-                    {/* Itemized Table */}
-                    <table className="w-full text-left text-xs sm:text-sm border-t border-b border-stone-200">
+                    <table className="w-full text-xs text-left border-t border-stone-200 pt-4">
                       <thead>
-                        <tr className="border-b border-stone-200 bg-stone-50/60 text-[10px] uppercase font-bold text-stone-500">
-                          <th className="py-2.5 px-2">Clinical Service Description</th>
-                          <th className="py-2.5 px-2 text-center">Duration</th>
-                          <th className="py-2.5 px-2 text-right">Amount</th>
+                        <tr className="border-b border-stone-200 text-stone-400 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="py-2">Service Description</th>
+                          <th className="py-2">Type</th>
+                          <th className="py-2 text-right">Amount</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-100">
                         <tr>
-                          <td className="py-3 px-2 font-medium">
-                            {selectedAppt.serviceTitle || 'Initial Chiropractic Consultation & Spinal Exam'}
+                          <td className="py-3 font-medium text-stone-900">
+                            {selectedAppt.serviceTitle || selectedAppt.condition || 'Initial Diagnostic Consultation & Assessment'}
                           </td>
-                          <td className="py-3 px-2 text-center text-stone-500">
-                            {selectedAppt.durationMinutes || 45} mins
-                          </td>
-                          <td className="py-3 px-2 text-right font-bold text-stone-900">
-                            {selectedAppt.paymentAmount || '£49.00'}
-                          </td>
+                          <td className="py-3 text-stone-500">VAT Exempt (Healthcare)</td>
+                          <td className="py-3 text-right font-mono font-bold text-stone-900">{selectedAppt.paymentAmount || '£49.00'}</td>
                         </tr>
                       </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-stone-900 font-bold text-stone-950">
+                          <td colSpan={2} className="py-3 text-right">Total Paid:</td>
+                          <td className="py-3 text-right font-mono text-sm">{selectedAppt.paymentAmount || '£49.00'}</td>
+                        </tr>
+                      </tfoot>
                     </table>
 
-                    {/* Certification Footer */}
-                    <div className="flex justify-between items-end pt-2 text-xs">
-                      <div className="space-y-0.5 text-[11px] text-stone-500">
-                        <p>VAT Status: Zero-rated primary healthcare services.</p>
-                        <p>Valid for reimbursement under private health insurance & cash plans.</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs text-stone-500 block">Total Settlement:</span>
-                        <span className="font-serif font-black text-xl text-emerald-800">
-                          {selectedAppt.paymentAmount || '£49.00'}
-                        </span>
-                      </div>
+                    <div className="p-3 bg-stone-50 rounded-xl text-[11px] text-stone-500 space-y-1">
+                      <p><strong>Note for Insurance Providers:</strong> Chiropractic care provided at this clinic is delivered by a statutory registered practitioner regulated under the Chiropractors Act 1994. Invoices are exempt from VAT under VATA 1994, Sch 9, Group 7.</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB 3: RESCHEDULE */}
+              {/* TAB 3: RESCHEDULE VIEW */}
               {activeTab === 'reschedule' && (
                 <div className="p-6 sm:p-8 space-y-6">
-                  <form onSubmit={handleResubmitReschedule} className="space-y-5">
-                    <div>
-                      <h3 className="font-serif font-bold text-base text-stone-950">
-                        Request a Reschedule
-                      </h3>
-                      <p className="text-xs text-stone-600 mt-0.5">
-                        Choose your new preferred date and time. Our reception will automatically verify clinician availability and send an updated confirmation.
-                      </p>
-                    </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-lg text-stone-950">Reschedule Your Appointment</h3>
+                    <p className="text-xs text-stone-500">Select a new date and time for your consultation with {selectedAppt.practitionerName || 'your chiropractor'}.</p>
+                  </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {rescheduleSuccess ? (
+                    <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
                       <div>
-                        <label className="text-xs font-bold uppercase tracking-wider text-stone-700 block mb-1">
-                          New Date:
+                        <strong className="block font-bold">Reschedule Request Submitted!</strong>
+                        <span>Your updated request for {newDate} at {newTime} has been transmitted to reception.</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleResubmitReschedule} className="space-y-4 max-w-md">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                          Select New Date *
                         </label>
                         <input
                           type="date"
@@ -783,120 +1057,114 @@ export default function PatientPortalPage() {
                           min={new Date().toISOString().split('T')[0]}
                           value={newDate}
                           onChange={(e) => setNewDate(e.target.value)}
-                          className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold focus:bg-white"
+                          className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
                         />
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold uppercase tracking-wider text-stone-700 block mb-1">
-                          Preferred Time Window:
+                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                          Select Preferred Time *
                         </label>
                         <select
                           value={newTime}
                           onChange={(e) => setNewTime(e.target.value)}
-                          className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold focus:bg-white"
+                          className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 cursor-pointer"
                         >
-                          <option value="9:00 AM">9:00 AM (Morning)</option>
-                          <option value="10:00 AM">10:00 AM (Morning)</option>
-                          <option value="11:30 AM">11:30 AM (Morning)</option>
-                          <option value="1:30 PM">1:30 PM (Afternoon)</option>
-                          <option value="2:30 PM">2:30 PM (Afternoon)</option>
-                          <option value="4:00 PM">4:00 PM (Late Afternoon)</option>
-                          <option value="5:15 PM">5:15 PM (Evening)</option>
+                          {['08:30 AM', '09:15 AM', '10:00 AM', '11:30 AM', '01:15 PM', '02:00 PM', '03:45 PM', '05:00 PM', '06:15 PM'].map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
                         </select>
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-stone-700 block mb-1">
-                        Reason for Front Desk (Optional):
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Work travel conflict, need later time..."
-                        value={rescheduleNote}
-                        onChange={(e) => setRescheduleNote(e.target.value)}
-                        className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs focus:bg-white"
-                      />
-                    </div>
-
-                    {rescheduleSuccess ? (
-                      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-950 text-xs font-semibold flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
-                        <span>Reschedule submitted! Updating your itinerary...</span>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                          Reason for Rescheduling
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Work schedule change"
+                          value={rescheduleNote}
+                          onChange={(e) => setRescheduleNote(e.target.value)}
+                          className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                        />
                       </div>
-                    ) : (
-                      <div className="flex justify-end gap-3 pt-2">
+
+                      <div className="pt-2 flex items-center gap-3">
+                        <button
+                          type="submit"
+                          className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white text-xs font-bold transition cursor-pointer shadow-xs"
+                        >
+                          Confirm Reschedule
+                        </button>
                         <button
                           type="button"
                           onClick={() => setActiveTab('itinerary')}
-                          className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900"
+                          className="px-4 py-2.5 rounded-xl bg-stone-100 text-stone-600 text-xs font-semibold hover:bg-stone-200 transition cursor-pointer"
                         >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-6 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold shadow-xs cursor-pointer"
-                        >
-                          Confirm Reschedule Request
+                          Keep Current Time
                         </button>
                       </div>
-                    )}
-                  </form>
+                    </form>
+                  )}
                 </div>
               )}
 
-              {/* TAB 4: CANCEL */}
+              {/* TAB 4: CANCELLATION VIEW */}
               {activeTab === 'cancel' && (
-                <div className="p-6 sm:p-8 space-y-5">
-                  <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl space-y-3">
-                    <h3 className="font-serif font-bold text-rose-950 text-base flex items-center gap-2">
-                      <Ban className="w-4 h-4 text-rose-700" />
-                      <span>Cancel Appointment</span>
-                    </h3>
-                    <p className="text-xs text-rose-900 leading-relaxed">
-                      We understand plans change. Notice given at least 24 hours in advance incurs zero penalties or cancellation fees.
-                    </p>
-
-                    <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-rose-950 block mb-1">
-                        Reason for Cancellation:
-                      </label>
-                      <select
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        className="w-full p-2.5 bg-white border border-rose-300 rounded-xl text-xs font-semibold"
-                      >
-                        <option value="Schedule Conflict">Schedule / Work Conflict</option>
-                        <option value="Symptoms Resolved">Symptoms Have Resolved</option>
-                        <option value="Travel / Away">Away / Out of Town</option>
-                        <option value="Financial / Insurance">Financial or Insurance Reason</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
+                <div className="p-6 sm:p-8 space-y-6">
+                  <div>
+                    <h3 className="font-serif font-bold text-lg text-rose-950">Cancel Your Booking</h3>
+                    <p className="text-xs text-stone-500">Cancellations made more than 24 hours in advance incur no penalty under our practice policy.</p>
                   </div>
 
                   {cancelSuccess ? (
-                    <div className="p-4 bg-rose-100 border border-rose-300 rounded-2xl text-rose-950 text-xs font-semibold flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-rose-700 shrink-0" />
-                      <span>Your appointment has been cancelled.</span>
+                    <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center gap-3">
+                      <Ban className="w-5 h-5 text-rose-700 shrink-0" />
+                      <div>
+                        <strong className="block font-bold">Appointment Cancelled</strong>
+                        <span>Your booking has been cancelled and the time slot opened for waitlist patients.</span>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex justify-end gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('itinerary')}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900"
-                      >
-                        Keep My Booking
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleConfirmCancellation}
-                        className="px-6 py-2.5 rounded-xl bg-rose-800 hover:bg-rose-900 text-white text-xs font-bold shadow-xs cursor-pointer"
-                      >
-                        Confirm Cancellation
-                      </button>
+                    <div className="space-y-4 max-w-md">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                          Reason for Cancellation
+                        </label>
+                        <select
+                          value={cancelReason}
+                          onChange={(e) => setCancelReason(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-rose-700 focus:ring-1 focus:ring-rose-700 cursor-pointer"
+                        >
+                          <option value="Schedule Conflict">Schedule Conflict</option>
+                          <option value="Symptoms Resolved">Symptoms Resolved / Feeling Better</option>
+                          <option value="Seeking Care Elsewhere">Seeking Care Elsewhere</option>
+                          <option value="Financial / Insurance Concern">Financial / Insurance Concern</option>
+                          <option value="Transportation Issue">Transportation Issue</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-relaxed">
+                        If you are suffering from persistent spinal pain or nerve symptoms, we recommend rescheduling rather than cancelling so your recovery progress is not delayed.
+                      </div>
+
+                      <div className="pt-2 flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleConfirmCancellation}
+                          className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold transition cursor-pointer shadow-xs"
+                        >
+                          Confirm Cancellation
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('itinerary')}
+                          className="px-4 py-2.5 rounded-xl bg-stone-100 text-stone-600 text-xs font-semibold hover:bg-stone-200 transition cursor-pointer"
+                        >
+                          Never Mind, Keep Booking
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
