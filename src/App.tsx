@@ -8,6 +8,7 @@ import { GlobalAnnouncementBanner } from './components/GlobalAnnouncementBanner'
 import { GlobalAgencyController } from './components/GlobalAgencyController';
 import { Footer } from './components/Footer';
 import { BookingModal } from './components/BookingModal';
+import { ScrollToTop } from './components/ScrollToTop';
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -30,6 +31,7 @@ function AppShell() {
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
         <ClinicSchema />
         <GlobalAnnouncementBanner banner={clinic.announcementBanner} />
