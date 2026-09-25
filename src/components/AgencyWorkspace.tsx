@@ -522,19 +522,82 @@ export function AgencyWorkspace({
           {/* Right Content Area */}
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-6 bg-stone-900">
             {/* Mobile Tab Dropdown Selector */}
-            <div className="md:hidden pb-3 border-b border-stone-800 space-y-1">
+            {/* Mobile Header Tab Selector & Quick Action Pills */}
+            <div className="md:hidden pb-3 border-b border-stone-800 space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                  Navigation Section:
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
+                  <Sliders className="w-3 h-3 text-emerald-400" />
+                  <span>Admin Section</span>
                 </label>
-                <span className="text-[10px] text-emerald-400 font-bold capitalize">
-                  Role: {activeRolePreview}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-800/60"
+                  >
+                    <Menu className="w-3 h-3" />
+                    <span>All Tabs</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Quick-Tap Primary Workflow Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('leads')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                    activeTab === 'leads'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-stone-800 text-stone-300 hover:bg-stone-750'
+                  }`}
+                >
+                  <Inbox className="w-3.5 h-3.5" />
+                  <span>📋 Patient Leads</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                    activeTab === 'overview'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-stone-800 text-stone-300 hover:bg-stone-750'
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>📅 Schedule</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('pricing')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                    activeTab === 'pricing'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-stone-800 text-stone-300 hover:bg-stone-750'
+                  }`}
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>💰 Pricing</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('themes')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                    activeTab === 'themes'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-stone-800 text-stone-300 hover:bg-stone-750'
+                  }`}
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  <span>🎨 Themes</span>
+                </button>
+              </div>
+
+              {/* Full Dropdown for all other sub-tabs */}
               <select
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value as AdminTabId)}
-                className="w-full bg-stone-850 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 font-bold cursor-pointer"
+                className="w-full bg-stone-850 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 font-bold cursor-pointer focus:border-emerald-500 focus:outline-none"
               >
                 {navGroups.map((group) => (
                   <optgroup key={group.group} label={group.group} className="bg-stone-900 text-stone-400 font-bold">

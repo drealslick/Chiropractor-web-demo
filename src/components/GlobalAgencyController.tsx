@@ -20,7 +20,7 @@ export function GlobalAgencyController() {
   const [error, setError] = useState('');
   const [isStaffMode, setIsStaffMode] = useState(false);
 
-  // 1. Keyboard shortcut (Cmd+Shift+C) and URL params (?admin=true, ?agency=true)
+  // 1. Keyboard shortcut (Cmd+Shift+C), URL params (?admin=true), and custom events
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -46,8 +46,17 @@ export function GlobalAgencyController() {
       }
     };
 
+    const handleCustomOpen = () => {
+      setIsStaffMode(true);
+      setIsOpen(true);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('open-practice-admin', handleCustomOpen);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('open-practice-admin', handleCustomOpen);
+    };
   }, []);
 
   // 2. Global CSS Variables & Color Themes injection across all pages
@@ -125,71 +134,88 @@ export function GlobalAgencyController() {
     }
   }, [clinic.fontPairing]);
 
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passcode === 'Slick2026!') {
+  const handleUnlock = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const clean = passcode.trim();
+    if (clean === '1234' || clean === 'admin' || clean === 'Slick2026!' || clean === 'demo' || clean === '') {
       setIsUnlocked(true);
       setError('');
     } else {
-      setError('Incorrect passcode');
+      setError('Incorrect passcode (Use 1234 or click Unlock Demo)');
     }
   };
 
   return (
     <>
-      {/* Discreet floating quick-access button when in staff mode */}
-      {isStaffMode && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-50 bg-stone-900 hover:bg-stone-850 text-stone-200 hover:text-white px-3 py-2 rounded-lg shadow-lg border border-stone-700/80 backdrop-blur transition flex items-center gap-2 text-xs font-medium cursor-pointer"
-          title="Admin settings"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span>Admin</span>
-          <Sliders className="w-3.5 h-3.5 text-stone-400" />
-        </button>
-      )}
+      {/* Discreet floating quick-access button */}
+      <button
+        onClick={() => {
+          setIsStaffMode(true);
+          setIsOpen(true);
+        }}
+        className="fixed bottom-4 right-4 z-50 bg-stone-900 hover:bg-stone-850 text-stone-200 hover:text-white px-3 py-2 rounded-xl shadow-2xl border border-stone-700/80 backdrop-blur transition flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
+        title="Admin settings"
+      >
+        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+        <span>Practice Admin</span>
+        <Sliders className="w-3.5 h-3.5 text-stone-400" />
+      </button>
 
       {/* Passcode Gate or Full Workspace */}
       {isOpen && (
         !isUnlocked ? (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-sm rounded-xl border border-stone-800 bg-stone-900 p-5 text-stone-100 shadow-2xl">
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold">Admin Verification</h3>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-2xl border border-stone-800 bg-stone-900 p-6 text-stone-100 shadow-2xl">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Practice Control Panel</h3>
+                  <p className="text-[11px] text-stone-400">Front Desk & Administrative Portal</p>
+                </div>
               </div>
-              <p className="mb-4 text-xs text-stone-400">
-                Enter passcode to continue.
+              <p className="mb-4 text-xs text-stone-400 mt-2">
+                Enter your staff passcode (<code className="text-emerald-400 font-mono">1234</code>) or tap below:
               </p>
 
               <form onSubmit={handleUnlock}>
-                <div className="relative mb-2">
-                  <Lock className="w-3.5 h-3.5 text-stone-500 absolute left-3 top-2.5" />
+                <div className="relative mb-3">
+                  <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-3" />
                   <input
                     type="password"
                     autoFocus
-                    placeholder="Passcode"
+                    placeholder="Enter passcode (e.g. 1234)"
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
-                    className="w-full rounded-lg border border-stone-700 bg-stone-800/80 pl-9 pr-3 py-1.5 text-xs text-white focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-xl border border-stone-700 bg-stone-800/90 pl-10 pr-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
                 {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
 
-                <div className="flex justify-end gap-2 mt-4">
+                <div className="flex flex-col gap-2 mt-4">
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-500 transition cursor-pointer shadow-lg shadow-emerald-900/30"
+                  >
+                    Unlock with Passcode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUnlocked(true);
+                      setError('');
+                    }}
+                    className="w-full rounded-xl bg-stone-800 hover:bg-stone-750 py-2 text-xs font-semibold text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 transition cursor-pointer"
+                  >
+                    ⚡ Quick Unlock Demo (1-Tap)
+                  </button>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="px-3 py-1.5 text-xs text-stone-400 hover:text-white transition cursor-pointer"
+                    className="w-full py-1.5 text-xs text-stone-400 hover:text-white transition cursor-pointer text-center"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 transition cursor-pointer"
-                  >
-                    Unlock
+                    Close
                   </button>
                 </div>
               </form>

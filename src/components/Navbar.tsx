@@ -219,6 +219,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
               <CalendarCheck2 className="w-4 h-4 text-emerald-700" />
               <span>Manage Booking & Receipts</span>
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                window.dispatchEvent(new CustomEvent('open-practice-admin'));
+              }}
+              className="w-full flex items-center gap-2 py-2 px-3 text-sm font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 rounded-md transition text-left cursor-pointer border border-emerald-200/60"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+              <span>Practice Admin & Patient Leads</span>
+            </button>
             <a
               href={`tel:${clinic.phoneRaw}`}
               className="flex items-center gap-2 py-2 px-3 text-sm font-semibold text-emerald-800"
