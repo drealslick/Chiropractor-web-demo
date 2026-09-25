@@ -634,13 +634,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           >
             <div className="flex items-center justify-between text-stone-400 mb-1">
               <span className="text-[11px] font-medium group-hover:text-emerald-400">Exam Fee</span>
-              <span className="text-emerald-400 text-xs font-bold">$</span>
+              <span className="text-emerald-400 text-xs font-bold">{clinic.currencySymbol || '£'}</span>
             </div>
             <div className="text-xs font-bold text-stone-200 truncate">
-              {clinic.examFee || '$49 Initial Exam'}
+              {clinic.examFee || `${clinic.currencySymbol || '£'}49 Initial Exam`}
             </div>
             <div className="text-[10px] text-stone-500 truncate mt-0.5">
-              {clinic.followUpFee || '$45 Follow-up'}
+              {clinic.followUpFee || `${clinic.currencySymbol || '£'}45 Follow-up`}
             </div>
           </button>
         </div>

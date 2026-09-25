@@ -62,10 +62,10 @@ export function getDefaultSeedLeads(): PatientLead[] {
       date: tomorrow,
       time: '12:00 PM',
       durationMinutes: 45,
-      notes: 'Initial Consultation ($49). Has sharp lumbar pain radiating to left leg for 3 weeks.',
+      notes: 'Initial Consultation (£49). Has sharp lumbar pain radiating to left leg for 3 weeks.',
       createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(), // 18m ago
       status: 'new',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'deposit_paid',
       paymentAmount: '£25.00',
       paymentMethod: 'card',
@@ -85,10 +85,10 @@ export function getDefaultSeedLeads(): PatientLead[] {
       date: inThreeDays,
       time: '1:45 PM',
       durationMinutes: 45,
-      notes: 'Requested: Initial Consultation ($49). Chronic tension headaches by 3 PM daily.',
+      notes: 'Requested: Initial Consultation (£49). Chronic tension headaches by 3 PM daily.',
       createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(), // 55m ago
       status: 'new',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'card_hold',
       paymentAmount: '£0.00 (Hold)',
       paymentMethod: 'apple_pay',
@@ -111,7 +111,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Requested callback about insurance coverage (Aetna PPO) prior to initial exam.',
       createdAt: new Date(Date.now() - 1000 * 60 * 140).toISOString(), // 2.3h ago
       status: 'new',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'unpaid',
       paymentAmount: '£0.00',
       paymentMethod: 'clinic_cash',
@@ -132,7 +132,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Visit 4 of 6. Lumbar decompression and table adjustments.',
       createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
       status: 'confirmed',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'paid_full',
       paymentAmount: '£49.00',
       paymentMethod: 'card',
@@ -154,7 +154,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Arrived at 9:55 AM. Paperwork complete. In waiting lobby.',
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       status: 'checked_in', // 1 Checked in patient!
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'deposit_paid',
       paymentAmount: '£25.00',
       paymentMethod: 'card',
@@ -177,7 +177,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Confirmed via SMS reminder yesterday.',
       createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
       status: 'confirmed',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
       paymentStatus: 'card_hold',
       paymentAmount: '£0.00 (Hold)',
       paymentMethod: 'card',
@@ -200,7 +200,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'UNCONFIRMED: Sent automated SMS yesterday, no reply yet. Needs front desk voice call.',
       createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
       status: 'new', // 1st Unconfirmed appointment!
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
     },
     {
       id: 'appt-today-5',
@@ -213,10 +213,10 @@ export function getDefaultSeedLeads(): PatientLead[] {
       date: today,
       time: '1:30 PM',
       durationMinutes: 45,
-      notes: 'Initial Exam ($49). Returning after marathon training.',
+      notes: 'Initial Exam (£49). Returning after marathon training.',
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       status: 'confirmed',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
     },
     {
       id: 'appt-today-6',
@@ -232,7 +232,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Rehab exercise progression + active release technique.',
       createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
       status: 'confirmed',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
     },
     {
       id: 'appt-today-7',
@@ -248,7 +248,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'UNCONFIRMED: Left voicemail this morning. Needs a follow-up call to confirm slot.',
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       status: 'new', // 2nd Unconfirmed appointment!
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
     },
     {
       id: 'appt-today-8',
@@ -264,7 +264,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Wellness adjustment package.',
       createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
       status: 'confirmed',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
     },
 
     // 2 Waitlist Patients
@@ -280,7 +280,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Wants immediate notification if anyone cancels their morning slot.',
       createdAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
       status: 'waitlist',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
     },
     {
       id: 'waitlist-2',
@@ -294,7 +294,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Flexible, works down the street. Can arrive within 20 minutes notice.',
       createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
       status: 'waitlist',
-      clinicName: 'Denver Family Chiropractic',
+      clinicName: 'Vance Health Practice Architecture',
     },
   ];
 }
@@ -307,7 +307,7 @@ export function getDefaultReceptionNotifications(): DispatchedNotification[] {
       recipient: 'Front Desk',
       channel: 'email',
       subject: 'New online request from John Doe',
-      message: 'New online request from John Doe. Initial Consultation ($49) for Lower Back & Sciatica.',
+      message: 'New online request from John Doe. Initial Consultation (£49) for Lower Back & Sciatica.',
       timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(), // 10m ago
       status: 'delivered',
       read: false,

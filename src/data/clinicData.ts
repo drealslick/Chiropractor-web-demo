@@ -146,7 +146,7 @@ export const defaultClinic: ClinicInfo = {
   heroImage: heroImg,
   clinicImage: clinicRoomImg,
   patientImage: michaelImg,
-  offerHeadline: "New Patients: €49 Initial Exam & Diagnostic Review",
+  offerHeadline: "New Patients: £49 Initial Exam & Diagnostic Review",
   offerSubtext: "Limited priority consultations available weekly.",
   offerCtaText: "CLAIM CONSULTATION →",
   colorPalette: "soft-ivory-forest",
@@ -168,7 +168,7 @@ export const defaultClinic: ClinicInfo = {
 
 export const alternativeOffers = [
   {
-    headline: "New Patients: €49 Initial Exam & Diagnostic Review",
+    headline: "New Patients: £49 Initial Exam & Diagnostic Review",
     subtext: "Limited priority consultations available weekly.",
     cta: "CLAIM CONSULTATION →"
   },
@@ -178,7 +178,7 @@ export const alternativeOffers = [
     cta: "SCHEDULE CALL →"
   },
   {
-    headline: "New Patient Special: €59 Exam, Imaging & Adjustment",
+    headline: "New Patient Special: £59 Exam, Imaging & Adjustment",
     subtext: "Comprehensive spinal assessment for new patients.",
     cta: "CLAIM SPECIAL →"
   }

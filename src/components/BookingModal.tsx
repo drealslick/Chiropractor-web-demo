@@ -368,7 +368,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setStep(3);
   };
 
-  const feeDisplay = clinic.examFee || (clinic.currencySymbol === '£' ? '£45' : '$49');
+  const sym = clinic.currencySymbol || '£';
+  const feeDisplay = clinic.examFee || `${sym}49`;
 
   const doctorDisplayName = selectedPractitioner
     ? selectedPractitioner.name

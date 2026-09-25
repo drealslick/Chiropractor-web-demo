@@ -838,7 +838,7 @@ ${typeof window !== 'undefined' ? window.location.origin : 'https://your-site.co
                                   color: pal.previewColors.primary
                                 }}
                               >
-                                $49 Special
+                                {clinic.currencySymbol || '£'}49 Special
                               </span>
                               <div
                                 className="px-3 py-1 rounded-md text-[11px] font-bold text-white shadow-xs"

@@ -667,14 +667,14 @@ export function AgencyWorkspace({
                     <div className="pt-2 border-t border-stone-800 flex items-center justify-between gap-3 text-xs">
                       <div>
                         <span className="font-bold text-stone-200 block text-xs">
-                          {clinic.offerTitle || 'New Patient: $49 Complete Spinal Exam & Assessment'}
+                          {clinic.offerTitle || `New Patient: ${clinic.currencySymbol || '£'}49 Complete Spinal Exam & Assessment`}
                         </span>
                         <span className="text-[10px] text-stone-400 block">
                           {clinic.offerSubtext || 'Includes digital posture scan & customized relief plan.'}
                         </span>
                       </div>
                       <div className="px-3 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] shrink-0">
-                        {clinic.offerCtaText || 'CLAIM $49 SPECIAL →'}
+                        {clinic.offerCtaText || `CLAIM ${clinic.currencySymbol || '£'}49 SPECIAL →`}
                       </div>
                     </div>
                   </div>
@@ -738,7 +738,7 @@ export function AgencyWorkspace({
                   <Field
                     label="Special Offer Headline"
                     value={clinic.offerTitle || ''}
-                    placeholder="New Patient Special: $49 Complete Spinal Exam & Assessment"
+                    placeholder={`New Patient Special: ${clinic.currencySymbol || '£'}49 Complete Spinal Exam & Assessment`}
                     helperText="The headline of your introductory patient offer card to remove financial friction for first-time visitors."
                     locationBadge="Offer Card"
                     onChange={(v) => onUpdateClinic({ ...clinic, offerTitle: v })}
@@ -757,7 +757,7 @@ export function AgencyWorkspace({
                     <Field
                       label="Primary Action Button Text"
                       value={clinic.offerCtaText || ''}
-                      placeholder="CLAIM $49 SPECIAL →"
+                      placeholder={`CLAIM ${clinic.currencySymbol || '£'}49 SPECIAL →`}
                       helperText="The call-to-action text on your primary booking buttons."
                       locationBadge="All CTA Buttons"
                       onChange={(v) => onUpdateClinic({ ...clinic, offerCtaText: v })}
