@@ -287,6 +287,13 @@ export interface ClinicInfo {
   country?: string;
   cityState?: string;
   website?: string;
+  instagram?: string;
+  facebook?: string;
+  googleBusiness?: string;
+  youtube?: string;
+  linkedin?: string;
+  twitter?: string;
+  tiktok?: string;
   logoUrl?: string;
   tagline?: string;
   description?: string;

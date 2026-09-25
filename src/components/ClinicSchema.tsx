@@ -25,6 +25,15 @@ export function ClinicSchema() {
           : 'US'),
     },
     openingHours: [clinic.hoursWeekday, clinic.hoursSaturday].filter(Boolean),
+    sameAs: [
+      clinic.googleBusiness,
+      clinic.instagram,
+      clinic.facebook,
+      clinic.youtube,
+      clinic.linkedin,
+      clinic.twitter,
+      clinic.tiktok,
+    ].filter(Boolean),
   };
 
   return (

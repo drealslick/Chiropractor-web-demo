@@ -50,6 +50,11 @@ import {
   Home,
   Share2,
   Smartphone,
+  Instagram,
+  Facebook,
+  Youtube,
+  Linkedin,
+  Twitter,
 } from 'lucide-react';
 import { ClinicInfo, AnnouncementBannerConfig } from '../types';
 import { colorPalettes, resolvePalette } from '../data/colorPalettes';
@@ -1138,6 +1143,166 @@ export function AgencyWorkspace({
                       placeholder="140+"
                       helperText="Total number of 5-star reviews on Google Maps."
                       onChange={(v) => onUpdateClinic({ ...clinic, googleReviewCount: v, googleReviewsCount: v })}
+                    />
+                  </div>
+                </div>
+
+                {/* Sub-Section 5: Clinic Social Media Profiles */}
+                <div className="p-4 sm:p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Share2 className="w-4 h-4 text-emerald-400" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                        5. Clinic Social Media Profiles & Channels
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateClinic({
+                            ...clinic,
+                            instagram: 'https://instagram.com/vancehealth',
+                            facebook: 'https://facebook.com/vancehealth',
+                            googleBusiness: 'https://maps.google.com/?q=Vance+Health+Central+Practice+London',
+                            youtube: 'https://youtube.com/@vancehealth',
+                            linkedin: 'https://linkedin.com/company/vancehealth',
+                            twitter: 'https://x.com/vancehealth',
+                          })
+                        }
+                        className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition cursor-pointer"
+                      >
+                        + Fill Demo Socials
+                      </button>
+                      <span className="text-stone-700">|</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateClinic({
+                            ...clinic,
+                            instagram: '',
+                            facebook: '',
+                            googleBusiness: '',
+                            youtube: '',
+                            linkedin: '',
+                            twitter: '',
+                            tiktok: '',
+                          })
+                        }
+                        className="text-[11px] font-semibold text-stone-500 hover:text-stone-300 transition cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-stone-400">
+                    Add links to your practice’s active social channels. These appear in the website footer, the Contact & Location page, and are automatically connected into your Google Schema.org entity graph (<code className="text-emerald-300 font-mono">sameAs</code>) for search authority.
+                  </p>
+
+                  {/* Active Preview Badges */}
+                  <div className="p-3 bg-stone-900 border border-stone-800 rounded-xl space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">
+                      Active Website Badges Preview:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {clinic.googleBusiness && (
+                        <span className="px-2 py-1 rounded bg-stone-800 text-stone-200 text-[11px] font-medium flex items-center gap-1.5 border border-stone-700">
+                          <Globe className="w-3 h-3 text-emerald-400" />
+                          <span>Google Business</span>
+                        </span>
+                      )}
+                      {clinic.instagram && (
+                        <span className="px-2 py-1 rounded bg-stone-800 text-stone-200 text-[11px] font-medium flex items-center gap-1.5 border border-stone-700">
+                          <Instagram className="w-3 h-3 text-pink-400" />
+                          <span>Instagram</span>
+                        </span>
+                      )}
+                      {clinic.facebook && (
+                        <span className="px-2 py-1 rounded bg-stone-800 text-stone-200 text-[11px] font-medium flex items-center gap-1.5 border border-stone-700">
+                          <Facebook className="w-3 h-3 text-blue-400" />
+                          <span>Facebook</span>
+                        </span>
+                      )}
+                      {clinic.youtube && (
+                        <span className="px-2 py-1 rounded bg-stone-800 text-stone-200 text-[11px] font-medium flex items-center gap-1.5 border border-stone-700">
+                          <Youtube className="w-3 h-3 text-red-400" />
+                          <span>YouTube</span>
+                        </span>
+                      )}
+                      {clinic.linkedin && (
+                        <span className="px-2 py-1 rounded bg-stone-800 text-stone-200 text-[11px] font-medium flex items-center gap-1.5 border border-stone-700">
+                          <Linkedin className="w-3 h-3 text-sky-400" />
+                          <span>LinkedIn</span>
+                        </span>
+                      )}
+                      {clinic.twitter && (
+                        <span className="px-2 py-1 rounded bg-stone-800 text-stone-200 text-[11px] font-medium flex items-center gap-1.5 border border-stone-700">
+                          <Twitter className="w-3 h-3 text-stone-300" />
+                          <span>X / Twitter</span>
+                        </span>
+                      )}
+                      {clinic.tiktok && (
+                        <span className="px-2 py-1 rounded bg-stone-800 text-stone-200 text-[11px] font-medium flex items-center gap-1.5 border border-stone-700">
+                          <span className="text-teal-300 font-bold text-xs">♪</span>
+                          <span>TikTok</span>
+                        </span>
+                      )}
+                      {!clinic.googleBusiness && !clinic.instagram && !clinic.facebook && !clinic.youtube && !clinic.linkedin && !clinic.twitter && !clinic.tiktok && (
+                        <span className="text-xs text-stone-500 italic">No social accounts configured yet. Fill in the fields below to display them on the site.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <Field
+                      label="Instagram Profile URL"
+                      value={clinic.instagram || ''}
+                      placeholder="https://instagram.com/yourclinic"
+                      helperText="Official Instagram account URL."
+                      onChange={(v) => onUpdateClinic({ ...clinic, instagram: v })}
+                    />
+                    <Field
+                      label="Facebook Page URL"
+                      value={clinic.facebook || ''}
+                      placeholder="https://facebook.com/yourclinic"
+                      helperText="Clinic Facebook business page."
+                      onChange={(v) => onUpdateClinic({ ...clinic, facebook: v })}
+                    />
+                    <Field
+                      label="Google Business Profile / Maps URL"
+                      value={clinic.googleBusiness || ''}
+                      placeholder="https://maps.google.com/?q=Your+Practice+Name"
+                      helperText="Google Maps listing or review link."
+                      onChange={(v) => onUpdateClinic({ ...clinic, googleBusiness: v })}
+                    />
+                    <Field
+                      label="YouTube Channel URL"
+                      value={clinic.youtube || ''}
+                      placeholder="https://youtube.com/@yourclinic"
+                      helperText="Exercise tutorials and patient stories."
+                      onChange={(v) => onUpdateClinic({ ...clinic, youtube: v })}
+                    />
+                    <Field
+                      label="LinkedIn Company / Doctor URL"
+                      value={clinic.linkedin || ''}
+                      placeholder="https://linkedin.com/company/yourclinic"
+                      helperText="Professional healthcare network profile."
+                      onChange={(v) => onUpdateClinic({ ...clinic, linkedin: v })}
+                    />
+                    <Field
+                      label="X / Twitter Profile URL"
+                      value={clinic.twitter || ''}
+                      placeholder="https://x.com/yourclinic"
+                      helperText="Clinic Twitter / X profile."
+                      onChange={(v) => onUpdateClinic({ ...clinic, twitter: v })}
+                    />
+                    <Field
+                      label="TikTok Profile URL"
+                      value={clinic.tiktok || ''}
+                      placeholder="https://tiktok.com/@yourclinic"
+                      helperText="Short-form posture & mobility videos."
+                      onChange={(v) => onUpdateClinic({ ...clinic, tiktok: v })}
                     />
                   </div>
                 </div>

@@ -140,6 +140,12 @@ export const defaultClinic: ClinicInfo = {
   paymentModel: 'insurance_and_cash',
   googleRating: 4.9,
   googleReviewsCount: 127,
+  instagram: "https://instagram.com/vancehealth",
+  facebook: "https://facebook.com/vancehealth",
+  googleBusiness: "https://maps.google.com/?q=Vance+Health+Central+Practice+London",
+  youtube: "https://youtube.com/@vancehealth",
+  linkedin: "https://linkedin.com/company/vancehealth",
+  twitter: "https://x.com/vancehealth",
   schedulingRules: defaultSchedulingRules,
 };
 

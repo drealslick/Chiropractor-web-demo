@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, MapPin, Clock, Mail, Instagram, Facebook, Globe } from 'lucide-react';
+import { Phone, MapPin, Clock, Mail, Instagram, Facebook, Globe, Youtube, Linkedin, Twitter } from 'lucide-react';
 import { ClinicInfo } from '../types';
 
 interface FooterProps {
@@ -61,42 +61,100 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
             </div>
 
             {/* Social Links Row */}
-            {(clinic.instagram || clinic.facebook || clinic.googleBusiness) && (
-              <div className="flex items-center gap-3 pt-2 animate-fade-in">
-                {clinic.instagram && (
-                  <a
-                    href={clinic.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-700 transition-all shadow-xs"
-                    aria-label="Instagram Profile"
-                  >
-                    <Instagram className="w-4 h-4" />
-                  </a>
-                )}
-                {clinic.facebook && (
-                  <a
-                    href={clinic.facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-700 transition-all shadow-xs"
-                    aria-label="Facebook Page"
-                  >
-                    <Facebook className="w-4 h-4" />
-                  </a>
-                )}
-                {clinic.googleBusiness && (
-                  <a
-                    href={clinic.googleBusiness}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-700 transition-all shadow-xs flex items-center gap-1 text-[11px] font-bold tracking-wider"
-                    aria-label="Google Business Listing"
-                  >
-                    <Globe className="w-4 h-4" />
-                    <span className="uppercase text-[9px] text-stone-400 font-sans">Maps</span>
-                  </a>
-                )}
+            {(clinic.instagram || clinic.facebook || clinic.googleBusiness || clinic.youtube || clinic.linkedin || clinic.twitter || clinic.tiktok) && (
+              <div className="pt-2 animate-fade-in space-y-1.5">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-stone-500 block">
+                  Follow & Connect
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {clinic.googleBusiness && (
+                    <a
+                      href={clinic.googleBusiness}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1.5 rounded-lg bg-stone-900 border border-stone-800 text-stone-300 hover:text-white hover:border-emerald-500/50 hover:bg-stone-850 transition-all shadow-xs flex items-center gap-1.5 text-xs font-medium group"
+                      aria-label="Google Business Profile & Reviews"
+                      title="Google Business Profile & Reviews"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-[11px]">Google Reviews</span>
+                    </a>
+                  )}
+                  {clinic.instagram && (
+                    <a
+                      href={clinic.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-pink-400 hover:border-pink-500/40 hover:bg-stone-850 transition-all shadow-xs"
+                      aria-label="Instagram Profile"
+                      title="Instagram"
+                    >
+                      <Instagram className="w-4 h-4" />
+                    </a>
+                  )}
+                  {clinic.facebook && (
+                    <a
+                      href={clinic.facebook}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-stone-850 transition-all shadow-xs"
+                      aria-label="Facebook Page"
+                      title="Facebook"
+                    >
+                      <Facebook className="w-4 h-4" />
+                    </a>
+                  )}
+                  {clinic.youtube && (
+                    <a
+                      href={clinic.youtube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-red-400 hover:border-red-500/40 hover:bg-stone-850 transition-all shadow-xs"
+                      aria-label="YouTube Channel"
+                      title="YouTube"
+                    >
+                      <Youtube className="w-4 h-4" />
+                    </a>
+                  )}
+                  {clinic.linkedin && (
+                    <a
+                      href={clinic.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-sky-400 hover:border-sky-500/40 hover:bg-stone-850 transition-all shadow-xs"
+                      aria-label="LinkedIn Page"
+                      title="LinkedIn"
+                    >
+                      <Linkedin className="w-4 h-4" />
+                    </a>
+                  )}
+                  {clinic.twitter && (
+                    <a
+                      href={clinic.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-stone-100 hover:border-stone-700 hover:bg-stone-850 transition-all shadow-xs"
+                      aria-label="X / Twitter Profile"
+                      title="X / Twitter"
+                    >
+                      <Twitter className="w-4 h-4" />
+                    </a>
+                  )}
+                  {clinic.tiktok && (
+                    <a
+                      href={clinic.tiktok}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-400 hover:text-teal-300 hover:border-teal-500/40 hover:bg-stone-850 transition-all shadow-xs flex items-center justify-center"
+                      aria-label="TikTok Profile"
+                      title="TikTok"
+                    >
+                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.97v7.54c-.03 2.11-.79 4.17-2.22 5.73-1.55 1.7-3.82 2.66-6.11 2.61-2.12-.04-4.18-.9-5.71-2.39-1.63-1.58-2.52-3.8-2.48-6.07.03-2.12.87-4.18 2.37-5.69 1.55-1.56 3.7-2.45 5.92-2.45.35 0 .7.02 1.05.06v4.06c-.34-.1-.7-.16-1.06-.16-1.12 0-2.23.47-3 1.28-.79.82-1.21 1.95-1.18 3.08.02 1.1.47 2.19 1.25 2.97.8.8 1.91 1.23 3.04 1.21 1.16-.01 2.27-.51 3.03-1.37.66-.75 1.01-1.74 1.01-2.74V.02h-.75z" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
               </div>
             )}
 

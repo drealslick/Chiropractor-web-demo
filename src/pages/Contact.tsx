@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useClinic } from '../data/ClinicContext';
 import { saveLead } from '../data/leadsStore';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Instagram, Facebook, Globe, Youtube, Linkedin, Twitter } from 'lucide-react';
 
 export default function Contact() {
   const { clinicData: clinic } = useClinic();
@@ -54,6 +54,83 @@ export default function Contact() {
               <span className="font-bold text-emerald-900 block">Parking & access</span>
               {clinic.parkingNote || 'Confirm parking when you book.'}
             </div>
+
+            {/* Clinic Social Profiles */}
+            {(clinic.instagram || clinic.facebook || clinic.googleBusiness || clinic.youtube || clinic.linkedin || clinic.twitter || clinic.tiktok) && (
+              <div className="pt-2 border-t border-stone-100">
+                <span className="font-bold text-stone-900 block mb-2 text-xs uppercase tracking-wider">
+                  Follow & Connect Online
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {clinic.googleBusiness && (
+                    <a
+                      href={clinic.googleBusiness}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Google Reviews</span>
+                    </a>
+                  )}
+                  {clinic.instagram && (
+                    <a
+                      href={clinic.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <Instagram className="w-3.5 h-3.5 text-pink-600" />
+                      <span>Instagram</span>
+                    </a>
+                  )}
+                  {clinic.facebook && (
+                    <a
+                      href={clinic.facebook}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <Facebook className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Facebook</span>
+                    </a>
+                  )}
+                  {clinic.youtube && (
+                    <a
+                      href={clinic.youtube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <Youtube className="w-3.5 h-3.5 text-red-600" />
+                      <span>YouTube</span>
+                    </a>
+                  )}
+                  {clinic.linkedin && (
+                    <a
+                      href={clinic.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <Linkedin className="w-3.5 h-3.5 text-sky-600" />
+                      <span>LinkedIn</span>
+                    </a>
+                  )}
+                  {clinic.twitter && (
+                    <a
+                      href={clinic.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold flex items-center gap-1.5 transition"
+                    >
+                      <Twitter className="w-3.5 h-3.5 text-stone-700" />
+                      <span>X</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
