@@ -1,12 +1,62 @@
 import { ColorPaletteId } from './data/colorPalettes';
 
 export interface BookingFormData {
-  fullName: string;
+  fullName?: string;
+  name: string;
   email: string;
   phone: string;
+  condition?: string;
+  preferredPractitionerId?: string;
+  preferredPractitionerName?: string;
   preferredDate?: string;
   preferredTime?: string;
+  date?: string;
+  time?: string;
   notes?: string;
+  hp_website?: string;
+}
+
+export interface DayWorkingHours {
+  enabled: boolean;
+  openTime: string; // e.g. "08:30"
+  closeTime: string; // e.g. "18:30"
+  lunchBreakEnabled: boolean;
+  lunchStart: string; // e.g. "12:30"
+  lunchEnd: string; // e.g. "13:30"
+}
+
+export interface PractitionerSchedulingOverride {
+  practitionerId: string;
+  practitionerName: string;
+  role?: string;
+  isOnHoliday?: boolean;
+  holidayDates?: string[]; // ISO YYYY-MM-DD
+  assignedConditions?: string[]; // e.g. ['Back pain', 'Sports injury']
+  weeklyOffDays?: number[]; // [0, 6] for Sunday, Saturday
+  isAcceptingNewPatients?: boolean;
+}
+
+export interface ClinicSchedulingRules {
+  slotDurationMinutes: number; // default 45
+  bufferTimeMinutes: number; // default 15
+  clinicClosedDates: string[]; // ISO "YYYY-MM-DD" e.g. ["2026-12-25", "2026-12-26"]
+  weeklySchedule: {
+    monday: DayWorkingHours;
+    tuesday: DayWorkingHours;
+    wednesday: DayWorkingHours;
+    thursday: DayWorkingHours;
+    friday: DayWorkingHours;
+    saturday: DayWorkingHours;
+    sunday: DayWorkingHours;
+  };
+  practitionerOverrides?: PractitionerSchedulingOverride[];
+  notifications: {
+    clinicEmailAlert: boolean;
+    clinicAlertRecipient: string;
+    patientAutoResponder: boolean;
+    autoResponderSubject: string;
+    autoResponderMessage: string;
+  };
 }
 
 export interface ProblemCondition {
@@ -281,6 +331,7 @@ export interface ClinicInfo {
   aboutApproach?: string;
   aboutMission?: string;
   aboutStory?: string;
+  schedulingRules?: ClinicSchedulingRules;
   [key: string]: any;
 }
 

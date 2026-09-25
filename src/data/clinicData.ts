@@ -5,7 +5,75 @@ import michaelImg from '../assets/images/patient_michael_tennis_1789573994707.jp
 
 export { heroImg, doctorImg, clinicRoomImg, michaelImg };
 
-import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption } from '../types';
+import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption, ClinicSchedulingRules } from '../types';
+
+export const defaultSchedulingRules: ClinicSchedulingRules = {
+  slotDurationMinutes: 45,
+  bufferTimeMinutes: 15,
+  clinicClosedDates: [
+    '2026-12-25',
+    '2026-12-26',
+    '2027-01-01'
+  ],
+  weeklySchedule: {
+    monday: { enabled: true, openTime: '08:30', closeTime: '18:30', lunchBreakEnabled: true, lunchStart: '12:30', lunchEnd: '13:30' },
+    tuesday: { enabled: true, openTime: '08:30', closeTime: '18:30', lunchBreakEnabled: true, lunchStart: '12:30', lunchEnd: '13:30' },
+    wednesday: { enabled: true, openTime: '08:30', closeTime: '18:30', lunchBreakEnabled: true, lunchStart: '12:30', lunchEnd: '13:30' },
+    thursday: { enabled: true, openTime: '08:30', closeTime: '18:30', lunchBreakEnabled: true, lunchStart: '12:30', lunchEnd: '13:30' },
+    friday: { enabled: true, openTime: '08:30', closeTime: '18:30', lunchBreakEnabled: true, lunchStart: '12:30', lunchEnd: '13:30' },
+    saturday: { enabled: true, openTime: '09:00', closeTime: '14:00', lunchBreakEnabled: false, lunchStart: '12:00', lunchEnd: '12:30' },
+    sunday: { enabled: false, openTime: '09:00', closeTime: '13:00', lunchBreakEnabled: false, lunchStart: '12:00', lunchEnd: '12:30' },
+  },
+  practitionerOverrides: [
+    {
+      practitionerId: 'team-1',
+      practitionerName: 'Dr. Alistair Vance',
+      role: 'Lead Chiropractic Physician',
+      isOnHoliday: false,
+      holidayDates: [],
+      assignedConditions: ['Back pain', 'Sports injury'],
+      weeklyOffDays: [0], // Sunday
+      isAcceptingNewPatients: true,
+    },
+    {
+      practitionerId: 'team-2',
+      practitionerName: 'Dr. Elena Rostova',
+      role: 'Senior Associate Chiropractor',
+      isOnHoliday: false,
+      holidayDates: [],
+      assignedConditions: ['Neck pain', 'Headaches', 'Other'],
+      weeklyOffDays: [0, 6], // Sat & Sun
+      isAcceptingNewPatients: true,
+    },
+    {
+      practitionerId: 'team-3',
+      practitionerName: 'Dr. Marcus Sterling',
+      role: 'Sports Chiropractor & Rehab Specialist',
+      isOnHoliday: false,
+      holidayDates: [],
+      assignedConditions: ['Sports injury', 'Back pain'],
+      weeklyOffDays: [0], // Sunday
+      isAcceptingNewPatients: true,
+    }
+  ],
+  notifications: {
+    clinicEmailAlert: true,
+    clinicAlertRecipient: 'reception@vancehealth.co.uk',
+    patientAutoResponder: true,
+    autoResponderSubject: "We've received your appointment request - Vance Health",
+    autoResponderMessage: `Hello {patient_name},
+
+Thank you for requesting an appointment with {clinic_name}! We received your request for {date} at {time} with {practitioner_name}.
+
+Next steps:
+1. Our clinical care team is reviewing your intake condition and insurance benefits.
+2. You will receive an official confirmation call or email within 24 business hours.
+3. Quick digital health forms will be sent to your email to complete before your visit.
+
+Clinic Phone: {clinic_phone}
+Address: {clinic_address}`,
+  }
+};
 
 export const defaultTriageOptions: HeroTriageOption[] = [
   {
@@ -72,6 +140,7 @@ export const defaultClinic: ClinicInfo = {
   paymentModel: 'insurance_and_cash',
   googleRating: 4.9,
   googleReviewsCount: 127,
+  schedulingRules: defaultSchedulingRules,
 };
 
 export const alternativeOffers = [
