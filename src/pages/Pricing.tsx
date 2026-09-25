@@ -230,7 +230,18 @@ export default function Pricing() {
                 <div className="pt-8 mt-auto">
                   <button
                     type="button"
-                    onClick={() => openBookingModal(item.title)}
+                    onClick={() =>
+                      openBookingModal(
+                        undefined,
+                        isInitialExam
+                          ? 'initial'
+                          : item.id === 'followup' || item.title.toLowerCase().includes('follow') || item.title.toLowerCase().includes('routine')
+                          ? 'followup'
+                          : 'custom',
+                        item.title,
+                        item.price
+                      )
+                    }
                     className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs ${
                       item.popular || isInitialExam
                         ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'

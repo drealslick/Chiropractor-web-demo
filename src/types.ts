@@ -8,6 +8,10 @@ export interface BookingFormData {
   email: string;
   phone: string;
   condition?: string;
+  serviceType?: 'initial' | 'followup' | 'custom';
+  serviceTitle?: string;
+  servicePrice?: string;
+  serviceDuration?: number;
   preferredPractitionerId?: string;
   preferredPractitionerName?: string;
   preferredDate?: string;

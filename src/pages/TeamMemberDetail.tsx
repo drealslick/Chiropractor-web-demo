@@ -337,7 +337,15 @@ export default function TeamMemberDetail() {
               <div className="pt-2 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => openBookingModal(`Consultation with ${member.name}`)}
+                  onClick={() =>
+                    openBookingModal(
+                      member.areasOfFocus?.[0] || `Consultation with ${member.name}`,
+                      'initial',
+                      undefined,
+                      undefined,
+                      member.id
+                    )
+                  }
                   className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-stone-950 font-bold text-sm transition shadow-md hover:shadow-emerald-500/20 cursor-pointer flex items-center gap-2"
                 >
                   <Calendar className="w-4 h-4" />

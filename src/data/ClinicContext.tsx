@@ -22,7 +22,17 @@ interface ClinicContextType {
   // Global Booking State & Triggers
   isBookingModalOpen: boolean;
   bookingInitialCondition: string;
-  openBookingModal: (initialCondition?: string) => void;
+  bookingInitialServiceType: 'initial' | 'followup' | 'custom';
+  bookingInitialServiceTitle: string;
+  bookingInitialServicePrice?: string;
+  bookingInitialPractitionerId?: string;
+  openBookingModal: (
+    initialConditionOrTitle?: string,
+    initialServiceType?: 'initial' | 'followup' | 'custom',
+    initialServiceTitle?: string,
+    initialServicePrice?: string,
+    initialPractitionerId?: string
+  ) => void;
   closeBookingModal: () => void;
 }
 
@@ -58,25 +68,55 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
   const [bookingInitialCondition, setBookingInitialCondition] = useState<string>('Back pain');
+  const [bookingInitialServiceType, setBookingInitialServiceType] = useState<'initial' | 'followup' | 'custom'>('initial');
+  const [bookingInitialServiceTitle, setBookingInitialServiceTitle] = useState<string>('Initial Consultation & Examination');
+  const [bookingInitialServicePrice, setBookingInitialServicePrice] = useState<string | undefined>(undefined);
+  const [bookingInitialPractitionerId, setBookingInitialPractitionerId] = useState<string | undefined>(undefined);
 
   const hasSupabase = Boolean(supabase);
 
-  const openBookingModal = useCallback((initialCondition?: string) => {
-    if (initialCondition) {
-      if (initialCondition.includes('Back')) {
+  const openBookingModal = useCallback((
+    initialConditionOrTitle?: string,
+    initialServiceType?: 'initial' | 'followup' | 'custom',
+    initialServiceTitle?: string,
+    initialServicePrice?: string,
+    initialPractitionerId?: string
+  ) => {
+    // Detect service type if passed or infer from title
+    let resolvedServiceType: 'initial' | 'followup' | 'custom' = initialServiceType || 'initial';
+    let resolvedTitle = initialServiceTitle || '';
+
+    if (!initialServiceType && initialConditionOrTitle) {
+      const lower = initialConditionOrTitle.toLowerCase();
+      if (lower.includes('follow') || lower.includes('routine') || lower.includes('adjustment') || lower.includes('subsequent')) {
+        resolvedServiceType = 'followup';
+        resolvedTitle = initialConditionOrTitle;
+      } else if (lower.includes('decompression') || lower.includes('laser') || lower.includes('orthotic') || lower.includes('shockwave') || lower.includes('massage') || lower.includes('acupuncture')) {
+        resolvedServiceType = 'custom';
+        resolvedTitle = initialConditionOrTitle;
+      }
+    }
+
+    if (initialConditionOrTitle) {
+      if (initialConditionOrTitle.includes('Back')) {
         setBookingInitialCondition('Back pain');
-      } else if (initialCondition.includes('Neck') || initialCondition.includes('Shoulder')) {
+      } else if (initialConditionOrTitle.includes('Neck') || initialConditionOrTitle.includes('Shoulder')) {
         setBookingInitialCondition('Neck pain');
-      } else if (initialCondition.includes('Sports')) {
+      } else if (initialConditionOrTitle.includes('Sports')) {
         setBookingInitialCondition('Sports injury');
-      } else if (initialCondition.includes('Headache')) {
+      } else if (initialConditionOrTitle.includes('Headache')) {
         setBookingInitialCondition('Headaches');
       } else {
-        setBookingInitialCondition(initialCondition);
+        setBookingInitialCondition(initialConditionOrTitle);
       }
     } else {
       setBookingInitialCondition('Back pain');
     }
+
+    setBookingInitialServiceType(resolvedServiceType);
+    setBookingInitialServiceTitle(resolvedTitle || (resolvedServiceType === 'followup' ? 'Follow-Up Adjustment & Care' : 'Initial Consultation & Examination'));
+    setBookingInitialServicePrice(initialServicePrice);
+    setBookingInitialPractitionerId(initialPractitionerId);
 
     // Direct Redirect Mode Check
     if (clinicData.bookingEmbedMode === 'redirect' && clinicData.externalBookingUrl) {
@@ -88,7 +128,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return;
     }
 
-    // Otherwise open modal (either iframe embed mode or 3-step triage)
+    // Otherwise open modal (either iframe embed mode or triage)
     setIsBookingModalOpen(true);
   }, [clinicData.bookingEmbedMode, clinicData.externalBookingUrl]);
 
@@ -232,6 +272,10 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       importClinicBlueprint,
       isBookingModalOpen,
       bookingInitialCondition,
+      bookingInitialServiceType,
+      bookingInitialServiceTitle,
+      bookingInitialServicePrice,
+      bookingInitialPractitionerId,
       openBookingModal,
       closeBookingModal,
     }),
@@ -247,6 +291,10 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       importClinicBlueprint,
       isBookingModalOpen,
       bookingInitialCondition,
+      bookingInitialServiceType,
+      bookingInitialServiceTitle,
+      bookingInitialServicePrice,
+      bookingInitialPractitionerId,
       openBookingModal,
       closeBookingModal,
     ]

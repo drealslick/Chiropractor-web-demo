@@ -707,7 +707,15 @@ export default function ConditionDetail() {
 
                     <button
                       type="button"
-                      onClick={() => openBookingModal(`Consultation with ${spec.name} for ${condition.title}`)}
+                      onClick={() =>
+                        openBookingModal(
+                          condition.title,
+                          'initial',
+                          undefined,
+                          undefined,
+                          spec.id
+                        )
+                      }
                       className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-emerald-900 text-white font-semibold transition cursor-pointer"
                     >
                       Book Consultation

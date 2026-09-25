@@ -174,7 +174,15 @@ export default function Team() {
 
                     <button
                       type="button"
-                      onClick={() => openBookingModal(`Consultation with ${member.name}`)}
+                      onClick={() =>
+                        openBookingModal(
+                          member.areasOfFocus?.[0] || `Consultation with ${member.name}`,
+                          'initial',
+                          undefined,
+                          undefined,
+                          member.id
+                        )
+                      }
                       className="px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-emerald-900 text-white text-xs font-semibold transition shadow-2xs cursor-pointer flex items-center gap-1"
                     >
                       <Calendar className="w-3 h-3 text-emerald-400" />

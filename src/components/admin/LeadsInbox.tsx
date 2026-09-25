@@ -384,8 +384,13 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
                     </a>
                   </div>
                   {lead.condition && (
-                    <div className="col-span-1 sm:col-span-2 text-stone-300 text-xs">
-                      <span className="text-stone-500 font-medium">Concern:</span>{' '}
+                    <div className="col-span-1 sm:col-span-2 text-stone-300 text-xs flex flex-wrap items-center gap-1.5">
+                      <span className="text-stone-500 font-medium">Service / Concern:</span>{' '}
+                      {lead.serviceTitle ? (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 font-semibold text-[11px]">
+                          {lead.serviceTitle}
+                        </span>
+                      ) : null}
                       <span className="text-stone-200 font-semibold">{lead.condition}</span>
                     </div>
                   )}

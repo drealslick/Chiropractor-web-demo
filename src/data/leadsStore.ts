@@ -7,6 +7,8 @@ export interface PatientLead {
   email: string;
   phone: string;
   condition?: string;
+  serviceType?: 'initial' | 'followup' | 'custom';
+  serviceTitle?: string;
   practitionerId?: string;
   practitionerName?: string;
   date?: string;

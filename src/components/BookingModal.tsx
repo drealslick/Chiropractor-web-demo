@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Check,
@@ -20,9 +20,14 @@ import {
   Shield,
   CheckCircle,
   Smartphone,
+  RotateCcw,
+  Activity,
+  Zap,
+  Heart,
+  Layers,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ClinicInfo, BookingFormData, PublicTeamMember, ClinicSchedulingRules } from '../types';
+import { ClinicInfo, BookingFormData, PublicTeamMember, ClinicSchedulingRules, PricingFeeItem } from '../types';
 import { useClinic } from '../data/ClinicContext';
 import { saveLead } from '../data/leadsStore';
 import { defaultPublicTeamMembers } from '../data/defaultTeamData';
@@ -33,6 +38,9 @@ interface BookingModalProps {
   onClose?: () => void;
   clinic?: ClinicInfo;
   initialCondition?: string;
+  initialServiceType?: 'initial' | 'followup' | 'custom';
+  initialServiceTitle?: string;
+  initialServicePrice?: string;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({
@@ -40,6 +48,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose: propOnClose,
   clinic: propClinic,
   initialCondition: propInitialCondition,
+  initialServiceType: propInitialServiceType,
+  initialServiceTitle: propInitialServiceTitle,
+  initialServicePrice: propInitialServicePrice,
 }) => {
   const context = useClinic();
   const clinic = propClinic || context.clinicData;
@@ -48,11 +59,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const activeInitialCondition = propInitialCondition || context.bookingInitialCondition || 'Back pain';
 
   const [step, setStep] = useState<number>(1);
+  const [serviceType, setServiceType] = useState<'initial' | 'followup' | 'custom'>('initial');
+  const [selectedCustomServiceId, setSelectedCustomServiceId] = useState<string>('');
   const [selectedPractitionerId, setSelectedPractitionerId] = useState<string>('');
   const [honeypot, setHoneypot] = useState<string>('');
 
   const [formData, setFormData] = useState<BookingFormData>({
     condition: activeInitialCondition,
+    serviceType: 'initial',
+    serviceTitle: 'Initial Consultation & Examination',
     preferredPractitionerId: '',
     preferredPractitionerName: 'First Available Practitioner',
     date: '',
@@ -71,8 +86,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const totalSteps = isPaymentEnabled ? 4 : 3;
 
   const currency = paymentPolicy.currencySymbol || clinic.currencySymbol || '£';
-  const depositAmt = paymentPolicy.depositAmount || 25;
-  const fullAmt = paymentPolicy.fullFeeAmount || 49;
+  const defaultDepositAmt = paymentPolicy.depositAmount || 25;
+  const defaultFullAmt = paymentPolicy.fullFeeAmount || 49;
   const noShowFee = paymentPolicy.noShowFee || 35;
   const cancelNotice = paymentPolicy.cancellationNoticeHours || 24;
 
@@ -98,7 +113,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     transactionId: string;
   } | null>(null);
 
-  const detectedBrand = React.useMemo(() => {
+  const detectedBrand = useMemo(() => {
     const clean = cardNumber.replace(/\s+/g, '');
     if (clean.startsWith('4')) return 'Visa';
     if (/^(5[1-5]|2[2-7])/.test(clean)) return 'Mastercard';
@@ -130,7 +145,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   // Available practitioners
-  const practitioners: PublicTeamMember[] = React.useMemo(() => {
+  const practitioners: PublicTeamMember[] = useMemo(() => {
     return clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
       ? clinic.publicTeamMembers.filter((m) => m.showOnWebsite !== false)
       : defaultPublicTeamMembers;
@@ -139,10 +154,103 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Active scheduling rules
   const schedulingRules: ClinicSchedulingRules = clinic.schedulingRules || defaultSchedulingRules;
 
-  // Selected practitioner helper
+  // Custom / Specialized Services catalog
+  const customServicesList: PricingFeeItem[] = useMemo(() => {
+    if (clinic.customFeeItems && clinic.customFeeItems.length > 0) {
+      return clinic.customFeeItems;
+    }
+    const sym = clinic.currencySymbol || '£';
+    return [
+      {
+        id: 'decompression',
+        title: 'Spinal Decompression Therapy',
+        price: `${sym}75`,
+        description: 'Computerized motorized traction targeting herniated discs, sciatica, and chronic nerve compression.',
+        popular: true,
+        badge: 'Disc & Sciatica',
+        icon: 'activity',
+        features: ['Targeted lumbar/cervical traction', 'Negative intradiscal pressure', 'Relieves nerve pinching'],
+      },
+      {
+        id: 'laser',
+        title: 'Class IV Deep Tissue Laser Therapy',
+        price: `${sym}65`,
+        description: 'High-intensity photobiomodulation for accelerated cellular repair and rapid anti-inflammatory relief.',
+        badge: 'Fast Relief',
+        icon: 'zap',
+        features: ['Deep tissue penetration', 'Accelerates tendon healing', 'Painless & non-invasive'],
+      },
+      {
+        id: 'orthotics',
+        title: 'Custom Orthotics & Biomechanical Gait Scan',
+        price: `${sym}95`,
+        description: '3D digital foot scanning and custom kinetic support for chronic pelvic, knee, and lower back alignment.',
+        badge: 'Postural',
+        icon: 'sparkles',
+        features: ['3D digital dynamic foot scan', 'Pelvic kinetic chain review', 'Custom medical orthotic fitting'],
+      },
+      {
+        id: 'sports_rehab',
+        title: 'Sports Injury & Functional Movement Rehab',
+        price: `${sym}70`,
+        description: 'Targeted myofascial release, joint mobilization, and return-to-sport neuromuscular stabilization.',
+        badge: 'Athletes',
+        icon: 'user',
+        features: ['Functional movement screen', 'Active soft tissue release', 'Tailored rehab protocol'],
+      },
+    ];
+  }, [clinic.customFeeItems, clinic.currencySymbol]);
+
+  // Sync props and context state on modal open
+  useEffect(() => {
+    if (isOpen) {
+      const resolvedType = propInitialServiceType || context.bookingInitialServiceType || 'initial';
+      const resolvedTitle = propInitialServiceTitle || context.bookingInitialServiceTitle || '';
+      const resolvedPrice = propInitialServicePrice || context.bookingInitialServicePrice;
+      const resolvedDocId = context.bookingInitialPractitionerId || '';
+
+      setServiceType(resolvedType);
+
+      if (resolvedDocId) {
+        setSelectedPractitionerId(resolvedDocId);
+        const doc = practitioners.find((p) => p.id === resolvedDocId);
+        if (doc) {
+          setFormData((prev) => ({
+            ...prev,
+            preferredPractitionerId: doc.id,
+            preferredPractitionerName: doc.name,
+          }));
+        }
+      }
+
+      if (resolvedType === 'custom') {
+        const found = customServicesList.find(
+          (c) => c.title.toLowerCase() === resolvedTitle.toLowerCase() || c.id === resolvedTitle.toLowerCase()
+        );
+        if (found) {
+          setSelectedCustomServiceId(found.id);
+        } else if (customServicesList.length > 0) {
+          setSelectedCustomServiceId(customServicesList[0].id);
+        }
+      }
+    }
+  }, [
+    isOpen,
+    propInitialServiceType,
+    propInitialServiceTitle,
+    propInitialServicePrice,
+    context.bookingInitialServiceType,
+    context.bookingInitialServiceTitle,
+    context.bookingInitialServicePrice,
+    context.bookingInitialPractitionerId,
+    practitioners,
+    customServicesList,
+  ]);
+
+  // Selected Practitioner helper
   const selectedPractitioner = practitioners.find((p) => p.id === selectedPractitionerId);
 
-  // Dynamic doctor display label for prompt
+  // Dynamic doctor prompt label
   const doctorPromptLabel = selectedPractitioner
     ? selectedPractitioner.name
     : clinic.doctorName || 'our clinical team';
@@ -151,23 +259,83 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const getSpecialistForCondition = (cond: string) => {
     const lower = cond.toLowerCase();
     if (lower.includes('sport')) {
-      return practitioners.find((p) => p.name.toLowerCase().includes('marcus') || p.areasOfFocus?.some(a => a.toLowerCase().includes('sport'))) || practitioners[0];
+      return (
+        practitioners.find(
+          (p) => p.name.toLowerCase().includes('marcus') || p.areasOfFocus?.some((a) => a.toLowerCase().includes('sport'))
+        ) || practitioners[0]
+      );
     }
     if (lower.includes('neck') || lower.includes('headache')) {
-      return practitioners.find((p) => p.name.toLowerCase().includes('elena') || p.areasOfFocus?.some(a => a.toLowerCase().includes('headache') || a.toLowerCase().includes('cervical'))) || practitioners[0];
+      return (
+        practitioners.find(
+          (p) =>
+            p.name.toLowerCase().includes('elena') ||
+            p.areasOfFocus?.some((a) => a.toLowerCase().includes('headache') || a.toLowerCase().includes('cervical'))
+        ) || practitioners[0]
+      );
     }
     if (lower.includes('back')) {
-      return practitioners.find((p) => p.name.toLowerCase().includes('alistair') || p.name.toLowerCase().includes('vance') || p.areasOfFocus?.some(a => a.toLowerCase().includes('lumbar') || a.toLowerCase().includes('disc'))) || practitioners[0];
+      return (
+        practitioners.find(
+          (p) =>
+            p.name.toLowerCase().includes('alistair') ||
+            p.name.toLowerCase().includes('vance') ||
+            p.areasOfFocus?.some((a) => a.toLowerCase().includes('lumbar') || a.toLowerCase().includes('disc'))
+        ) || practitioners[0]
+      );
     }
     return practitioners[0];
   };
 
-  const recommendedDoctor = React.useMemo(() => {
-    return getSpecialistForCondition(formData.condition || activeInitialCondition);
-  }, [formData.condition, activeInitialCondition, practitioners]);
+  // Active Service details derived dynamically
+  const activeServiceDetails = useMemo(() => {
+    const sym = clinic.currencySymbol || '£';
+    if (serviceType === 'initial') {
+      return {
+        type: 'initial' as const,
+        id: 'initial',
+        title: 'Initial Consultation & Examination',
+        price: clinic.examFee || `${sym}49`,
+        durationMinutes: schedulingRules.slotDurationMinutes || 45,
+        badge: 'New Patient',
+        description: 'Comprehensive physical examination, digital posture analysis, orthopaedic testing & customized treatment plan.',
+      };
+    }
+    if (serviceType === 'followup') {
+      return {
+        type: 'followup' as const,
+        id: 'followup',
+        title: 'Follow-Up Adjustment & Ongoing Care',
+        price: clinic.followUpFee || `${sym}35`,
+        durationMinutes: 20,
+        badge: 'Returning Patient',
+        description: 'Targeted chiropractic spinal adjustment, kinetic joint mobilization, and subluxation alignment.',
+      };
+    }
+    // Custom / Specialized
+    const match = customServicesList.find((c) => c.id === selectedCustomServiceId) || customServicesList[0];
+    return {
+      type: 'custom' as const,
+      id: match?.id || 'custom',
+      title: match?.title || 'Specialized Chiropractic Care',
+      price: match?.price || `${sym}65`,
+      durationMinutes: 35,
+      badge: match?.badge || 'Specialized Care',
+      description: match?.description || 'Targeted clinical procedure and therapeutic modalities.',
+    };
+  }, [serviceType, selectedCustomServiceId, customServicesList, clinic.examFee, clinic.followUpFee, schedulingRules.slotDurationMinutes, clinic.currencySymbol]);
+
+  // Effective payment calculation based on active service price
+  const parsedActiveFeeNumber = useMemo(() => {
+    const raw = parseInt(activeServiceDetails.price.replace(/[^0-9]/g, ''), 10);
+    return isNaN(raw) || raw <= 0 ? defaultFullAmt : raw;
+  }, [activeServiceDetails.price, defaultFullAmt]);
+
+  const effectiveFullAmt = parsedActiveFeeNumber;
+  const effectiveDepositAmt = Math.min(defaultDepositAmt, effectiveFullAmt);
 
   // Generate next 6 available business days respecting holiday blockers & weekly closed days
-  const nextDays = React.useMemo(() => {
+  const nextDays = useMemo(() => {
     const days = [];
     const today = new Date();
     const closedDates = schedulingRules.clinicClosedDates || [];
@@ -180,29 +348,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       const dateString = d.toISOString().split('T')[0];
       const dayKey = dayKeys[d.getDay()];
 
-      // 1. Check if clinic is closed on this holiday
-      if (closedDates.includes(dateString)) {
-        continue;
-      }
+      if (closedDates.includes(dateString)) continue;
 
-      // 2. Check if day of week is enabled
       const dayConfig = weeklySchedule[dayKey];
-      if (dayConfig && !dayConfig.enabled) {
-        continue;
-      }
+      if (dayConfig && !dayConfig.enabled) continue;
 
-      // 3. If a specific doctor is selected, check if doctor is on holiday or has off day
       if (selectedPractitioner) {
         const docOverride = schedulingRules.practitionerOverrides?.find((o) => o.practitionerId === selectedPractitioner.id);
-        if (docOverride?.isOnHoliday) {
-          continue;
-        }
-        if (docOverride?.holidayDates?.includes(dateString)) {
-          continue;
-        }
-        if (docOverride?.weeklyOffDays?.includes(d.getDay())) {
-          continue;
-        }
+        if (docOverride?.isOnHoliday) continue;
+        if (docOverride?.holidayDates?.includes(dateString)) continue;
+        if (docOverride?.weeklyOffDays?.includes(d.getDay())) continue;
       }
 
       days.push({
@@ -225,24 +380,47 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   }, [activeInitialCondition]);
 
   useEffect(() => {
-    if (nextDays.length > 0 && (!formData.date || !nextDays.some(d => d.dateString === formData.date))) {
+    if (nextDays.length > 0 && (!formData.date || !nextDays.some((d) => d.dateString === formData.date))) {
       setFormData((prev) => ({ ...prev, date: nextDays[0].dateString }));
       setSelectedDayIndex(0);
     }
   }, [nextDays, formData.date]);
 
-  const conditions = [
+  const initialConditions = [
     'Back pain',
     'Neck pain',
     'Sports injury',
     'Headaches',
-    'Other'
+    'Other / General Wellness',
+  ];
+
+  const followUpCareOptions = [
+    {
+      title: 'Standard Spinal Adjustment & Alignment',
+      subtitle: 'Targeted manipulation & subluxation correction for active treatment plan.',
+      duration: '20 min',
+    },
+    {
+      title: 'Progress Review & Periodic Re-Exam',
+      subtitle: 'Comparative range-of-motion scan and updated clinical care progression.',
+      duration: '30 min',
+    },
+    {
+      title: 'Wellness & Maintenance Adjustment',
+      subtitle: 'Preventative postural alignment to keep joints and nervous system functioning optimally.',
+      duration: '20 min',
+    },
+    {
+      title: 'Acute Symptom Flare-Up / Fast Relief',
+      subtitle: 'Immediate joint mobilization and pain relief for sudden spasm or injury.',
+      duration: '25 min',
+    },
   ];
 
   const currentDay = nextDays[selectedDayIndex] || nextDays[0];
 
   // Dynamic slot generation according to working hours, lunch break, and buffer
-  const allSlots = React.useMemo(() => {
+  const allSlots = useMemo(() => {
     if (!currentDay) return [];
     const dayKey = currentDay.dayKey;
     const weeklySchedule = schedulingRules.weeklySchedule || defaultSchedulingRules.weeklySchedule;
@@ -257,9 +435,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (!dayConfig.enabled) return [];
 
-    const slotDuration = schedulingRules.slotDurationMinutes || 45;
-    const bufferTime = schedulingRules.bufferTimeMinutes || 15;
-    const intervalMinutes = slotDuration + bufferTime; // e.g. 60 min
+    const slotDuration = activeServiceDetails.durationMinutes || 45;
+    const bufferTime = serviceType === 'followup' ? 10 : schedulingRules.bufferTimeMinutes || 15;
+    const intervalMinutes = slotDuration + bufferTime;
 
     const parseTimeToMinutes = (t: string) => {
       const [h, m] = t.split(':').map(Number);
@@ -281,25 +459,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const slots: string[] = [];
     for (let cur = startMins; cur + slotDuration <= endMins; cur += intervalMinutes) {
-      // Check if slot overlaps lunch break
       if (dayConfig.lunchBreakEnabled && cur >= lunchStartMins && cur < lunchEndMins) {
         continue;
       }
       slots.push(formatMinutesTo12h(cur));
     }
 
-    // Fallback if calculated slots are empty
     if (slots.length === 0) {
       return currentDay.isSaturday
-        ? ['9:30 AM', '10:45 AM', '11:45 AM', '12:30 PM']
-        : ['9:00 AM', '10:15 AM', '11:30 AM', '1:45 PM', '3:00 PM', '4:15 PM', '5:00 PM'];
+        ? ['9:30 AM', '10:15 AM', '11:00 AM', '11:45 AM', '12:30 PM']
+        : ['9:00 AM', '10:00 AM', '11:15 AM', '1:45 PM', '3:00 PM', '4:15 PM', '5:00 PM'];
     }
 
     return slots;
-  }, [currentDay, schedulingRules]);
+  }, [currentDay, schedulingRules, activeServiceDetails.durationMinutes, serviceType]);
 
   // Determine taken/booked slots strictly from actual recorded leads
-  const takenSlotsForDay = React.useMemo(() => {
+  const takenSlotsForDay = useMemo(() => {
     if (!currentDay) return new Set<string>();
     const taken = new Set<string>();
 
@@ -309,7 +485,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const leads = JSON.parse(stored);
         leads.forEach((l: { date?: string; time?: string; status?: string; practitionerId?: string }) => {
           if (l.date === currentDay.dateString && l.time && l.status !== 'archived' && l.status !== 'cancelled') {
-            // If a specific doctor is picked, only mark taken if that doctor is booked
             if (selectedPractitionerId) {
               if (l.practitionerId === selectedPractitionerId) {
                 taken.add(l.time);
@@ -337,11 +512,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }));
   };
 
+  // Step 1: Select Initial condition
   const handleConditionSelect = (cond: string) => {
     let assignedDocName = formData.preferredPractitionerName;
     let assignedDocId = formData.preferredPractitionerId;
 
-    // If no specific practitioner chosen, suggest condition specialist
     if (!selectedPractitionerId) {
       const spec = getSpecialistForCondition(cond);
       if (spec) {
@@ -353,8 +528,43 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setFormData((prev) => ({
       ...prev,
       condition: cond,
+      serviceType: 'initial',
+      serviceTitle: 'Initial Consultation & Examination',
+      servicePrice: activeServiceDetails.price,
+      serviceDuration: activeServiceDetails.durationMinutes,
       preferredPractitionerId: assignedDocId,
       preferredPractitionerName: assignedDocName || 'First Available Practitioner',
+    }));
+    setStep(2);
+  };
+
+  // Step 1: Select Follow-up Reason
+  const handleFollowUpSelect = (opt: { title: string; subtitle: string; duration: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      condition: `Follow-Up: ${opt.title}`,
+      serviceType: 'followup',
+      serviceTitle: opt.title,
+      servicePrice: activeServiceDetails.price,
+      serviceDuration: 20,
+      preferredPractitionerId: formData.preferredPractitionerId,
+      preferredPractitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
+    }));
+    setStep(2);
+  };
+
+  // Step 1: Select Custom Service
+  const handleCustomServiceSelect = (svc: PricingFeeItem) => {
+    setSelectedCustomServiceId(svc.id);
+    setFormData((prev) => ({
+      ...prev,
+      condition: `Specialized: ${svc.title}`,
+      serviceType: 'custom',
+      serviceTitle: svc.title,
+      servicePrice: svc.price,
+      serviceDuration: 35,
+      preferredPractitionerId: formData.preferredPractitionerId,
+      preferredPractitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
     }));
     setStep(2);
   };
@@ -365,19 +575,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       ...prev,
       date: currentDay.dateString,
       time: slot,
+      serviceType: activeServiceDetails.type,
+      serviceTitle: activeServiceDetails.title,
+      servicePrice: activeServiceDetails.price,
+      serviceDuration: activeServiceDetails.durationMinutes,
     }));
     setStep(3);
   };
-
-  const sym = clinic.currencySymbol || '£';
-  const feeDisplay = clinic.examFee || `${sym}49`;
 
   const doctorDisplayName = selectedPractitioner
     ? selectedPractitioner.name
     : formData.preferredPractitionerName || clinic.doctorName || 'Lead Practitioner';
 
-  // Build prefilled external URL for JaneApp / Calendly / Acuity / Cliniko
-  const prefilledExternalUrl = React.useMemo(() => {
+  // Build prefilled external URL
+  const prefilledExternalUrl = useMemo(() => {
     if (!clinic.externalBookingUrl) return '';
     try {
       const url = new URL(clinic.externalBookingUrl);
@@ -411,7 +622,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const handleSubmitStep3 = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Spam Honeypot Check: if bot filled this hidden field, silently reject
     if (honeypot) {
       console.warn('Bot submission blocked via honeypot');
       setStep(isPaymentEnabled ? 5 : 4);
@@ -436,14 +646,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
-        condition: formData.condition || 'Chiropractic Initial Exam',
+        condition: formData.condition || activeServiceDetails.title,
+        serviceType: activeServiceDetails.type,
+        serviceTitle: activeServiceDetails.title,
         practitionerId: formData.preferredPractitionerId,
         practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
         date: formData.date,
         time: formData.time,
-        durationMinutes: schedulingRules.slotDurationMinutes || 45,
+        durationMinutes: activeServiceDetails.durationMinutes,
         clinicName: clinic.name,
-        notes: `Requested: Initial Consultation (${feeDisplay}). Practitioner: ${formData.preferredPractitionerName || 'First Available'}. Slot: ${formData.date} at ${formData.time}. ${formData.notes || ''}`,
+        notes: `Service: ${activeServiceDetails.title} (${activeServiceDetails.price}, ${activeServiceDetails.durationMinutes} min). Practitioner: ${formData.preferredPractitionerName || 'First Available'}. Slot: ${formData.date} at ${formData.time}. ${formData.notes || ''}`,
         status: 'new',
         paymentStatus: 'unpaid',
       });
@@ -491,8 +703,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       };
 
       const amtMap = {
-        deposit: `${currency}${depositAmt}.00`,
-        full: `${currency}${fullAmt}.00`,
+        deposit: `${currency}${effectiveDepositAmt}.00`,
+        full: `${currency}${effectiveFullAmt}.00`,
         card_hold: `${currency}0.00 (Hold)`,
         pay_at_clinic: `${currency}0.00 (Pay on arrival)`,
       };
@@ -508,20 +720,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
       setConfirmedPaymentDetails(paymentDetail);
 
-      // Save lead with full payment tracking!
+      // Save lead with full payment & multi-service tracking
       saveLead({
         source: 'booking',
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
-        condition: formData.condition || 'Chiropractic Initial Exam',
+        condition: formData.condition || activeServiceDetails.title,
+        serviceType: activeServiceDetails.type,
+        serviceTitle: activeServiceDetails.title,
         practitionerId: formData.preferredPractitionerId,
         practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
         date: formData.date,
         time: formData.time,
-        durationMinutes: schedulingRules.slotDurationMinutes || 45,
+        durationMinutes: activeServiceDetails.durationMinutes,
         clinicName: clinic.name,
-        notes: `Initial Exam (${feeDisplay}). Practitioner: ${formData.preferredPractitionerName || 'First Available'}. Slot: ${formData.date} at ${formData.time}. [Payment: ${paymentDetail.status.toUpperCase()} via ${brand} ending in ${last4}, Amount: ${paymentDetail.amount}, Ref: ${txId}]. ${formData.notes || ''}`,
+        notes: `Service: ${activeServiceDetails.title} (${activeServiceDetails.price}). Practitioner: ${formData.preferredPractitionerName || 'First Available'}. Slot: ${formData.date} at ${formData.time}. [Payment: ${paymentDetail.status.toUpperCase()} via ${brand} ending in ${last4}, Amount: ${paymentDetail.amount}, Ref: ${txId}]. ${formData.notes || ''}`,
         status: 'new',
         paymentStatus: paymentDetail.status,
         paymentAmount: paymentDetail.amount,
@@ -538,9 +752,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const resetAndClose = () => {
     setStep(1);
+    setServiceType('initial');
+    setSelectedCustomServiceId('');
     setSelectedPractitionerId('');
     setFormData({
       condition: activeInitialCondition,
+      serviceType: 'initial',
+      serviceTitle: 'Initial Consultation & Examination',
       preferredPractitionerId: '',
       preferredPractitionerName: 'First Available Practitioner',
       date: '',
@@ -604,7 +822,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   {activeViewMode === 'iframe'
                     ? `Book with ${doctorDisplayName}`
                     : step === 1
-                    ? 'What brings you in?'
+                    ? 'Select your appointment'
                     : step === 2
                     ? 'Choose a date & time'
                     : step === 3
@@ -616,6 +834,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 <p className="text-xs text-stone-500">
                   {activeViewMode === 'iframe'
                     ? 'Select your appointment type and slot below'
+                    : step === 1
+                    ? 'Initial exam, routine follow-up, or specialized care'
                     : step === 4 && isPaymentEnabled
                     ? 'Upfront slot protection to eliminate no-shows'
                     : (step === 5 || (!isPaymentEnabled && step === 4))
@@ -668,18 +888,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             ) : (
               <>
                 {/* Progress bar */}
-                {step < 4 && (
+                {step < (isPaymentEnabled ? 5 : 4) && (
                   <div className="w-full bg-stone-100 h-1">
                     <div
                       className="bg-emerald-700 h-1 transition-all duration-300"
-                      style={{ width: `${(step / 3) * 100}%` }}
+                      style={{ width: `${(step / totalSteps) * 100}%` }}
                     />
                   </div>
                 )}
 
                 {/* Body */}
                 <div className="p-6 overflow-y-auto flex-1">
-                  {/* STEP 1: What brings you in? & Dynamic Doctor Selection */}
+                  {/* STEP 1: Service Type Switcher + Dynamic Practitioner & Service Sub-Triage */}
                   {step === 1 && (
                     <div className="space-y-4">
                       {/* Optional Preferred Practitioner Dropdown */}
@@ -705,65 +925,245 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Dynamic evaluation copy */}
-                      <p className="text-sm text-stone-600">
-                        Select the primary issue you'd like {doctorPromptLabel} to evaluate:
-                      </p>
+                      {/* 3-Way Service Segmented Control */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-stone-700">
+                          Select Service Category
+                        </label>
+                        <div className="grid grid-cols-3 gap-1.5 bg-stone-100 p-1 rounded-xl border border-stone-200">
+                          <button
+                            type="button"
+                            onClick={() => setServiceType('initial')}
+                            className={`py-2 px-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                              serviceType === 'initial'
+                                ? 'bg-white text-emerald-900 shadow-xs border border-stone-200'
+                                : 'text-stone-600 hover:text-stone-900'
+                            }`}
+                          >
+                            <User className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                            <span>New Patient</span>
+                          </button>
 
-                      <div className="grid grid-cols-1 gap-2.5 pt-1">
-                        {conditions.map((cond) => {
-                          const isSelected = formData.condition === cond;
-                          return (
-                            <button
-                              key={cond}
-                              type="button"
-                              onClick={() => handleConditionSelect(cond)}
-                              className={`w-full text-left p-3.5 sm:p-4 rounded-xl border text-sm font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                                isSelected
-                                  ? 'border-emerald-800 bg-emerald-50 text-emerald-950 ring-1 ring-emerald-800'
-                                  : 'border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-800'
-                              }`}
-                            >
-                              <div>
-                                <span className="text-base font-serif block">{cond}</span>
-                                {!selectedPractitionerId && (
-                                  <span className="text-[11px] font-normal text-stone-500">
-                                    Specialist: {getSpecialistForCondition(cond)?.name}
-                                  </span>
-                                )}
-                              </div>
-                              <ArrowRight className={`w-4 h-4 ${isSelected ? 'text-emerald-800' : 'text-stone-400'}`} />
-                            </button>
-                          );
-                        })}
+                          <button
+                            type="button"
+                            onClick={() => setServiceType('followup')}
+                            className={`py-2 px-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                              serviceType === 'followup'
+                                ? 'bg-white text-emerald-900 shadow-xs border border-stone-200'
+                                : 'text-stone-600 hover:text-stone-900'
+                            }`}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                            <span>Follow-Up</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setServiceType('custom');
+                              if (!selectedCustomServiceId && customServicesList.length > 0) {
+                                setSelectedCustomServiceId(customServicesList[0].id);
+                              }
+                            }}
+                            className={`py-2 px-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                              serviceType === 'custom'
+                                ? 'bg-white text-emerald-900 shadow-xs border border-stone-200'
+                                : 'text-stone-600 hover:text-stone-900'
+                            }`}
+                          >
+                            <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>Specialized</span>
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Offer reminder */}
-                      <div className="mt-4 p-3 rounded-lg bg-stone-100 border border-stone-200 flex items-center gap-2.5 text-xs text-stone-700">
-                        <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                        <span>
-                          <strong>New Patient Rate:</strong> {feeDisplay} initial consultation & assessment.
-                        </span>
-                      </div>
+                      {/* --- TAB A: INITIAL VISIT & SYMPTOM TRIAGE --- */}
+                      {serviceType === 'initial' && (
+                        <div className="space-y-3 animate-fadeIn">
+                          <div className="flex items-center justify-between text-xs text-stone-600">
+                            <span>What primary issue should {doctorPromptLabel} evaluate?</span>
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                              {clinic.examFee || `${currency}49`} (45 min)
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2">
+                            {initialConditions.map((cond) => {
+                              const isSelected = formData.condition === cond;
+                              return (
+                                <button
+                                  key={cond}
+                                  type="button"
+                                  onClick={() => handleConditionSelect(cond)}
+                                  className={`w-full text-left p-3.5 rounded-xl border text-sm font-semibold flex items-center justify-between transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'border-emerald-800 bg-emerald-50 text-emerald-950 ring-1 ring-emerald-800'
+                                      : 'border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-800'
+                                  }`}
+                                >
+                                  <div>
+                                    <span className="text-base font-serif block">{cond}</span>
+                                    {!selectedPractitionerId && (
+                                      <span className="text-[11px] font-normal text-stone-500">
+                                        Specialist: {getSpecialistForCondition(cond)?.name}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <ArrowRight className={`w-4 h-4 ${isSelected ? 'text-emerald-800' : 'text-stone-400'}`} />
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-200/80 flex items-center gap-2.5 text-xs text-stone-700">
+                            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span>
+                              <strong>New Patient Guarantee:</strong> Comprehensive exam, neurological testing, and first visit care plan included.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* --- TAB B: FOLLOW-UP / RETURNING PATIENT --- */}
+                      {serviceType === 'followup' && (
+                        <div className="space-y-3 animate-fadeIn">
+                          <div className="flex items-center justify-between text-xs text-stone-600">
+                            <span>Select the focus for your follow-up visit:</span>
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                              {clinic.followUpFee || `${currency}35`} (20 min)
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2">
+                            {followUpCareOptions.map((opt) => (
+                              <button
+                                key={opt.title}
+                                type="button"
+                                onClick={() => handleFollowUpSelect(opt)}
+                                className="w-full text-left p-3.5 rounded-xl border border-stone-200 hover:border-emerald-700 hover:bg-emerald-50/50 text-stone-800 transition-all cursor-pointer flex items-center justify-between group"
+                              >
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-serif font-bold text-stone-900 group-hover:text-emerald-950">
+                                      {opt.title}
+                                    </span>
+                                    <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded">
+                                      {opt.duration}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-stone-500 line-clamp-1">{opt.subtitle}</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-stone-400 group-hover:text-emerald-700 shrink-0 ml-2" />
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="p-3 rounded-lg bg-stone-100 border border-stone-200 flex items-center gap-2.5 text-xs text-stone-700">
+                            <RotateCcw className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span>
+                              <strong>Returning Patient Fast-Track:</strong> Streamlined scheduling for existing care plans & tune-ups.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* --- TAB C: CUSTOM / SPECIALIZED THERAPIES --- */}
+                      {serviceType === 'custom' && (
+                        <div className="space-y-3 animate-fadeIn">
+                          <div className="flex items-center justify-between text-xs text-stone-600">
+                            <span>Select specialized therapy or advanced clinical procedure:</span>
+                            <span className="text-[11px] text-stone-400 font-medium">Fixed Transparent Fees</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2.5">
+                            {customServicesList.map((svc) => {
+                              const isSelected = selectedCustomServiceId === svc.id;
+                              return (
+                                <button
+                                  key={svc.id}
+                                  type="button"
+                                  onClick={() => handleCustomServiceSelect(svc)}
+                                  className={`w-full text-left p-3.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between group ${
+                                    isSelected
+                                      ? 'border-emerald-800 bg-emerald-50/70 ring-1 ring-emerald-800 text-stone-900'
+                                      : 'border-stone-200 hover:border-stone-300 hover:bg-stone-50 text-stone-800'
+                                  }`}
+                                >
+                                  <div className="space-y-1 flex-1 pr-2">
+                                    <div className="flex items-center gap-2">
+                                      {svc.badge && (
+                                        <span className="text-[9px] font-bold uppercase tracking-wider bg-stone-900 text-white px-1.5 py-0.5 rounded">
+                                          {svc.badge}
+                                        </span>
+                                      )}
+                                      <span className="text-sm font-serif font-bold text-stone-900">
+                                        {svc.title}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-stone-600 leading-snug line-clamp-2">
+                                      {svc.description}
+                                    </p>
+                                    <div className="flex items-center gap-3 pt-1 text-[11px] font-medium text-stone-500">
+                                      <span className="text-emerald-800 font-bold text-xs">{svc.price}</span>
+                                      <span>•</span>
+                                      <span>35-45 min session</span>
+                                    </div>
+                                  </div>
+                                  <ArrowRight className={`w-4 h-4 mt-1 ${isSelected ? 'text-emerald-800' : 'text-stone-400'}`} />
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-950 flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>
+                              Can be combined with your standard chiropractic adjustments upon clinical review.
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* STEP 2: Choose a time */}
                   {step === 2 && (
-                    <div className="space-y-5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs sm:text-sm text-stone-600">
-                            Select an upcoming day and preferred time slot:
+                    <div className="space-y-4">
+                      {/* Active service badge */}
+                      <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200/80 flex items-center justify-between text-xs">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                            Selected Service
+                          </span>
+                          <p className="font-serif font-bold text-stone-900 text-sm">
+                            {activeServiceDetails.title}
                           </p>
-                          <span className="text-[11px] text-emerald-800 font-semibold block mt-0.5">
-                            Practitioner: {formData.preferredPractitionerName || 'First Available Practitioner'}
+                          <span className="text-[11px] text-stone-600">
+                            Doctor: {formData.preferredPractitionerName || 'First Available'} • Duration: {activeServiceDetails.durationMinutes} min
                           </span>
                         </div>
+                        <div className="text-right">
+                          <span className="text-base font-bold text-emerald-900 font-serif">
+                            {activeServiceDetails.price}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className="block text-[10px] font-semibold text-emerald-800 hover:underline cursor-pointer mt-0.5"
+                          >
+                            Change service
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <p className="text-xs text-stone-600 font-medium">
+                          Select an upcoming date and time slot:
+                        </p>
                         <button
                           type="button"
                           onClick={() => setStep(1)}
-                          className="text-xs text-stone-500 hover:text-stone-900 inline-flex items-center gap-1 font-medium"
+                          className="text-xs text-stone-500 hover:text-stone-900 inline-flex items-center gap-1 font-medium cursor-pointer"
                         >
                           <ArrowLeft className="w-3 h-3" />
                           <span>Back</span>
@@ -819,7 +1219,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto pr-1">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto pr-1">
                           {allSlots.map((slot) => {
                             const isTaken = takenSlotsForDay.has(slot);
                             const isSelected = formData.time === slot && formData.date === currentDay?.dateString;
@@ -858,32 +1258,44 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                       </div>
 
-                      <p className="text-[11px] text-stone-500 text-center italic">
+                      <p className="text-[11px] text-stone-500 text-center italic pt-1">
                         Need a specific time not shown? Call us directly at {clinic.phone}.
                       </p>
                     </div>
                   )}
 
-                  {/* STEP 3: Your details + Change Links + Honeypot + Advance to Payment or Direct Booking */}
+                  {/* STEP 3: Your details + Summary with Quick Change links */}
                   {step === 3 && (
                     <form onSubmit={handleSubmitStep3} className="space-y-4">
-                      {/* Summary with Quick "Change" links for Reason, Doctor, and Time */}
+                      {/* Summary with Quick "Change" links */}
                       <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-1.5 text-stone-700">
                         <div className="flex items-center justify-between">
                           <span>
-                            Reason: <strong className="text-stone-900">{formData.condition}</strong>
+                            Service: <strong className="text-stone-900">{activeServiceDetails.title} ({activeServiceDetails.price})</strong>
                           </span>
                           <button
                             type="button"
                             onClick={() => setStep(1)}
                             className="text-emerald-800 hover:text-emerald-950 font-semibold underline cursor-pointer"
                           >
-                            Change reason
+                            Change service
                           </button>
                         </div>
                         <div className="flex items-center justify-between">
                           <span>
-                            Doctor: <strong className="text-stone-900">{formData.preferredPractitionerName || 'First Available'}</strong>
+                            Focus / Reason: <strong className="text-stone-900">{formData.condition}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className="text-emerald-800 hover:text-emerald-950 font-semibold underline cursor-pointer"
+                          >
+                            Change focus
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span>
+                            Practitioner: <strong className="text-stone-900">{formData.preferredPractitionerName || 'First Available'}</strong>
                           </span>
                           <button
                             type="button"
@@ -981,7 +1393,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </label>
                         <textarea
                           rows={3}
-                          placeholder="Describe your symptoms, how long you've felt pain, or any past treatments..."
+                          placeholder="Describe symptoms, duration of pain, past treatments, or imaging..."
                           value={formData.notes}
                           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                           className="w-full p-3 border border-stone-300 rounded-lg text-sm text-stone-900 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 bg-white"
@@ -996,32 +1408,32 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         >
                           <span>
                             {isPaymentEnabled
-                              ? `Continue to Payment & Slot Protection (${currency}${paymentChoice === 'full' ? fullAmt : depositAmt})`
-                              : `Request Appointment (${feeDisplay})`}
+                              ? `Continue to Slot Protection (${currency}${paymentChoice === 'full' ? effectiveFullAmt : effectiveDepositAmt})`
+                              : `Request Appointment (${activeServiceDetails.price})`}
                           </span>
                           <ArrowRight className="w-4 h-4" />
                         </button>
                         <p className="text-xs text-stone-500 text-center mt-2.5 leading-snug">
                           {isPaymentEnabled
                             ? `Secures Dr. ${doctorDisplayName.split(' ')[1] || 'Vance'}'s suite. 100% refundable with ${cancelNotice}h notice.`
-                            : `You will receive a confirmation email once our team approves your request.`}
+                            : `You will receive an instant confirmation once registered.`}
                         </p>
                       </div>
 
                       <p className="text-[11px] text-stone-400 text-center">
-                        Patient information is handled with strict confidentiality.
+                        Patient information is handled with strict clinical confidentiality.
                       </p>
                     </form>
                   )}
 
-                  {/* STEP 4: UPFRONT PAYMENT & NO-SHOW PROTECTION (When Enabled) */}
+                  {/* STEP 4: UPFRONT PAYMENT & NO-SHOW PROTECTION */}
                   {step === 4 && isPaymentEnabled && (
                     <div className="space-y-4 animate-fadeIn">
                       {/* Appointment & Fee Banner */}
                       <div className="p-3.5 bg-stone-900 text-white rounded-xl shadow-xs space-y-2">
                         <div className="flex items-center justify-between text-xs text-stone-300">
-                          <span>Initial Consultation & Exam</span>
-                          <span className="font-semibold text-white">{feeDisplay}</span>
+                          <span>{activeServiceDetails.title} ({activeServiceDetails.durationMinutes} min)</span>
+                          <span className="font-semibold text-white">{activeServiceDetails.price}</span>
                         </div>
                         <div className="flex items-center justify-between pt-1 border-t border-stone-700">
                           <div>
@@ -1040,8 +1452,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                               {paymentChoice === 'card_hold' || paymentChoice === 'pay_at_clinic'
                                 ? `${currency}0.00`
                                 : paymentChoice === 'full'
-                                ? `${currency}${fullAmt}.00`
-                                : `${currency}${depositAmt}.00`}
+                                ? `${currency}${effectiveFullAmt}.00`
+                                : `${currency}${effectiveDepositAmt}.00`}
                             </span>
                           </div>
                         </div>
@@ -1068,10 +1480,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             </span>
                             <div className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
                               <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
-                              <span>{currency}{depositAmt} Deposit</span>
+                              <span>{currency}{effectiveDepositAmt} Deposit</span>
                             </div>
                             <p className="text-[11px] text-stone-600 mt-1 leading-snug">
-                              Locks in your slot. Remaining {currency}{fullAmt - depositAmt} payable on visit day.
+                              Locks in your slot. Remaining {currency}{Math.max(0, effectiveFullAmt - effectiveDepositAmt)} payable on visit day.
                             </p>
                           </button>
 
@@ -1106,14 +1518,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           >
                             <div className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
                               <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                              <span>{currency}{fullAmt} Pre-pay in Full</span>
+                              <span>{currency}{effectiveFullAmt} Pre-pay in Full</span>
                             </div>
                             <p className="text-[11px] text-stone-600 mt-1 leading-snug">
                               Fast-track check-in. Zero checkout paperwork or delay after treatment.
                             </p>
                           </button>
 
-                          {/* Option 4: Pay at Clinic (if enabled) */}
+                          {/* Option 4: Pay at Clinic */}
                           {paymentPolicy.allowPayAtClinic && (
                             <button
                               type="button"
@@ -1129,7 +1541,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 <span>Pay on Arrival</span>
                               </div>
                               <p className="text-[11px] text-stone-600 mt-1 leading-snug">
-                                Pay {currency}{fullAmt} at reception. Requires front desk phone confirmation.
+                                Pay {currency}{effectiveFullAmt} at reception. Requires phone verification.
                               </p>
                             </button>
                           )}
@@ -1178,35 +1590,38 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 Card Number
                               </label>
                               <div className="flex items-center gap-1 text-[11px] font-semibold text-stone-500">
-                                <CreditCard className="w-3.5 h-3.5 text-stone-400" />
-                                <span>{detectedBrand}</span>
+                                <Lock className="w-3 h-3 text-emerald-700" />
+                                <span>256-bit SSL</span>
                               </div>
                             </div>
                             <div className="relative">
+                              <CreditCard className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
                               <input
                                 type="text"
-                                maxLength={19}
-                                placeholder="4242 4242 4242 4242"
+                                placeholder="4242 •••• •••• 4242"
                                 value={cardNumber}
                                 onChange={(e) => handleCardNumberChange(e.target.value)}
-                                className="w-full pl-3 pr-10 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 font-mono tracking-wider focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 bg-white"
+                                maxLength={19}
+                                className="w-full pl-9 pr-16 py-2.5 bg-white border border-stone-300 rounded-lg text-xs sm:text-sm font-mono tracking-wider focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
                               />
-                              <Lock className="w-3.5 h-3.5 text-stone-400 absolute right-3 top-3" />
+                              <span className="absolute right-3 top-2.5 text-[10px] font-bold uppercase bg-stone-100 px-1.5 py-0.5 rounded text-stone-600 border border-stone-200">
+                                {detectedBrand}
+                              </span>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-2">
                             <div>
                               <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
-                                Expires
+                                Expiry
                               </label>
                               <input
                                 type="text"
-                                maxLength={5}
                                 placeholder="MM/YY"
                                 value={cardExpiry}
                                 onChange={(e) => handleExpiryChange(e.target.value)}
-                                className="w-full px-2.5 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 bg-white"
+                                maxLength={5}
+                                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
                               />
                             </div>
                             <div>
@@ -1215,138 +1630,106 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                               </label>
                               <input
                                 type="password"
-                                maxLength={4}
-                                placeholder="•••"
+                                placeholder="123"
                                 value={cardCvc}
-                                onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, ''))}
-                                className="w-full px-2.5 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 bg-white"
+                                onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                maxLength={4}
+                                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
                               />
                             </div>
                             <div>
                               <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
-                                Postcode
+                                Postcode / Zip
                               </label>
                               <input
                                 type="text"
-                                maxLength={8}
-                                placeholder="Postcode"
+                                placeholder="W1U 8ED"
                                 value={cardZip}
-                                onChange={(e) => setCardZip(e.target.value.toUpperCase())}
-                                className="w-full px-2.5 py-2 border border-stone-300 rounded-lg text-sm text-stone-900 text-center uppercase focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 bg-white"
+                                onChange={(e) => setCardZip(e.target.value.toUpperCase().slice(0, 10))}
+                                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
                               />
                             </div>
                           </div>
 
-                          {/* Quick Autofill Test Button */}
-                          <div className="pt-1 flex items-center justify-between text-xs">
+                          <div className="flex items-center justify-between pt-1">
                             <button
                               type="button"
                               onClick={fillDemoCard}
-                              className="text-[11px] text-emerald-800 hover:text-emerald-950 font-semibold underline flex items-center gap-1 cursor-pointer"
+                              className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
                             >
-                              <Sparkles className="w-3 h-3 text-emerald-700" />
-                              <span>Autofill Demo Card (4242)</span>
+                              ⚡ Autofill Demo Card
                             </button>
-                            <span className="text-[10px] text-stone-500 font-mono">
-                              Stripe Sandbox Active
+                            <span className="text-[10px] text-stone-400">
+                              Descriptor: {paymentPolicy.statementDescriptor || clinic.name || 'VANCE HEALTH'}
                             </span>
                           </div>
                         </div>
                       ) : (
-                        <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1.5">
-                          <div className="font-bold flex items-center gap-1.5 text-amber-950">
-                            <AlertCircle className="w-4 h-4 text-amber-700" />
-                            <span>Front Desk Confirmation Required</span>
-                          </div>
-                          <p className="text-[11px] text-amber-800 leading-relaxed">
-                            Appointments requested without upfront deposit or card hold remain tentative until verified by our receptionist team via telephone call.
+                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                          <p className="font-bold flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-amber-700" />
+                            <span>Pay on Arrival Policy</span>
+                          </p>
+                          <p className="text-[11px] text-amber-800 leading-snug">
+                            No upfront card charge today. Full fee of {currency}{effectiveFullAmt} will be payable at the reception desk upon check-in.
                           </p>
                         </div>
                       )}
 
-                      {/* Security & Guarantees */}
-                      <div className="p-2.5 bg-emerald-50/60 rounded-xl border border-emerald-200 text-[11px] text-stone-700 space-y-1">
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-950">
-                          <Shield className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                          <span>No-Risk Policy & Guarantee</span>
-                        </div>
-                        <p className="text-stone-600 leading-tight">
-                          {paymentPolicy.customExplanation || `100% refundable if cancelled or rescheduled at least ${cancelNotice} hours prior to your visit. Encrypted with 256-bit TLS bank security.`}
-                        </p>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="pt-2 flex items-center gap-2.5">
+                      {/* Payment Action Button */}
+                      <div className="pt-2">
                         <button
                           type="button"
                           disabled={isProcessingPayment}
-                          onClick={() => setStep(3)}
-                          className="py-3 px-4 border border-stone-300 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                        >
-                          ← Back
-                        </button>
-                        <button
-                          type="button"
-                          id="execute-payment-btn"
-                          disabled={isProcessingPayment}
-                          onClick={() => handleExecutePayment(paymentChoice === 'pay_at_clinic' ? 'clinic_cash' : 'card')}
-                          className="flex-1 py-3 px-4 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-sm font-bold shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                          onClick={() => handleExecutePayment('card')}
+                          className="w-full py-3.5 px-4 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm tracking-wide rounded-lg shadow-md transition-all active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
                         >
                           {isProcessingPayment ? (
-                            <>
+                            <div className="flex items-center gap-2">
                               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              <span>Securing with Card Issuer...</span>
-                            </>
-                          ) : paymentChoice === 'card_hold' ? (
-                            <>
-                              <ShieldCheck className="w-4 h-4 text-emerald-300" />
-                              <span>Authorize Card & Guarantee Slot</span>
-                            </>
-                          ) : paymentChoice === 'pay_at_clinic' ? (
-                            <>
-                              <Check className="w-4 h-4" />
-                              <span>Confirm Slot (Pay at Clinic)</span>
-                            </>
+                              <span>Securing Slot with Stripe...</span>
+                            </div>
                           ) : (
                             <>
-                              <Lock className="w-4 h-4 text-emerald-300" />
+                              <Lock className="w-4 h-4" />
                               <span>
-                                Pay {currency}{paymentChoice === 'full' ? fullAmt : depositAmt}.00 & Guarantee Slot
+                                {paymentChoice === 'full'
+                                  ? `Pay ${currency}${effectiveFullAmt}.00 & Confirm Slot`
+                                  : paymentChoice === 'deposit'
+                                  ? `Pay ${currency}${effectiveDepositAmt}.00 Deposit & Confirm`
+                                  : paymentChoice === 'card_hold'
+                                  ? 'Authorize Card Hold & Guarantee Slot'
+                                  : 'Confirm Booking (Pay on Arrival)'}
                               </span>
                             </>
                           )}
                         </button>
+                        <p className="text-[11px] text-stone-500 text-center mt-2">
+                          Encrypted via Stripe Payments. 100% refundable with {cancelNotice} hours cancellation notice.
+                        </p>
                       </div>
                     </div>
                   )}
 
-                  {/* STEP 5 (OR 4 WHEN PAYMENT DISABLED): CONFIRMATION & VERIFIED RECEIPT */}
-                  {(step === 5 || (!isPaymentEnabled && step === 4)) && (
-                    <div className="text-center py-3 space-y-4 animate-fadeIn">
-                      <div className="w-13 h-13 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-1">
-                        <CheckCircle2 className="w-7 h-7" />
+                  {/* STEP 5 / DIRECT 4: CONFIRMATION RECEIPT & NEXT STEPS */}
+                  {((step === 5) || (!isPaymentEnabled && step === 4)) && (
+                    <div className="space-y-4 text-center animate-fadeIn">
+                      <div className="w-14 h-14 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-2 shadow-xs">
+                        <Check className="w-8 h-8 stroke-[2.5]" />
                       </div>
 
                       <div className="space-y-1">
-                        <h3 className="text-2xl font-serif font-bold text-stone-900">
-                          {confirmedPaymentDetails?.status === 'deposit_paid'
-                            ? 'Appointment Reserved & Deposit Paid'
-                            : confirmedPaymentDetails?.status === 'card_hold'
-                            ? 'Appointment Slot Guaranteed'
-                            : confirmedPaymentDetails?.status === 'paid_full'
-                            ? 'Appointment Confirmed & Paid in Full'
-                            : 'Request Received'}
+                        <h3 className="text-xl font-serif font-bold text-stone-900">
+                          Your Appointment is Reserved!
                         </h3>
-                        <p className="text-sm text-stone-700 font-medium max-w-sm mx-auto leading-relaxed">
-                          {confirmedPaymentDetails?.status === 'deposit_paid' || confirmedPaymentDetails?.status === 'card_hold' || confirmedPaymentDetails?.status === 'paid_full'
-                            ? `Your time slot with ${formData.preferredPractitionerName || clinic.doctorName} is officially guaranteed.`
-                            : "We've received your request. Our team will contact you within 24 hours to confirm."}
+                        <p className="text-xs text-stone-600 max-w-sm mx-auto">
+                          Thank you, <strong className="text-stone-900">{formData.name}</strong>. A clinical calendar hold has been created.
                         </p>
                       </div>
 
-                      {/* Payment Verification Receipt Badge */}
+                      {/* Payment receipt badge */}
                       {confirmedPaymentDetails && (
-                        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-left space-y-1.5">
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-left space-y-1 text-xs">
                           <div className="flex items-center justify-between font-bold text-emerald-950">
                             <span className="flex items-center gap-1.5">
                               <CheckCircle className="w-4 h-4 text-emerald-700" />
@@ -1368,7 +1751,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             <span>Method: {confirmedPaymentDetails.brand} (•••• {confirmedPaymentDetails.last4})</span>
                             <span>
                               {confirmedPaymentDetails.status === 'deposit_paid'
-                                ? `Balance due on arrival: ${currency}${fullAmt - depositAmt}.00`
+                                ? `Balance due on visit: ${currency}${Math.max(0, effectiveFullAmt - effectiveDepositAmt)}.00`
                                 : confirmedPaymentDetails.status === 'card_hold'
                                 ? `${currency}0.00 charged today`
                                 : 'All set!'}
@@ -1384,8 +1767,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           <span className="font-semibold text-stone-900">{formData.name}</span>
                         </div>
                         <div className="flex justify-between border-b border-stone-200 pb-1.5">
-                          <span className="text-stone-500">Reason:</span>
-                          <span className="font-semibold text-stone-900">{formData.condition}</span>
+                          <span className="text-stone-500">Service:</span>
+                          <span className="font-semibold text-stone-900">{activeServiceDetails.title}</span>
                         </div>
                         <div className="flex justify-between border-b border-stone-200 pb-1.5">
                           <span className="text-stone-500">Practitioner:</span>
@@ -1393,11 +1776,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                         <div className="flex justify-between border-b border-stone-200 pb-1.5">
                           <span className="text-stone-500">Reserved Time:</span>
-                          <span className="font-semibold text-emerald-800">{formData.date} at {formData.time}</span>
+                          <span className="font-semibold text-emerald-800">{formData.date} at {formData.time} ({activeServiceDetails.durationMinutes} min)</span>
                         </div>
                         <div className="flex justify-between pt-0.5 text-emerald-800 font-medium">
                           <span>Consultation Rate:</span>
-                          <span>{feeDisplay}</span>
+                          <span>{activeServiceDetails.price}</span>
                         </div>
                       </div>
 
@@ -1417,7 +1800,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 Slot Guaranteed & Receipt Dispatched
                               </strong>
                               <span className="text-stone-600 text-[11px] leading-tight">
-                                Your appointment is reserved in our clinical schedule with zero risk of double booking. Receipt emailed to {formData.email}.
+                                Your appointment is reserved in our clinical schedule. Confirmation dispatched to {formData.email}.
                               </span>
                             </div>
                           </div>
@@ -1427,10 +1810,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             </div>
                             <div>
                               <strong className="text-stone-900 font-semibold block text-xs">
-                                Clinical Chart & Insurance Review
+                                Clinical Chart Preparation
                               </strong>
                               <span className="text-stone-600 text-[11px] leading-tight">
-                                Our receptionist checks treatment room buffers and cross-references your intake reason with doctor availability.
+                                Our receptionist prepares treatment room equipment and clinical chart notes for your session.
                               </span>
                             </div>
                           </div>
@@ -1443,7 +1826,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 Digital Intake Form Sent to Your Phone
                               </strong>
                               <span className="text-stone-600 text-[11px] leading-tight">
-                                Complete your health questionnaire on your phone beforehand to skip the waiting room clipboard delay.
+                                Complete your health questionnaire on your phone beforehand to skip waiting room clipboard delays.
                               </span>
                             </div>
                           </div>
@@ -1472,7 +1855,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             Done
                           </button>
                           <a
-                            href={`tel:${clinic.phoneRaw}`}
+                            href={`tel:${clinic.phoneRaw || clinic.phone}`}
                             className="flex-1 py-2.5 px-4 border border-stone-300 hover:bg-stone-100 text-stone-800 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
                           >
                             <Phone className="w-4 h-4 text-emerald-700" />
@@ -1486,143 +1869,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </>
             )}
           </motion.div>
-
-          {/* REALISTIC NATIVE WALLET SHEET (APPLE PAY / GOOGLE PAY) */}
-          <AnimatePresence>
-            {activeWalletModal && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
-                onClick={() => !isProcessingPayment && setActiveWalletModal(null)}
-              >
-                <motion.div
-                  initial={{ y: '100%' }}
-                  animate={{ y: 0 }}
-                  exit={{ y: '100%' }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-                  className={`w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden p-6 ${
-                    activeWalletModal === 'apple_pay'
-                      ? 'bg-stone-900 text-white border border-stone-800'
-                      : 'bg-white text-stone-900 border border-stone-200'
-                  }`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Wallet Header */}
-                  <div className="flex items-center justify-between pb-4 border-b border-stone-700/50">
-                    <div className="flex items-center gap-2">
-                      {activeWalletModal === 'apple_pay' ? (
-                        <div className="flex items-center gap-1.5 font-bold text-lg">
-                          <span className="text-xl"></span>
-                          <span>Pay</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 font-bold text-lg">
-                          <span className="text-blue-600 font-black">G</span>
-                          <span>Pay</span>
-                        </div>
-                      )}
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
-                        {paymentChoice === 'card_hold' ? 'Card Authorization' : 'Express Checkout'}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={() => setActiveWalletModal(null)}
-                      className="text-xs text-stone-400 hover:text-stone-200 cursor-pointer disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  {/* Summary Breakdown */}
-                  <div className="py-4 space-y-3 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-400">Merchant:</span>
-                      <span className="font-semibold text-stone-200">
-                        {paymentPolicy.statementDescriptor || 'VANCE HEALTH CLINIC'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-400">Appointment Slot:</span>
-                      <span className="font-semibold text-stone-200">
-                        {formData.date} at {formData.time}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-400">Card on Device:</span>
-                      <div className="flex items-center gap-1.5 font-medium">
-                        <CreditCard className="w-3.5 h-3.5 text-stone-400" />
-                        <span>
-                          {activeWalletModal === 'apple_pay' ? 'Apple Card (•••• 8812)' : 'Visa Debit (•••• 4119)'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-stone-700/50">
-                      <span className="text-stone-300 font-medium">
-                        {paymentChoice === 'card_hold' ? 'Amount to Authorize:' : 'Amount Due Today:'}
-                      </span>
-                      <span className="text-lg font-bold text-emerald-400">
-                        {paymentChoice === 'card_hold'
-                          ? `${currency}0.00`
-                          : paymentChoice === 'full'
-                          ? `${currency}${fullAmt}.00`
-                          : `${currency}${depositAmt}.00`}
-                      </span>
-                    </div>
-
-                    {paymentChoice === 'card_hold' && (
-                      <p className="text-[11px] text-stone-400 leading-snug">
-                        Zero charge today. Your device card will be securely stored with Stripe. Billed {currency}{noShowFee} only in the event of an unexcused no-show.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Biometric Confirmation Button */}
-                  <div className="pt-2 space-y-2">
-                    <button
-                      type="button"
-                      disabled={isProcessingPayment}
-                      onClick={() => handleExecutePayment(activeWalletModal)}
-                      className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50 ${
-                        activeWalletModal === 'apple_pay'
-                          ? 'bg-white text-black hover:bg-stone-100'
-                          : 'bg-[#1a73e8] hover:bg-[#1557b0] text-white'
-                      }`}
-                    >
-                      {isProcessingPayment ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          <span>Processing Biometric Authorization...</span>
-                        </>
-                      ) : activeWalletModal === 'apple_pay' ? (
-                        <>
-                          <span className="text-base"></span>
-                          <span>Double Click Side Button or Confirm with Face ID</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4" />
-                          <span>Confirm & Pay with Google Account</span>
-                        </>
-                      )}
-                    </button>
-
-                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-stone-500 text-center">
-                      <Lock className="w-3 h-3 text-stone-400" />
-                      <span>End-to-end tokenized via Apple/Google Secure Enclave</span>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
