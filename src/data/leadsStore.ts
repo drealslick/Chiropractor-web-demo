@@ -36,6 +36,15 @@ export interface PatientLead {
   cardBrand?: string;
   transactionId?: string;
   noShowProtected?: boolean;
+  intakeForm?: {
+    painArea: string;
+    painLevel: number; // 1-10
+    painDuration: string; // e.g. "2-4 weeks"
+    painType: string; // e.g. "Sharp / Stabbing"
+    symptoms: string[]; // e.g. ["Numbness in toes", "Morning stiffness"]
+    priorSurgeries: string;
+    completedAt: string;
+  };
 }
 
 export interface DispatchedNotification {
@@ -917,4 +926,28 @@ export function requestPatientCancellation(
 
   return { success: true, updatedLead, message: 'Appointment cancelled successfully.' };
 }
+
+export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['intakeForm']) {
+  const leads = getStoredLeads();
+  let updatedLead: PatientLead | null = null;
+  const updatedLeads = leads.map((l) => {
+    if (l.id === leadId) {
+      updatedLead = { ...l, intakeForm: intakeData };
+      return updatedLead;
+    }
+    return l;
+  });
+
+  if (updatedLead) {
+    try {
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLeads));
+      window.dispatchEvent(new CustomEvent('leads_updated', { detail: updatedLeads }));
+    } catch {
+      // ignore
+    }
+  }
+
+  return { success: Boolean(updatedLead), updatedLead };
+}
+
 

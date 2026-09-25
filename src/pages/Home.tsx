@@ -25,54 +25,62 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col font-sans relative pb-16 md:pb-0 overflow-x-hidden">
-      <StickyOfferBanner
-        clinic={clinic}
-        onClaim={() => openBookingModal('Back pain')}
-      />
+      {clinic.showStickyBanner !== false && (
+        <StickyOfferBanner
+          clinic={clinic}
+          onClaim={() => openBookingModal('Back pain')}
+        />
+      )}
 
       <main className="flex-1">
-        <Hero
-          clinic={clinic}
-          onBookClick={() => openBookingModal()}
-        />
+        {clinic.showSectionHero !== false && (
+          <Hero
+            clinic={clinic}
+            onBookClick={() => openBookingModal()}
+          />
+        )}
 
-        {(clinic.showTrustBar !== false) && <TrustBar clinic={clinic} />}
+        {clinic.showTrustBar !== false && <TrustBar clinic={clinic} />}
 
-        {(clinic.showConditions !== false) && (
+        {clinic.showConditions !== false && (
           <TheProblem
             conditions={clinic.customConditions || conditionsData}
             onSelectCondition={(cond) => openBookingModal(cond)}
           />
         )}
 
-        {(clinic.showWhyUs !== false) && <WhyUs clinic={clinic} />}
+        {clinic.showWhyUs !== false && <WhyUs clinic={clinic} />}
 
-        {(clinic.showTheProcess !== false) && <TheProcess clinic={clinic} />}
+        {clinic.showTheProcess !== false && <TheProcess clinic={clinic} />}
 
-        {(clinic.showTheDoctor !== false) && <TheDoctor clinic={clinic} />}
+        {clinic.showTheDoctor !== false && <TheDoctor clinic={clinic} />}
 
-        {(clinic.showPatients !== false) && <PatientsSection clinic={clinic} />}
+        {clinic.showPatients !== false && <PatientsSection clinic={clinic} />}
 
-        {(clinic.showTheClinic !== false) && <TheClinic clinic={clinic} />}
+        {clinic.showTheClinic !== false && <TheClinic clinic={clinic} />}
 
-        <FirstVisitSection clinic={clinic} />
+        {clinic.showSectionFirstVisit !== false && <FirstVisitSection clinic={clinic} />}
 
-        {(clinic.showInsurancePayment !== false) && <InsurancePayment clinic={clinic} />}
+        {clinic.showInsurancePayment !== false && <InsurancePayment clinic={clinic} />}
 
-        <LocationSection clinic={clinic} />
+        {clinic.showSectionLocation !== false && <LocationSection clinic={clinic} />}
 
-        {(clinic.showFAQ !== false) && <FAQSection clinic={clinic} />}
+        {clinic.showFAQ !== false && <FAQSection clinic={clinic} />}
 
-        <FinalCTA
+        {clinic.showSectionFinalCta !== false && (
+          <FinalCTA
+            clinic={clinic}
+            onBookClick={() => openBookingModal()}
+          />
+        )}
+      </main>
+
+      {clinic.showMobileStickyBar !== false && (
+        <MobileStickyBar
           clinic={clinic}
           onBookClick={() => openBookingModal()}
         />
-      </main>
-
-      <MobileStickyBar
-        clinic={clinic}
-        onBookClick={() => openBookingModal()}
-      />
+      )}
     </div>
   );
 }

@@ -79,6 +79,7 @@ import { BookingEngineManager } from './admin/BookingEngineManager';
 import { PatientPortalManager } from './admin/PatientPortalManager';
 import { LiveGatewayManager } from './admin/LiveGatewayManager';
 import { LocationManager } from './admin/LocationManager';
+import { SectionVisibilityManager } from './admin/SectionVisibilityManager';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -126,6 +127,7 @@ export type AdminTabId =
   | 'themes'
   | 'typography'
   | 'sections'
+  | 'visibility'
   // Settings & Tools
   | 'gateway'
   | 'locations'
@@ -253,6 +255,7 @@ export function AgencyWorkspace({
         { id: 'themes' as AdminTabId, label: 'Themes & Colors', icon: Palette },
         { id: 'typography' as AdminTabId, label: 'Typography & Fonts', icon: Type },
         { id: 'sections' as AdminTabId, label: 'Section Visibility', icon: Eye },
+        { id: 'visibility' as AdminTabId, label: 'Homepage & Page Visibility', icon: Eye, badge: 'New' },
       ],
     },
     {
@@ -2020,6 +2023,11 @@ export function AgencyWorkspace({
             {/* 19.5. CLINIC LOCATIONS */}
             {activeTab === 'locations' && (
               <LocationManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+            )}
+
+            {/* 19.6. SECTION & PAGE VISIBILITY */}
+            {activeTab === 'visibility' && (
+              <SectionVisibilityManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
 
             {/* 20. PRESETS & BACKUPS */}

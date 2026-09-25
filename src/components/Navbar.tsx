@@ -90,33 +90,35 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
         </div>
 
         {/* Desktop Navigation Links (Multi-Page Routes) */}
-                <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
           <Link to="/" className="hover:text-stone-900 transition-colors">Home</Link>
-          {clinic.showNavConditions !== false && (
+          {clinic.showPageConditions !== false && clinic.showNavConditions !== false && (
             <Link to="/conditions" className="hover:text-stone-900 transition-colors">Conditions</Link>
           )}
-          {clinic.showNavFirstVisit !== false && (
+          {clinic.showPageFirstVisit !== false && clinic.showNavFirstVisit !== false && (
             <Link to="/first-visit" className="hover:text-stone-900 transition-colors">First Visit</Link>
           )}
-          {clinic.showNavAbout !== false && (
+          {clinic.showPageAbout !== false && clinic.showNavAbout !== false && (
             <Link to="/about" className="hover:text-stone-900 transition-colors">About</Link>
           )}
-          {clinic.showNavTeam !== false && (
+          {clinic.showPageTeam !== false && clinic.showNavTeam !== false && (
             <Link to="/team" className="hover:text-stone-900 transition-colors">Team</Link>
           )}
-          {clinic.showNavPricing !== false && (
+          {clinic.showPagePricing !== false && clinic.showNavPricing !== false && (
             <Link to="/pricing" className="hover:text-stone-900 transition-colors">Pricing</Link>
           )}
-          {clinic.showNavBlog !== false && (
+          {clinic.showPageBlog !== false && clinic.showNavBlog !== false && (
             <Link to="/blog" className="hover:text-stone-900 transition-colors">Blog</Link>
           )}
           <Link to="/contact" className="hover:text-stone-900 transition-colors">Contact</Link>
-          <Link
-            to="/portal"
-            className="text-emerald-800 hover:text-emerald-950 font-semibold transition-colors flex items-center gap-1"
-          >
-            <span>Patient Portal</span>
-          </Link>
+          {clinic.showPagePortal !== false && (
+            <Link
+              to="/portal"
+              className="text-emerald-800 hover:text-emerald-950 font-semibold transition-colors flex items-center gap-1"
+            >
+              <span>Patient Portal</span>
+            </Link>
+          )}
         </nav>
 
         {/* Action Buttons & Mobile Toggle */}
@@ -174,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             Home
           </Link>
-          {clinic.showNavConditions !== false && (
+          {clinic.showPageConditions !== false && clinic.showNavConditions !== false && (
           <Link
             to="/conditions"
             onClick={() => setMobileMenuOpen(false)}
@@ -183,7 +185,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             Conditions We Treat
           </Link>
           )}
-          {clinic.showNavFirstVisit !== false && (
+          {clinic.showPageFirstVisit !== false && clinic.showNavFirstVisit !== false && (
           <Link
             to="/first-visit"
             onClick={() => setMobileMenuOpen(false)}
@@ -192,7 +194,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             First Visit Guide
           </Link>
           )}
-                    {clinic.showNavPricing !== false && (
+          {clinic.showPagePricing !== false && clinic.showNavPricing !== false && (
           <Link
             to="/pricing"
             onClick={() => setMobileMenuOpen(false)}
@@ -201,7 +203,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             Pricing
           </Link>
           )}
-          {clinic.showNavBlog !== false && (
+          {clinic.showPageBlog !== false && clinic.showNavBlog !== false && (
           <Link
             to="/blog"
             onClick={() => setMobileMenuOpen(false)}
@@ -210,7 +212,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             Blog
           </Link>
           )}
-          {clinic.showNavAbout !== false && (
+          {clinic.showPageAbout !== false && clinic.showNavAbout !== false && (
           <Link
             to="/about"
             onClick={() => setMobileMenuOpen(false)}
@@ -219,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
             About
           </Link>
           )}
-          {clinic.showNavTeam !== false && (
+          {clinic.showPageTeam !== false && clinic.showNavTeam !== false && (
           <Link
             to="/team"
             onClick={() => setMobileMenuOpen(false)}
@@ -235,6 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
           >
             Contact
           </Link>
+          {clinic.showPagePortal !== false && (
           <Link
             to="/portal"
             onClick={() => setMobileMenuOpen(false)}
@@ -248,6 +251,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
               Access
             </span>
           </Link>
+          )}
           <div className="pt-2 border-t border-stone-200 space-y-1">
             <button
               type="button"

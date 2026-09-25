@@ -8,6 +8,7 @@ import {
   requestPatientCancellation,
   getStoredLeads,
 } from '../data/leadsStore';
+import { IntakeQuestionnaireModal } from './IntakeQuestionnaireModal';
 import {
   X,
   Search,
@@ -59,6 +60,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
   // Cancellation state
   const [cancelReason, setCancelReason] = useState('Schedule Conflict');
   const [cancelSuccess, setCancelSuccess] = useState(false);
+  const [showIntakeModal, setShowIntakeModal] = useState(false);
 
   const printableReceiptRef = useRef<HTMLDivElement>(null);
 
@@ -519,6 +521,41 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
                     </div>
                   </div>
 
+                  {/* Digital Pre-Visit Intake Questionnaire Card */}
+                  <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-stone-900 text-xs sm:text-sm">Digital Pre-Visit Intake Questionnaire</h4>
+                          {selectedAppt.intakeForm ? (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold">
+                              Completed ✓
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold">
+                              Action Required
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-stone-600 text-[11px] mt-0.5">
+                          {selectedAppt.intakeForm
+                            ? `Submitted for ${selectedAppt.intakeForm.painArea} (Pain level: ${selectedAppt.intakeForm.painLevel}/10)`
+                            : 'Please complete your pain history & medical intake before arrival.'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowIntakeModal(true)}
+                      className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                    >
+                      {selectedAppt.intakeForm ? 'View / Edit Intake' : 'Complete Intake →'}
+                    </button>
+                  </div>
+
                   {/* Payment & Insurance Protection Card */}
                   <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-stone-800">
                     <div className="flex items-center gap-3">
@@ -824,6 +861,16 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
           </button>
         </div>
       </div>
+      {showIntakeModal && selectedAppt && (
+        <IntakeQuestionnaireModal
+          isOpen={showIntakeModal}
+          onClose={() => setShowIntakeModal(false)}
+          lead={selectedAppt}
+          onIntakeCompleted={(updated) => {
+            setSelectedAppt(updated);
+          }}
+        />
+      )}
     </div>
   );
 };
