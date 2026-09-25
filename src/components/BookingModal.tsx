@@ -88,6 +88,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [cardZip, setCardZip] = useState<string>('');
   const [cardHolder, setCardHolder] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [activeWalletModal, setActiveWalletModal] = useState<'apple_pay' | 'google_pay' | null>(null);
   const [confirmedPaymentDetails, setConfirmedPaymentDetails] = useState<{
     status: 'paid_full' | 'deposit_paid' | 'card_hold' | 'unpaid';
     amount: string;
@@ -450,6 +451,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
+  const handleTriggerWallet = (wallet: 'apple_pay' | 'google_pay') => {
+    setActiveWalletModal(wallet);
+  };
+
   const handleExecutePayment = (method: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash' = 'card') => {
     if (method === 'card' && paymentChoice !== 'pay_at_clinic') {
       const cleanNum = cardNumber.replace(/\s+/g, '');
@@ -471,6 +476,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     setTimeout(() => {
       setIsProcessingPayment(false);
+      setActiveWalletModal(null);
 
       const cleanNum = cardNumber.replace(/\s+/g, '');
       const last4 = method === 'apple_pay' ? '8812' : method === 'google_pay' ? '4119' : cleanNum.slice(-4) || '4242';
@@ -1137,7 +1143,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             <button
                               type="button"
                               disabled={isProcessingPayment}
-                              onClick={() => handleExecutePayment('apple_pay')}
+                              onClick={() => handleTriggerWallet('apple_pay')}
                               className="py-2.5 px-3 bg-black hover:bg-stone-900 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 disabled:opacity-50"
                             >
                               <span className="text-sm"></span>
@@ -1146,7 +1152,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             <button
                               type="button"
                               disabled={isProcessingPayment}
-                              onClick={() => handleExecutePayment('google_pay')}
+                              onClick={() => handleTriggerWallet('google_pay')}
                               className="py-2.5 px-3 bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 disabled:opacity-50"
                             >
                               <span className="text-xs font-black text-blue-600">G</span>
@@ -1480,6 +1486,143 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </>
             )}
           </motion.div>
+
+          {/* REALISTIC NATIVE WALLET SHEET (APPLE PAY / GOOGLE PAY) */}
+          <AnimatePresence>
+            {activeWalletModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+                onClick={() => !isProcessingPayment && setActiveWalletModal(null)}
+              >
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 280 }}
+                  className={`w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden p-6 ${
+                    activeWalletModal === 'apple_pay'
+                      ? 'bg-stone-900 text-white border border-stone-800'
+                      : 'bg-white text-stone-900 border border-stone-200'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Wallet Header */}
+                  <div className="flex items-center justify-between pb-4 border-b border-stone-700/50">
+                    <div className="flex items-center gap-2">
+                      {activeWalletModal === 'apple_pay' ? (
+                        <div className="flex items-center gap-1.5 font-bold text-lg">
+                          <span className="text-xl"></span>
+                          <span>Pay</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 font-bold text-lg">
+                          <span className="text-blue-600 font-black">G</span>
+                          <span>Pay</span>
+                        </div>
+                      )}
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
+                        {paymentChoice === 'card_hold' ? 'Card Authorization' : 'Express Checkout'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isProcessingPayment}
+                      onClick={() => setActiveWalletModal(null)}
+                      className="text-xs text-stone-400 hover:text-stone-200 cursor-pointer disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  {/* Summary Breakdown */}
+                  <div className="py-4 space-y-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-400">Merchant:</span>
+                      <span className="font-semibold text-stone-200">
+                        {paymentPolicy.statementDescriptor || 'VANCE HEALTH CLINIC'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-400">Appointment Slot:</span>
+                      <span className="font-semibold text-stone-200">
+                        {formData.date} at {formData.time}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-400">Card on Device:</span>
+                      <div className="flex items-center gap-1.5 font-medium">
+                        <CreditCard className="w-3.5 h-3.5 text-stone-400" />
+                        <span>
+                          {activeWalletModal === 'apple_pay' ? 'Apple Card (•••• 8812)' : 'Visa Debit (•••• 4119)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-stone-700/50">
+                      <span className="text-stone-300 font-medium">
+                        {paymentChoice === 'card_hold' ? 'Amount to Authorize:' : 'Amount Due Today:'}
+                      </span>
+                      <span className="text-lg font-bold text-emerald-400">
+                        {paymentChoice === 'card_hold'
+                          ? `${currency}0.00`
+                          : paymentChoice === 'full'
+                          ? `${currency}${fullAmt}.00`
+                          : `${currency}${depositAmt}.00`}
+                      </span>
+                    </div>
+
+                    {paymentChoice === 'card_hold' && (
+                      <p className="text-[11px] text-stone-400 leading-snug">
+                        Zero charge today. Your device card will be securely stored with Stripe. Billed {currency}{noShowFee} only in the event of an unexcused no-show.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Biometric Confirmation Button */}
+                  <div className="pt-2 space-y-2">
+                    <button
+                      type="button"
+                      disabled={isProcessingPayment}
+                      onClick={() => handleExecutePayment(activeWalletModal)}
+                      className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50 ${
+                        activeWalletModal === 'apple_pay'
+                          ? 'bg-white text-black hover:bg-stone-100'
+                          : 'bg-[#1a73e8] hover:bg-[#1557b0] text-white'
+                      }`}
+                    >
+                      {isProcessingPayment ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          <span>Processing Biometric Authorization...</span>
+                        </>
+                      ) : activeWalletModal === 'apple_pay' ? (
+                        <>
+                          <span className="text-base"></span>
+                          <span>Double Click Side Button or Confirm with Face ID</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          <span>Confirm & Pay with Google Account</span>
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-stone-500 text-center">
+                      <Lock className="w-3 h-3 text-stone-400" />
+                      <span>End-to-end tokenized via Apple/Google Secure Enclave</span>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
