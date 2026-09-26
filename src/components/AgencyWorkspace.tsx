@@ -80,6 +80,7 @@ import { PatientPortalManager } from './admin/PatientPortalManager';
 import { LiveGatewayManager } from './admin/LiveGatewayManager';
 import { LocationManager } from './admin/LocationManager';
 import { SectionVisibilityManager } from './admin/SectionVisibilityManager';
+import { IntegrationsBillingManager } from './admin/IntegrationsBillingManager';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -91,6 +92,7 @@ interface AgencyWorkspaceProps {
   syncStatus?: string;
   lastSaved?: string | null;
   hasSupabase?: boolean;
+  onSignOut?: () => void;
 }
 
 // Single Sidebar Navigation IDs
@@ -129,6 +131,7 @@ export type AdminTabId =
   | 'sections'
   | 'visibility'
   // Settings & Tools
+  | 'integrations'
   | 'gateway'
   | 'locations'
   | 'clinic_info'
@@ -146,6 +149,7 @@ export function AgencyWorkspace({
   syncStatus = 'idle',
   lastSaved = null,
   hasSupabase = false,
+  onSignOut,
 }: AgencyWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -264,6 +268,7 @@ export function AgencyWorkspace({
       minRole: 'admin' as UserRole,
       collapsible: true,
       items: [
+        { id: 'integrations' as AdminTabId, label: 'Integrations & Stripe Billing', icon: CreditCard, badge: 'Stripe', highlight: true },
         ...(isExternalSync ? [{ id: 'booking' as AdminTabId, label: 'Booking Engine & Sync', icon: Sliders, minRole: 'admin' as UserRole }] : []),
         { id: 'gateway' as AdminTabId, label: 'Live SMS & Twilio Gateway', icon: MessageSquare, badge: 'Live', highlight: true },
         { id: 'locations' as AdminTabId, label: 'Clinic Locations & Switcher', icon: MapPin, badge: (clinic.locations?.length || 3).toString() },
@@ -2015,6 +2020,11 @@ export function AgencyWorkspace({
               />
             )}
 
+            {/* 18.5. INTEGRATIONS & STRIPE BILLING */}
+            {activeTab === 'integrations' && (
+              <IntegrationsBillingManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
+            )}
+
             {/* 19. LIVE SMS & TWILIO GATEWAY */}
             {activeTab === 'gateway' && (
               <LiveGatewayManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
@@ -2048,12 +2058,28 @@ export function AgencyWorkspace({
               <strong className="text-emerald-400 font-semibold">Firebase Cloud Active</strong> • Cloud Firestore & Auth Online
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white font-medium px-4 py-1.5 rounded-lg border border-stone-750 transition cursor-pointer"
-          >
-            Done
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (onSignOut) {
+                  onSignOut();
+                } else {
+                  onClose();
+                }
+              }}
+              className="text-stone-400 hover:text-rose-400 font-medium px-3 py-1.5 rounded-lg border border-stone-800 hover:border-rose-900/50 bg-stone-900 transition flex items-center gap-1.5 cursor-pointer"
+              title="Lock Admin Session and Sign Out"
+            >
+              <Lock className="w-3 h-3 text-stone-500" />
+              <span>Lock Admin</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="bg-stone-850 hover:bg-stone-800 text-stone-200 hover:text-white font-medium px-4 py-1.5 rounded-lg border border-stone-750 transition cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -27,18 +27,21 @@ service cloud.firestore {
 
     function isClinicAdmin(clinicId) {
       return isAuthenticated() && (
-        request.auth.token.admin == true ||
         request.auth.token.superAdmin == true ||
-        request.auth.token.email.matches('.*@vancehealth[.]com') ||
-        (hasRole('admin') && getUserClinicId() == clinicId)
+        (
+          (request.auth.token.admin == true || hasRole('admin')) &&
+          getUserClinicId() == clinicId
+        )
       );
     }
 
     function isClinicStaff(clinicId) {
       return isAuthenticated() && (
-        isClinicAdmin(clinicId) ||
-        request.auth.token.email.matches('.*@vancehealth[.]com') ||
-        (hasRole('staff') && getUserClinicId() == clinicId)
+        request.auth.token.superAdmin == true ||
+        (
+          (request.auth.token.admin == true || hasRole('admin') || request.auth.token.staff == true || hasRole('staff')) &&
+          getUserClinicId() == clinicId
+        )
       );
     }
 
@@ -53,6 +56,27 @@ service cloud.firestore {
       allow update: if isClinicAdmin(clinicId);
       allow create: if isClinicAdmin(clinicId);
       allow delete: if isAuthenticated() && request.auth.token.superAdmin == true;
+    }
+
+    // 1.5. Clinic Settings (Sensitive integrations, Stripe keys, webhook secrets)
+    // ONLY authenticated Clinic Admins can read or write
+    match /clinic_settings/{settingId} {
+      allow read: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        isClinicAdmin(resource.data.clinicId)
+      );
+      allow create: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        isClinicAdmin(request.resource.data.clinicId)
+      );
+      allow update: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        (isClinicAdmin(resource.data.clinicId) && isClinicAdmin(request.resource.data.clinicId))
+      );
+      allow delete: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        isClinicAdmin(resource.data.clinicId)
+      );
     }
 
     // 2. Users Collection
