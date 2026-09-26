@@ -7,41 +7,26 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    // Role verification checking custom token claims or fallback to users collection doc
+    // Pure cryptographic JWT custom claims (Zero client document fallback, zero extra reads)
     function hasRole(role) {
-      return isAuthenticated() && (
-        request.auth.token.role == role ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == role)
-      );
+      return isAuthenticated() && request.auth.token.role == role;
     }
 
     function getUserClinicId() {
-      return request.auth.token.clinicId != null 
-        ? request.auth.token.clinicId 
-        : (exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? getUserData().clinicId : null);
+      return request.auth.token.clinicId;
     }
 
     function isClinicAdmin(clinicId) {
       return isAuthenticated() && (
         request.auth.token.superAdmin == true ||
-        (
-          (request.auth.token.admin == true || hasRole('admin')) &&
-          getUserClinicId() == clinicId
-        )
+        (hasRole('admin') && getUserClinicId() == clinicId)
       );
     }
 
     function isClinicStaff(clinicId) {
       return isAuthenticated() && (
         request.auth.token.superAdmin == true ||
-        (
-          (request.auth.token.admin == true || hasRole('admin') || request.auth.token.staff == true || hasRole('staff')) &&
-          getUserClinicId() == clinicId
-        )
+        ((hasRole('admin') || hasRole('staff')) && getUserClinicId() == clinicId)
       );
     }
 
@@ -80,12 +65,17 @@ service cloud.firestore {
     }
 
     // 2. Users Collection
-    // Patients can only view/update their own profile
-    // Staff can read patients within their clinic tenant
+    // Patients can only view their own profile. On self-update, role and clinicId are immutable.
+    // Staff can read patient profiles; only Clinic Admins can promote roles.
     match /users/{userId} {
       allow read: if isOwner(userId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId) || (isAuthenticated() && isClinicAdmin(resource.data.clinicId));
+      allow create: if isAuthenticated() && request.auth.uid == userId
+                     && (!('role' in request.resource.data) || request.resource.data.role == 'patient');
+      allow update: if (
+        isOwner(userId) && 
+        (!('role' in request.resource.data) || request.resource.data.role == resource.data.role) &&
+        (!('clinicId' in request.resource.data) || request.resource.data.clinicId == resource.data.clinicId)
+      ) || (isAuthenticated() && isClinicAdmin(resource.data.clinicId));
       allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 

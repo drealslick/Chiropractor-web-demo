@@ -43,29 +43,16 @@ export function GlobalAgencyController() {
     }
   });
 
-  // Verify whether a Firebase Auth user has admin or staff privileges
+  // Verify whether a Firebase Auth user has admin or staff privileges via JWT custom claims
   const verifyUserRole = async (user: User | null): Promise<boolean> => {
     if (!user) return false;
     try {
-      // 1. Check custom claims in JWT token
+      // Check cryptographic custom claims in JWT token directly (no document fallback)
       const tokenResult = await getIdTokenResult(user);
       const role = tokenResult.claims.role;
-      const isAdminClaim = tokenResult.claims.admin === true || tokenResult.claims.superAdmin === true;
+      const isSuperAdmin = tokenResult.claims.superAdmin === true;
 
-      if (role === 'admin' || role === 'staff' || isAdminClaim) {
-        return true;
-      }
-
-      // 2. Fallback check to users/{uid} in Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        if (data.role === 'admin' || data.role === 'staff') {
-          return true;
-        }
-      }
-
-      return false;
+      return role === 'admin' || role === 'staff' || isSuperAdmin;
     } catch (err) {
       console.warn('Error verifying admin authorization:', err);
       return false;
