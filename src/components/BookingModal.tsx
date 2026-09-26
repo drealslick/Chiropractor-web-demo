@@ -34,6 +34,7 @@ import { useClinic } from '../data/ClinicContext';
 import { saveLead } from '../data/leadsStore';
 import { defaultPublicTeamMembers } from '../data/defaultTeamData';
 import { defaultSchedulingRules, defaultPaymentPolicy } from '../data/clinicData';
+import { StripeElementsCheckout } from './StripeElementsCheckout';
 
 interface BookingModalProps {
   isOpen?: boolean;
@@ -116,6 +117,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   } | null>(null);
   const [createdBookingRefId, setCreatedBookingRefId] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<boolean>(false);
+  const [checkoutMode, setCheckoutMode] = useState<'elements' | 'simulator'>('elements');
+  const [elementsFallbackNotice, setElementsFallbackNotice] = useState<string | null>(null);
 
   const detectedBrand = useMemo(() => {
     const clean = cardNumber.replace(/\s+/g, '');
@@ -677,6 +680,27 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
 
     if (isPaymentEnabled) {
+      if (!createdBookingRefId) {
+        const saved = saveLead({
+          source: 'booking',
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email,
+          condition: formData.condition || activeServiceDetails.title,
+          serviceType: activeServiceDetails.type,
+          serviceTitle: activeServiceDetails.title,
+          practitionerId: formData.preferredPractitionerId,
+          practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
+          date: formData.date,
+          time: formData.time,
+          durationMinutes: activeServiceDetails.durationMinutes,
+          clinicName: clinic.name,
+          notes: `Booking slot selected. Pending payment authorization. Service: ${activeServiceDetails.title}. Slot: ${formData.date} at ${formData.time}.`,
+          status: 'new',
+          paymentStatus: 'unpaid',
+        });
+        setCreatedBookingRefId(saved.id);
+      }
       setStep(4);
     } else {
       // Direct booking without payment
@@ -701,6 +725,58 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCreatedBookingRefId(saved.id);
       setStep(4);
     }
+  };
+
+  const handleStripePaymentSuccess = (details: {
+    paymentIntentId: string;
+    status: string;
+    amount: number;
+    last4?: string;
+    brand?: string;
+  }) => {
+    const statusMap = {
+      deposit: 'deposit_paid' as const,
+      full: 'paid_full' as const,
+      card_hold: 'card_hold' as const,
+      pay_at_clinic: 'unpaid' as const,
+    };
+
+    const paymentDetail = {
+      status: statusMap[paymentChoice],
+      amount: `${currency}${details.amount}.00`,
+      method: 'card' as const,
+      last4: details.last4 || '••••',
+      brand: details.brand || 'Verified Stripe Card',
+      transactionId: details.paymentIntentId,
+    };
+
+    setConfirmedPaymentDetails(paymentDetail);
+
+    // Save lead with full payment & multi-service tracking
+    const saved = saveLead({
+      source: 'booking',
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      condition: formData.condition || activeServiceDetails.title,
+      serviceType: activeServiceDetails.type,
+      serviceTitle: activeServiceDetails.title,
+      practitionerId: formData.preferredPractitionerId,
+      practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
+      date: formData.date,
+      time: formData.time,
+      durationMinutes: activeServiceDetails.durationMinutes,
+      clinicName: clinic.name,
+      notes: `Stripe Payment ID: ${details.paymentIntentId}. Amount: ${currency}${details.amount}.00 (${paymentChoice}). Status: ${details.status}. Service: ${activeServiceDetails.title}`,
+      status: 'confirmed',
+      paymentStatus: statusMap[paymentChoice],
+      paymentAmount: `${currency}${details.amount}.00`,
+      paymentMethod: 'card',
+      transactionId: details.paymentIntentId,
+    });
+
+    setCreatedBookingRefId(saved.id);
+    setStep(isPaymentEnabled ? 5 : 4);
   };
 
   const handleTriggerWallet = (wallet: 'apple_pay' | 'google_pay') => {
@@ -1589,166 +1665,231 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                       </div>
 
-                      {/* EXPRESS PAYMENT: Apple Pay / Google Pay */}
+                      {/* PAYMENT GATEWAY SELECTION & MODE */}
                       {paymentChoice !== 'pay_at_clinic' && (
-                        <div className="space-y-2 pt-1">
-                          <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-3 pt-1">
+                          <div className="flex items-center justify-between p-1 bg-stone-100 rounded-xl border border-stone-200 text-xs">
                             <button
                               type="button"
-                              disabled={isProcessingPayment}
-                              onClick={() => handleTriggerWallet('apple_pay')}
-                              className="py-2.5 px-3 bg-black hover:bg-stone-900 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 disabled:opacity-50"
+                              onClick={() => {
+                                setElementsFallbackNotice(null);
+                                setCheckoutMode('elements');
+                              }}
+                              className={`flex-1 py-1.5 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                                checkoutMode === 'elements'
+                                  ? 'bg-emerald-800 text-white shadow-xs'
+                                  : 'text-stone-600 hover:text-stone-900'
+                              }`}
                             >
-                              <span className="text-sm"></span>
-                              <span>Pay</span>
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Stripe Elements (Live)</span>
                             </button>
                             <button
                               type="button"
-                              disabled={isProcessingPayment}
-                              onClick={() => handleTriggerWallet('google_pay')}
-                              className="py-2.5 px-3 bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 disabled:opacity-50"
+                              onClick={() => setCheckoutMode('simulator')}
+                              className={`flex-1 py-1.5 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                                checkoutMode === 'simulator'
+                                  ? 'bg-stone-800 text-white shadow-xs'
+                                  : 'text-stone-600 hover:text-stone-900'
+                              }`}
                             >
-                              <span className="text-xs font-black text-blue-600">G</span>
-                              <span className="text-xs font-bold text-stone-700">Pay</span>
+                              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Demo Simulator</span>
                             </button>
                           </div>
-                          <div className="flex items-center gap-2 text-stone-400">
-                            <div className="h-px bg-stone-200 flex-1" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400">
-                              or pay with card
-                            </span>
-                            <div className="h-px bg-stone-200 flex-1" />
-                          </div>
+
+                          {elementsFallbackNotice && checkoutMode === 'simulator' && (
+                            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                              <span>{elementsFallbackNotice}</span>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* CARD DETAILS FORM */}
-                      {paymentChoice !== 'pay_at_clinic' ? (
-                        <div className="p-3.5 bg-stone-50/90 rounded-xl border border-stone-200 space-y-3">
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-[11px] font-bold uppercase tracking-wider text-stone-700">
-                                Card Number
-                              </label>
-                              <div className="flex items-center gap-1 text-[11px] font-semibold text-stone-500">
-                                <Lock className="w-3 h-3 text-emerald-700" />
-                                <span>256-bit SSL</span>
-                              </div>
-                            </div>
-                            <div className="relative">
-                              <CreditCard className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
-                              <input
-                                type="text"
-                                placeholder="4242 •••• •••• 4242"
-                                value={cardNumber}
-                                onChange={(e) => handleCardNumberChange(e.target.value)}
-                                maxLength={19}
-                                className="w-full pl-9 pr-16 py-2.5 bg-white border border-stone-300 rounded-lg text-xs sm:text-sm font-mono tracking-wider focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
-                              />
-                              <span className="absolute right-3 top-2.5 text-[10px] font-bold uppercase bg-stone-100 px-1.5 py-0.5 rounded text-stone-600 border border-stone-200">
-                                {detectedBrand}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-2">
-                            <div>
-                              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
-                                Expiry
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="MM/YY"
-                                value={cardExpiry}
-                                onChange={(e) => handleExpiryChange(e.target.value)}
-                                maxLength={5}
-                                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
-                                CVC / CVV
-                              </label>
-                              <input
-                                type="password"
-                                placeholder="123"
-                                value={cardCvc}
-                                onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                maxLength={4}
-                                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
-                                Postcode / Zip
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="W1U 8ED"
-                                value={cardZip}
-                                onChange={(e) => setCardZip(e.target.value.toUpperCase().slice(0, 10))}
-                                className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-1">
-                            <button
-                              type="button"
-                              onClick={fillDemoCard}
-                              className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
-                            >
-                              ⚡ Autofill Demo Card
-                            </button>
-                            <span className="text-[10px] text-stone-400">
-                              Descriptor: {paymentPolicy.statementDescriptor || clinic.name || 'VANCE HEALTH'}
-                            </span>
-                          </div>
+                      {/* STRIPE ELEMENTS (LIVE) */}
+                      {paymentChoice !== 'pay_at_clinic' && checkoutMode === 'elements' ? (
+                        <div className="pt-1">
+                          <StripeElementsCheckout
+                            clinicId={clinic.id || 'clinic_apex_columbus'}
+                            appointmentId={createdBookingRefId || `appt_${Date.now()}`}
+                            amount={paymentChoice === 'full' ? effectiveFullAmt : effectiveDepositAmt}
+                            currencySymbol={currency}
+                            paymentChoice={paymentChoice}
+                            patientEmail={formData.email}
+                            patientName={formData.name}
+                            serviceTitle={activeServiceDetails.title}
+                            onSuccess={handleStripePaymentSuccess}
+                            onFallbackToDemo={(reason) => {
+                              if (reason) setElementsFallbackNotice(reason);
+                              setCheckoutMode('simulator');
+                            }}
+                          />
                         </div>
                       ) : (
-                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
-                          <p className="font-bold flex items-center gap-1.5">
-                            <Clock className="w-4 h-4 text-amber-700" />
-                            <span>Pay on Arrival Policy</span>
-                          </p>
-                          <p className="text-[11px] text-amber-800 leading-snug">
-                            No upfront card charge today. Full fee of {currency}{effectiveFullAmt} will be payable at the reception desk upon check-in.
-                          </p>
-                        </div>
-                      )}
+                        <>
+                          {/* EXPRESS PAYMENT: Apple Pay / Google Pay */}
+                          {paymentChoice !== 'pay_at_clinic' && (
+                            <div className="space-y-2 pt-1">
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isProcessingPayment}
+                                  onClick={() => handleTriggerWallet('apple_pay')}
+                                  className="py-2.5 px-3 bg-black hover:bg-stone-900 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 disabled:opacity-50"
+                                >
+                                  <span className="text-sm"></span>
+                                  <span>Pay</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isProcessingPayment}
+                                  onClick={() => handleTriggerWallet('google_pay')}
+                                  className="py-2.5 px-3 bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-98 disabled:opacity-50"
+                                >
+                                  <span className="text-xs font-black text-blue-600">G</span>
+                                  <span className="text-xs font-bold text-stone-700">Pay</span>
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-2 text-stone-400">
+                                <div className="h-px bg-stone-200 flex-1" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400">
+                                  or pay with simulated card
+                                </span>
+                                <div className="h-px bg-stone-200 flex-1" />
+                              </div>
+                            </div>
+                          )}
 
-                      {/* Payment Action Button */}
-                      <div className="pt-2">
-                        <button
-                          type="button"
-                          disabled={isProcessingPayment}
-                          onClick={() => handleExecutePayment('card')}
-                          className="w-full py-3.5 px-4 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm tracking-wide rounded-lg shadow-md transition-all active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
-                        >
-                          {isProcessingPayment ? (
-                            <div className="flex items-center gap-2">
-                              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              <span>Securing Slot with Stripe...</span>
+                          {/* SIMULATED CARD DETAILS FORM */}
+                          {paymentChoice !== 'pay_at_clinic' ? (
+                            <div className="p-3.5 bg-stone-50/90 rounded-xl border border-stone-200 space-y-3">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <label className="text-[11px] font-bold uppercase tracking-wider text-stone-700">
+                                    Card Number
+                                  </label>
+                                  <div className="flex items-center gap-1 text-[11px] font-semibold text-stone-500">
+                                    <Lock className="w-3 h-3 text-emerald-700" />
+                                    <span>Demo Sandbox</span>
+                                  </div>
+                                </div>
+                                <div className="relative">
+                                  <CreditCard className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+                                  <input
+                                    type="text"
+                                    placeholder="4242 •••• •••• 4242"
+                                    value={cardNumber}
+                                    onChange={(e) => handleCardNumberChange(e.target.value)}
+                                    maxLength={19}
+                                    className="w-full pl-9 pr-16 py-2.5 bg-white border border-stone-300 rounded-lg text-xs sm:text-sm font-mono tracking-wider focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                                  />
+                                  <span className="absolute right-3 top-2.5 text-[10px] font-bold uppercase bg-stone-100 px-1.5 py-0.5 rounded text-stone-600 border border-stone-200">
+                                    {detectedBrand}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
+                                    Expiry
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="MM/YY"
+                                    value={cardExpiry}
+                                    onChange={(e) => handleExpiryChange(e.target.value)}
+                                    maxLength={5}
+                                    className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
+                                    CVC / CVV
+                                  </label>
+                                  <input
+                                    type="password"
+                                    placeholder="123"
+                                    value={cardCvc}
+                                    onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                    maxLength={4}
+                                    className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-700 mb-1">
+                                    Postcode / Zip
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="W1U 8ED"
+                                    value={cardZip}
+                                    onChange={(e) => setCardZip(e.target.value.toUpperCase().slice(0, 10))}
+                                    className="w-full px-3 py-2 bg-white border border-stone-300 rounded-lg text-xs font-mono text-center focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1">
+                                <button
+                                  type="button"
+                                  onClick={fillDemoCard}
+                                  className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+                                >
+                                  ⚡ Autofill Demo Card
+                                </button>
+                                <span className="text-[10px] text-stone-400">
+                                  Descriptor: {paymentPolicy.statementDescriptor || clinic.name || 'VANCE HEALTH'}
+                                </span>
+                              </div>
                             </div>
                           ) : (
-                            <>
-                              <Lock className="w-4 h-4" />
-                              <span>
-                                {paymentChoice === 'full'
-                                  ? `Pay ${currency}${effectiveFullAmt}.00 & Confirm Slot`
-                                  : paymentChoice === 'deposit'
-                                  ? `Pay ${currency}${effectiveDepositAmt}.00 Deposit & Confirm`
-                                  : paymentChoice === 'card_hold'
-                                  ? 'Authorize Card Hold & Guarantee Slot'
-                                  : 'Confirm Booking (Pay on Arrival)'}
-                              </span>
-                            </>
+                            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                              <p className="font-bold flex items-center gap-1.5">
+                                <Clock className="w-4 h-4 text-amber-700" />
+                                <span>Pay on Arrival Policy</span>
+                              </p>
+                              <p className="text-[11px] text-amber-800 leading-snug">
+                                No upfront card charge today. Full fee of {currency}{effectiveFullAmt} will be payable at the reception desk upon check-in.
+                              </p>
+                            </div>
                           )}
-                        </button>
-                        <p className="text-[11px] text-stone-500 text-center mt-2">
-                          Encrypted via Stripe Payments. 100% refundable with {cancelNotice} hours cancellation notice.
-                        </p>
-                      </div>
+
+                          {/* Payment Action Button */}
+                          <div className="pt-2">
+                            <button
+                              type="button"
+                              disabled={isProcessingPayment}
+                              onClick={() => handleExecutePayment('card')}
+                              className="w-full py-3.5 px-4 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm tracking-wide rounded-lg shadow-md transition-all active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                            >
+                              {isProcessingPayment ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  <span>Simulating Payment...</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Lock className="w-4 h-4" />
+                                  <span>
+                                    {paymentChoice === 'full'
+                                      ? `Pay ${currency}${effectiveFullAmt}.00 & Confirm Slot`
+                                      : paymentChoice === 'deposit'
+                                      ? `Pay ${currency}${effectiveDepositAmt}.00 Deposit & Confirm`
+                                      : paymentChoice === 'card_hold'
+                                      ? 'Authorize Card Hold & Guarantee Slot'
+                                      : 'Confirm Booking (Pay on Arrival)'}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                            <p className="text-[11px] text-stone-500 text-center mt-2">
+                              Demo simulator mode. 100% refundable with {cancelNotice} hours cancellation notice.
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 

@@ -90,10 +90,11 @@ Storage is partitioned with:
 ## 5. Cloud Functions (Node.js)
 
 Located in `/functions`:
-1. `stripeWebhook`: Listens for `payment_intent.succeeded` and `charge.refunded`. Automatically updates Firestore appointment payment status and triggers payment receipts.
-2. `sendTransactionalEmail`: Authenticated callable function utilizing **Resend** for booking confirmations, cancellations, and clinic alerts.
-3. `onUserCreated`: Firebase Auth trigger that automatically creates the user's Firestore record in `users/{uid}` and assigns their default role.
-4. `cleanupStaleDemoSessions`: Scheduled cron job running every 24 hours to purge expired draft sessions older than 30 days.
+1. `createPaymentIntent`: Callable function that creates a Stripe PaymentIntent for clinic bookings. If the practice has connected their Stripe account (`clinic_settings/{clinicId}.stripeAccountId`), the charge is routed directly to them via Stripe Connect using `on_behalf_of` and `transfer_data`. If unconnected, gracefully signals demo mode for frontend simulation.
+2. `stripeWebhook`: Listens for `payment_intent.succeeded` and `charge.refunded`. Automatically updates Firestore appointment payment status (`paid_full` or `deposit_paid`), records Stripe transaction IDs, and triggers formatted patient payment receipts via Resend.
+3. `sendTransactionalEmail`: Authenticated callable function utilizing **Resend** for booking confirmations, cancellations, and clinic alerts.
+4. `onUserCreated`: Firebase Auth trigger that automatically creates the user's Firestore record in `users/{uid}` and assigns their default role.
+5. `cleanupStaleDemoSessions`: Scheduled cron job running every 24 hours to purge expired draft sessions older than 30 days.
 
 ---
 

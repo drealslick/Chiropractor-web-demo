@@ -364,7 +364,107 @@ export const setClinicUserRole = functions.https.onCall(async (data, context) =>
 });
 
 /**
- * 3. Stripe Webhook Handler
+ * 3. Stripe Integration: createPaymentIntent
+ * Creates a Stripe PaymentIntent for clinic bookings.
+ * If the clinic has connected their Stripe account via clinic_settings/{clinicId}.stripeAccountId
+ * or clinics/{clinicId}.stripeAccountId, routes the charge directly to them via Stripe Connect
+ * using on_behalf_of and transfer_data.
+ * If Stripe keys are not configured or no connected account, returns isDemoMode: true
+ * so the frontend falls back gracefully to the interactive demo preview.
+ */
+export const createPaymentIntent = functions.https.onCall(async (data, context) => {
+  const {
+    clinicId,
+    appointmentId,
+    amount,
+    currency = 'gbp',
+    paymentChoice = 'full',
+    patientEmail,
+    patientName,
+    serviceTitle,
+  } = data;
+
+  if (!clinicId || typeof clinicId !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'clinicId is required.');
+  }
+
+  if (!amount || typeof amount !== 'number' || amount <= 0) {
+    throw new functions.https.HttpsError('invalid-argument', 'Valid amount is required.');
+  }
+
+  const stripeApiKey = process.env.STRIPE_SECRET_KEY || functions.config().stripe?.secret_key;
+  if (!stripeApiKey) {
+    return {
+      isDemoMode: true,
+      reason: 'stripe_secret_missing',
+      message: 'STRIPE_SECRET_KEY is not configured on the server. Falling back to simulated preview.',
+    };
+  }
+
+  // Look up clinic settings for Stripe Connect account
+  const sanitizedClinicId = clinicId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  const [settingsDoc, clinicDoc] = await Promise.all([
+    db.collection('clinic_settings').doc(sanitizedClinicId).get(),
+    db.collection('clinics').doc(sanitizedClinicId).get(),
+  ]);
+
+  const stripeAccountId = settingsDoc.data()?.stripeAccountId || clinicDoc.data()?.stripeAccountId;
+
+  // If clinic has not connected a Stripe account, return demo mode unless explicit override
+  if (!stripeAccountId && !process.env.FORCE_DIRECT_STRIPE) {
+    return {
+      isDemoMode: true,
+      reason: 'clinic_not_connected',
+      message: 'Clinic has not connected their Stripe account yet. Falling back to simulated preview.',
+    };
+  }
+
+  const stripe = getStripe();
+  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY || functions.config().stripe?.publishable_key || '';
+  const amountInMinorUnits = Math.round(amount * 100);
+
+  try {
+    const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
+      amount: amountInMinorUnits,
+      currency: currency.toLowerCase(),
+      payment_method_types: ['card'],
+      receipt_email: patientEmail || undefined,
+      metadata: {
+        appointmentId: appointmentId || `appt_${Date.now()}`,
+        clinicId: sanitizedClinicId,
+        serviceTitle: serviceTitle || 'Chiropractic Consultation',
+        patientName: patientName || 'Patient',
+        patientEmail: patientEmail || '',
+        paymentChoice: paymentChoice || 'full',
+      },
+    };
+
+    if (stripeAccountId) {
+      paymentIntentParams.on_behalf_of = stripeAccountId;
+      paymentIntentParams.transfer_data = {
+        destination: stripeAccountId,
+      };
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
+
+    return {
+      isDemoMode: false,
+      clientSecret: paymentIntent.client_secret,
+      publishableKey,
+      stripeAccountId: stripeAccountId || null,
+      paymentIntentId: paymentIntent.id,
+      amount: amountInMinorUnits,
+      currency: currency.toLowerCase(),
+    };
+  } catch (err: any) {
+    functions.logger.error('Failed to create Stripe PaymentIntent:', err);
+    throw new functions.https.HttpsError('internal', err.message || 'Failed to initialize payment.');
+  }
+});
+
+/**
+ * 3.1. Stripe Webhook Handler
  * Listens for payment_intent.succeeded and charge.refunded events,
  * updates Firestore appointments, and triggers receipts
  */
@@ -403,10 +503,11 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
           const apptRef = db.collection('appointments').doc(appointmentId);
           await apptRef.set(
             {
-              paymentStatus: 'paid_full',
+              paymentStatus: paymentIntent.metadata?.paymentChoice === 'deposit' ? 'deposit_paid' : 'paid_full',
               stripePaymentIntentId: paymentIntent.id,
               paidAt: admin.firestore.FieldValue.serverTimestamp(),
               amountPaid: paymentIntent.amount_received / 100,
+              currency: paymentIntent.currency,
               ...(metadataClinicId ? { clinicId: metadataClinicId } : {}),
             },
             { merge: true }
@@ -415,17 +516,34 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
           // Dispatch confirmation email
           const apptDoc = await apptRef.get();
           const apptData = apptDoc.data();
-          if (apptData?.patientEmail) {
+          const patientEmail = apptData?.patientEmail || paymentIntent.receipt_email || paymentIntent.metadata?.patientEmail;
+          const patientName = apptData?.patientName || paymentIntent.metadata?.patientName || 'Patient';
+          const doctorName = apptData?.doctorName || 'Sarah Vance';
+          const serviceTitle = apptData?.serviceTitle || paymentIntent.metadata?.serviceTitle || 'Consultation & Examination';
+          const apptDate = apptData?.date || 'Confirmed Date';
+          const apptTime = apptData?.time || 'Confirmed Time';
+
+          if (patientEmail) {
             await sendEmailHelper({
-              to: apptData.patientEmail,
+              to: patientEmail,
               subject: 'Booking & Payment Receipt - Vance Health',
               html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 12px;">
-                  <h2 style="color: #064e3b;">Payment Confirmed</h2>
-                  <p>Dear ${apptData.patientName || 'Patient'},</p>
-                  <p>Your payment of <strong>£${(paymentIntent.amount_received / 100).toFixed(2)}</strong> for your appointment on <strong>${apptData.date} at ${apptData.time}</strong> has been successfully processed.</p>
-                  <p>Doctor: Dr. ${apptData.doctorName || 'Sarah Vance'}</p>
-                  <p>Reference ID: <code>${appointmentId}</code></p>
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e5e5; border-radius: 16px; background-color: #ffffff; color: #1c1917;">
+                  <div style="background-color: #064e3b; padding: 16px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+                    <h2 style="color: #ffffff; margin: 0; font-size: 20px;">Payment & Booking Confirmed</h2>
+                  </div>
+                  <p>Dear ${patientName},</p>
+                  <p>Thank you for choosing Vance Health. Your payment of <strong>${paymentIntent.currency.toUpperCase() === 'GBP' ? '£' : '$'}${(paymentIntent.amount_received / 100).toFixed(2)}</strong> for your appointment has been successfully received.</p>
+                  
+                  <div style="background-color: #f5f5f4; padding: 16px; border-radius: 12px; margin: 20px 0;">
+                    <p style="margin: 4px 0;"><strong>Service:</strong> ${serviceTitle}</p>
+                    <p style="margin: 4px 0;"><strong>Practitioner:</strong> Dr. ${doctorName}</p>
+                    <p style="margin: 4px 0;"><strong>Date & Time:</strong> ${apptDate} at ${apptTime}</p>
+                    <p style="margin: 4px 0;"><strong>Reference ID:</strong> <code>${appointmentId}</code></p>
+                    <p style="margin: 4px 0;"><strong>Payment ID:</strong> <code>${paymentIntent.id}</code></p>
+                  </div>
+
+                  <p style="font-size: 13px; color: #78716c;">If you need to reschedule, please give us at least 24 hours notice. We look forward to seeing you!</p>
                 </div>
               `,
             });
