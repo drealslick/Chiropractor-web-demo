@@ -28,6 +28,8 @@ import TeamMemberDetail from './pages/TeamMemberDetail';
 import PatientPortalPage from './pages/PatientPortalPage';
 import NotFound from './pages/NotFound';
 
+import SaaSConsolePage from './pages/SaaSConsolePage';
+
 function AppShell() {
   const [, setMobileMenuOpen] = useState(false);
   const { clinicData: clinic, isPatientPortalOpen, closePatientPortal, patientPortalInitialQuery } = useClinic();
@@ -73,6 +75,10 @@ function AppShell() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/saas" element={<SaaSConsolePage />} />
+            <Route path="/saas-os" element={<SaaSConsolePage />} />
+            <Route path="/operator" element={<SaaSConsolePage />} />
+            <Route path="/superadmin" element={<SaaSConsolePage />} />
             <Route path="/portal" element={<PatientPortalPage />} />
             <Route path="/patient-portal" element={<PatientPortalPage />} />
             <Route path="*" element={<NotFound />} />

@@ -407,16 +407,15 @@ export function AgencyWorkspace({
               </select>
             </div>
 
-            {/* Operator SaaS Cockpit Button */}
-            <button
-              type="button"
-              onClick={() => setIsSuperAdminOpen(true)}
-              className="bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/80 text-indigo-300 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-              title="Launch SaaS Operator Super Admin Cockpit"
+            {/* Operator SaaS OS Button */}
+            <a
+              href="/saas"
+              className="bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/80 text-indigo-300 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              title="Return to SaaS Operating System (SaaS OS)"
             >
-              <Shield className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="hidden md:inline">SaaS Cockpit</span>
-            </button>
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden md:inline">SaaS OS Cockpit</span>
+            </a>
 
             <button
               onClick={onResetDefault}
