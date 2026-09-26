@@ -20,6 +20,15 @@ export function GlobalAgencyController() {
   const [error, setError] = useState('');
   const [isStaffMode, setIsStaffMode] = useState(false);
 
+  // By default, the admin quick-access button is hidden on patient-facing devices
+  const [showAdminButton, setShowAdminButton] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('vance_show_admin_button') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   // 1. Keyboard shortcut (Cmd+Shift+C), URL params (?admin=true), and custom events
   useEffect(() => {
     try {
@@ -33,6 +42,11 @@ export function GlobalAgencyController() {
       if (hasAdminParam) {
         setIsStaffMode(true);
         setIsOpen(true);
+        setShowAdminButton(true);
+        localStorage.setItem('vance_show_admin_button', 'true');
+      } else if (urlParams.get('admin') === 'false') {
+        setShowAdminButton(false);
+        localStorage.setItem('vance_show_admin_button', 'false');
       }
     } catch {
       // Ignore
@@ -148,18 +162,20 @@ export function GlobalAgencyController() {
   return (
     <>
       {/* Discreet floating quick-access button */}
-      <button
-        onClick={() => {
-          setIsStaffMode(true);
-          setIsOpen(true);
-        }}
-        className="fixed bottom-4 right-4 z-50 bg-stone-900 hover:bg-stone-850 text-stone-200 hover:text-white px-3 py-2 rounded-xl shadow-2xl border border-stone-700/80 backdrop-blur transition flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
-        title="Admin settings"
-      >
-        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-        <span>Practice Admin</span>
-        <Sliders className="w-3.5 h-3.5 text-stone-400" />
-      </button>
+      {showAdminButton && (
+        <button
+          onClick={() => {
+            setIsStaffMode(true);
+            setIsOpen(true);
+          }}
+          className="fixed bottom-4 right-4 z-50 bg-stone-900 hover:bg-stone-850 text-stone-200 hover:text-white px-3 py-2 rounded-xl shadow-2xl border border-stone-700/80 backdrop-blur transition flex items-center gap-2 text-xs font-semibold cursor-pointer active:scale-95"
+          title="Admin settings"
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Practice Admin</span>
+          <Sliders className="w-3.5 h-3.5 text-stone-400" />
+        </button>
+      )}
 
       {/* Passcode Gate or Full Workspace */}
       {isOpen && (
