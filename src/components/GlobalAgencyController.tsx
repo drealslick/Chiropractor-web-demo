@@ -44,9 +44,12 @@ export function GlobalAgencyController() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Discreet floating quick-access button (only shown when explicitly enabled)
+  // Discreet floating quick-access button (only shown when ?admin=true or logged in)
   const [showAdminButton, setShowAdminButton] = useState<boolean>(() => {
     try {
+      if (window.location.search.includes('admin=true') || window.location.search.includes('admin=1')) {
+        return true;
+      }
       return localStorage.getItem('vance_show_admin_button') === 'true';
     } catch {
       return false;

@@ -82,7 +82,6 @@ import { LocationManager } from './admin/LocationManager';
 import { SectionVisibilityManager } from './admin/SectionVisibilityManager';
 import { IntegrationsBillingManager } from './admin/IntegrationsBillingManager';
 import { ClientOnboardingWizard } from './admin/ClientOnboardingWizard';
-import { SuperAdminConsole } from './superadmin/SuperAdminConsole';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -158,7 +157,6 @@ export function AgencyWorkspace({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
   const [selectedLeadToSchedule, setSelectedLeadToSchedule] = useState<PatientLead | null>(null);
-  const [isSuperAdminOpen, setIsSuperAdminOpen] = useState(false);
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
   const [socialPlatformPreview, setSocialPlatformPreview] = useState<'imessage' | 'twitter' | 'facebook'>('imessage');
@@ -406,16 +404,6 @@ export function AgencyWorkspace({
                 <option value="staff" className="bg-stone-900 text-stone-200">Staff (Front Desk)</option>
               </select>
             </div>
-
-            {/* Operator SaaS OS Button */}
-            <a
-              href="/saas"
-              className="bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/80 text-indigo-300 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-              title="Return to SaaS Operating System (SaaS OS)"
-            >
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="hidden md:inline">SaaS OS Cockpit</span>
-            </a>
 
             <button
               onClick={onResetDefault}
@@ -2107,22 +2095,6 @@ export function AgencyWorkspace({
             </button>
           </div>
         </div>
-
-        {/* Super Admin Operator Cockpit Modal Overlay */}
-        {isSuperAdminOpen && (
-          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md overflow-y-auto p-4 sm:p-6 flex items-center justify-center">
-            <div className="w-full max-w-6xl">
-              <SuperAdminConsole
-                currentClinic={clinic}
-                onSelectClinicToManage={(selectedClinic) => {
-                  onUpdateClinic(selectedClinic);
-                  setIsSuperAdminOpen(false);
-                }}
-                onClose={() => setIsSuperAdminOpen(false)}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
