@@ -64,6 +64,32 @@ service cloud.firestore {
       );
     }
 
+    // 1.6. Deployment Clinic Configuration (Active tenant public branding)
+    // Public read so portal/signup displays active clinic branding;
+    // Primary tenant ID is strictly immutable once set - only platform superAdmin can alter it.
+    match /clinic_config/{configId} {
+      allow read: if true;
+      allow create: if false; // Provisioned exclusively via Cloud Functions
+      allow update: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        (
+          resource != null &&
+          isClinicAdmin(resource.data.primaryClinicId) &&
+          request.resource.data.primaryClinicId == resource.data.primaryClinicId
+        )
+      );
+      allow delete: if false;
+    }
+
+    // 1.7. Private Deployment Configuration (Sensitive Admin UIDs, Webhook secrets, Token hashes)
+    // Strictly confidential: Not readable or writable by the public or non-admin users
+    match /clinic_config_private/{configId} {
+      allow read, write: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        (resource != null && isClinicAdmin(resource.data.primaryClinicId))
+      );
+    }
+
     // 2. Users Collection
     // Patients can only view their own profile. On self-update, role and clinicId are immutable.
     // Staff can read patient profiles; only Clinic Admins can promote roles.

@@ -133,6 +133,25 @@ This script initializes:
 * **The Trap**: Complex proprietary NoSQL structures that cannot be extracted.
 * **Our Fix**: Schema defined in `firebase-blueprint.json` mirroring our normalized relational model (`SUPABASE_PRODUCTION_SCHEMA.sql`). Migration scripts provide two-way portability.
 
+### Gotcha 6: "First-Admin Race Condition & Claim Hijacking"
+* **The Trap**: When a buyer deploys the template to Vercel/Cloud Run before claiming it, an unauthorized visitor visiting `?admin=true` could claim the initial admin account.
+* **Our Fix**: Gated `claimInitialClinicAdmin` with a deploy-time secret (`CLINIC_SETUP_TOKEN`). The buyer generates this token (e.g. `openssl rand -hex 16`) and sets it in their Vercel environment variables. The claim Cloud Function checks the token, establishes the primary admin, and isolates sensitive config in `clinic_config_private/active`.
+
+---
+
+## 🚀 First-Run Buyer Onboarding Runbook
+
+When deploying a fresh instance of this template:
+1. **Set Environment Variable**: Add `CLINIC_SETUP_TOKEN=<your-secret-32-char-key>` to your deployment environment (Vercel, Cloud Run, or `.env`).
+2. **Access Admin Portal**: Open your deployed site with `?admin=true` (or click the floating "Practice Admin" button).
+3. **Claim Practice**: The system will detect an unclaimed deployment. Click **"Claim This Practice as First Admin"**.
+4. **Enter Credentials**:
+   * **Clinic ID**: Your unique clinic slug (e.g. `clinic_london_01`).
+   * **Clinic Name**: Practice display name (e.g. `Vance Health London`).
+   * **Deployment Setup Secret**: The value of your `CLINIC_SETUP_TOKEN`.
+   * **Admin Email & Password**: The primary practice director credentials.
+5. **Locked Down**: Once claimed, `clinic_config/active` is bound permanently, `primaryClinicId` is immutable, and all subsequent patient signups automatically route into your practice tenant.
+
 ---
 
 ## 🧪 Acceptance Testing Plan

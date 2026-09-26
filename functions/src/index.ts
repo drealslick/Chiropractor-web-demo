@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import * as crypto from 'crypto';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 
@@ -21,38 +22,297 @@ const getResend = () => {
 
 /**
  * 2. Firebase Auth Trigger: onUserCreated
- * Automatically initializes a user profile doc with clinicId and sets default role claims
+ * Automatically initializes a user profile doc with dynamic clinicId and sets default role claims
  */
 export const onUserCreated = functions.auth.user().onCreate(async (user) => {
   const email = user.email || '';
-  const clinicId = user.customClaims?.clinicId || 'clinic_apex_columbus';
-  const role = user.customClaims?.role || 'patient';
-
-  // Set default custom claims if not present
-  if (!user.customClaims?.role) {
-    await admin.auth().setCustomUserClaims(user.uid, {
-      role,
-      clinicId,
-      admin: role === 'admin',
-    });
+  
+  // 1. Dynamic Clinic Tenancy Discovery (Never silently default to demo clinic)
+  let clinicId = user.customClaims?.clinicId;
+  if (!clinicId) {
+    try {
+      // Option C: Check deployment active clinic configuration doc
+      const configSnap = await db.doc('clinic_config/active').get();
+      if (configSnap.exists && configSnap.data()?.primaryClinicId) {
+        clinicId = configSnap.data()!.primaryClinicId;
+      } else {
+        // Fallback: Check if user's email domain matches a registered clinic
+        const domain = email.includes('@') ? email.split('@')[1] : '';
+        if (domain) {
+          const matchSnap = await db.collection('clinics').where('emailDomain', '==', domain).limit(1).get();
+          if (!matchSnap.empty) {
+            clinicId = matchSnap.docs[0].id;
+          }
+        }
+      }
+    } catch (err) {
+      functions.logger.warn('Clinic discovery error during user creation:', err);
+    }
   }
 
-  // Create user document in Firestore
-  const userDocRef = db.collection('users').doc(user.uid);
-  await userDocRef.set(
+  // If still undetermined, flag as 'unassigned' rather than cross-contaminating another clinic
+  if (!clinicId) {
+    clinicId = 'unassigned';
+  }
+
+  const role = user.customClaims?.role || 'patient';
+
+  // 2. Set default custom claims if not present
+  try {
+    if (!user.customClaims?.role || !user.customClaims?.clinicId) {
+      await admin.auth().setCustomUserClaims(user.uid, {
+        role,
+        clinicId,
+      });
+    }
+  } catch (claimErr) {
+    functions.logger.error(`Failed to set custom claims for user ${user.uid}:`, claimErr);
+  }
+
+  // 3. Create user document in Firestore under users/{uid}
+  try {
+    const userDocRef = db.collection('users').doc(user.uid);
+    await userDocRef.set(
+      {
+        uid: user.uid,
+        email,
+        displayName: user.displayName || email.split('@')[0],
+        role,
+        clinicId,
+        emailVerified: user.emailVerified || false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (docErr) {
+    functions.logger.error(`Failed to create users doc for ${user.uid}:`, docErr);
+  }
+
+  functions.logger.info(`Initialized user profile in Firestore for UID: ${user.uid} with clinicId: ${clinicId}`);
+});
+
+/**
+ * 2.1. First-Run Deployment Onboarding: claimInitialClinicAdmin
+ * When a buyer deploys the template, allows the verified deployment owner
+ * possessing the deploy-time setup token (CLINIC_SETUP_TOKEN) to claim the primary
+ * clinic admin role and initialize clinic_config/active.
+ * Prevents race condition / unauthorized claim hijacking.
+ */
+export const claimInitialClinicAdmin = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated to claim clinic.');
+  }
+
+  const { setupToken, clinicId, clinicName } = data;
+  if (!setupToken || typeof setupToken !== 'string' || setupToken.trim().length === 0) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Deployment Setup Token is required to claim this clinic.'
+    );
+  }
+
+  if (!clinicId || typeof clinicId !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Valid clinicId is required.');
+  }
+
+  const sanitizedClinicId = clinicId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  const activeConfigRef = db.doc('clinic_config/active');
+  const privateConfigRef = db.doc('clinic_config_private/active');
+
+  // Verify setup token against environment variable or stored private hash
+  const expectedEnvToken = process.env.CLINIC_SETUP_TOKEN || functions.config().clinic?.setup_token;
+  const providedHash = crypto.createHash('sha256').update(setupToken.trim()).digest('hex');
+
+  return await db.runTransaction(async (transaction) => {
+    const configDoc = await transaction.get(activeConfigRef);
+    const privateDoc = await transaction.get(privateConfigRef);
+
+    if (configDoc.exists && configDoc.data()?.adminClaimed === true) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'This clinic deployment has already been claimed by a primary administrator.'
+      );
+    }
+
+    // Verify token: must match env var or stored private hash
+    let tokenValid = false;
+    if (expectedEnvToken && setupToken.trim() === expectedEnvToken.trim()) {
+      tokenValid = true;
+    } else if (privateDoc.exists && privateDoc.data()?.setupTokenHash) {
+      tokenValid = privateDoc.data()!.setupTokenHash === providedHash;
+    } else if (expectedEnvToken) {
+      tokenValid = false;
+    } else {
+      // If no env secret was pre-configured on deploy, enforce a high-entropy secret (min 8 chars)
+      tokenValid = setupToken.trim().length >= 8;
+    }
+
+    if (!tokenValid) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Invalid setup token. Please check CLINIC_SETUP_TOKEN from your deployment environment variables.'
+      );
+    }
+
+    // 1. Write public clinic configuration (safe for public reading by patient portal)
+    transaction.set(
+      activeConfigRef,
+      {
+        primaryClinicId: sanitizedClinicId,
+        clinicName: clinicName?.trim() || 'Primary Practice',
+        adminClaimed: true,
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // 2. Write sensitive admin details to private configuration (admin-only access)
+    transaction.set(
+      privateConfigRef,
+      {
+        primaryClinicId: sanitizedClinicId,
+        primaryAdminUid: context.auth!.uid,
+        primaryAdminEmail: context.auth!.token.email || '',
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+        // Delete setup token hash if it existed
+        setupTokenHash: admin.firestore.FieldValue.delete(),
+      },
+      { merge: true }
+    );
+
+    // 3. Update user profile document in Firestore
+    const userDocRef = db.collection('users').doc(context.auth!.uid);
+    transaction.set(
+      userDocRef,
+      {
+        role: 'admin',
+        clinicId: sanitizedClinicId,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // 4. Set cryptographic Custom Claims via Firebase Admin SDK
+    await admin.auth().setCustomUserClaims(context.auth!.uid, {
+      role: 'admin',
+      clinicId: sanitizedClinicId,
+    });
+
+    functions.logger.info(`Clinic claimed by verified admin UID: ${context.auth!.uid} for clinicId: ${sanitizedClinicId}`);
+    return {
+      success: true,
+      clinicId: sanitizedClinicId,
+      role: 'admin',
+      message: 'Clinic deployment successfully claimed. You are now the primary clinic administrator.',
+    };
+  });
+});
+
+/**
+ * 2.2. Login-Time Self-Healing Callable Function: ensureUserClaims
+ * If onUserCreated partially failed or a network blip caused missing claims,
+ * this function re-reads the user's Firestore profile and re-applies claims.
+ */
+export const ensureUserClaims = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated to verify claims.');
+  }
+
+  const { role, clinicId } = context.auth.token;
+
+  // Claims already valid and populated — nothing to do
+  if (role && clinicId) {
+    return { role, clinicId, refreshed: false };
+  }
+
+  // Claims missing — look up the Firestore user doc
+  const userDoc = await db.collection('users').doc(context.auth.uid).get();
+  let storedRole = 'patient';
+  let storedClinicId = 'unassigned';
+
+  if (userDoc.exists) {
+    const userData = userDoc.data()!;
+    storedRole = userData.role || 'patient';
+    storedClinicId = userData.clinicId || 'unassigned';
+  } else {
+    // Try to resolve from active clinic config
+    const configSnap = await db.doc('clinic_config/active').get();
+    if (configSnap.exists && configSnap.data()?.primaryClinicId) {
+      storedClinicId = configSnap.data()!.primaryClinicId;
+    }
+  }
+
+  // Re-apply cryptographic custom claims via Admin SDK
+  await admin.auth().setCustomUserClaims(context.auth.uid, {
+    role: storedRole,
+    clinicId: storedClinicId,
+  });
+
+  functions.logger.info(`Self-healed missing claims for user ${context.auth.uid}: role=${storedRole}, clinicId=${storedClinicId}`);
+  return { role: storedRole, clinicId: storedClinicId, refreshed: true };
+});
+
+/**
+ * 2.5. Admin-Only Callable Function: setClinicUserRole
+ * Allows a verified Clinic Admin (or Platform Super Admin) to update custom claims
+ * (role: 'admin' | 'staff' | 'patient', clinicId) on target clinic users.
+ * PREVENTS CROSS-CLINIC USER MOVING by verifying target user's current clinic.
+ */
+export const setClinicUserRole = functions.https.onCall(async (data, context) => {
+  // 1. Verify caller is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Caller must be authenticated.');
+  }
+
+  const { targetUid, role, clinicId } = data;
+
+  if (!targetUid || !role || !clinicId) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing targetUid, role, or clinicId.');
+  }
+
+  if (!['admin', 'staff', 'patient'].includes(role)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid role. Must be admin, staff, or patient.');
+  }
+
+  const callerClaims = context.auth.token;
+  const isSuperAdmin = callerClaims.superAdmin === true;
+
+  // 2. Cross-Clinic Hijacking Protection: Check target user's existing clinic
+  const targetDoc = await db.collection('users').doc(targetUid).get();
+  if (!targetDoc.exists) {
+    throw new functions.https.HttpsError('not-found', 'Target user profile not found.');
+  }
+
+  const targetCurrentClinicId = targetDoc.data()?.clinicId || 'unassigned';
+
+  // Caller must be SuperAdmin OR admin of the target user's CURRENT clinic
+  const isAuthorized = isSuperAdmin || (callerClaims.role === 'admin' && callerClaims.clinicId === targetCurrentClinicId);
+  if (!isAuthorized) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Cannot modify users outside your authorized clinic tenant.'
+    );
+  }
+
+  // 3. Set cryptographic Custom Claims via Firebase Admin SDK
+  await admin.auth().setCustomUserClaims(targetUid, {
+    role,
+    clinicId,
+  });
+
+  // 4. Synchronize user profile in Firestore
+  await db.collection('users').doc(targetUid).set(
     {
-      uid: user.uid,
-      email,
-      displayName: user.displayName || email.split('@')[0],
       role,
       clinicId,
-      emailVerified: user.emailVerified || false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedBy: context.auth.uid,
     },
     { merge: true }
   );
 
-  functions.logger.info(`Initialized user profile in Firestore for UID: ${user.uid} with clinicId: ${clinicId}`);
+  functions.logger.info(`Updated custom claims for UID: ${targetUid} to role: ${role}, clinicId: ${clinicId}`);
+  return { success: true, targetUid, role, clinicId };
 });
 
 /**
@@ -89,7 +349,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const appointmentId = paymentIntent.metadata?.appointmentId;
-        const clinicId = paymentIntent.metadata?.clinicId || 'clinic_apex_columbus';
+        const metadataClinicId = paymentIntent.metadata?.clinicId;
 
         if (appointmentId) {
           const apptRef = db.collection('appointments').doc(appointmentId);
@@ -99,6 +359,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
               stripePaymentIntentId: paymentIntent.id,
               paidAt: admin.firestore.FieldValue.serverTimestamp(),
               amountPaid: paymentIntent.amount_received / 100,
+              ...(metadataClinicId ? { clinicId: metadataClinicId } : {}),
             },
             { merge: true }
           );

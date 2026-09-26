@@ -23,7 +23,8 @@ import {
   User,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from '../lib/firebase';
 
 export type UserRole = 'admin' | 'staff' | 'patient';
 
@@ -38,19 +39,36 @@ export interface UserProfile {
   createdAt?: string;
 }
 
-export const DEFAULT_CLINIC_ID = 'clinic_apex_columbus';
+/**
+ * Dynamically resolves the primary clinic ID for this deployment
+ * Checks clinic_config/active, then clinics collection, or returns 'unassigned'
+ */
+export async function resolveActiveClinicId(): Promise<string> {
+  try {
+    const configSnap = await getDoc(doc(db, 'clinic_config', 'active'));
+    if (configSnap.exists() && configSnap.data()?.primaryClinicId) {
+      return configSnap.data()!.primaryClinicId;
+    }
+  } catch (err) {
+    console.warn('Note checking clinic config:', err);
+  }
+  return 'unassigned';
+}
 
 /**
- * Register a new patient in Firebase Auth and Firestore with clinicId
+ * Register a new patient in Firebase Auth and Firestore
+ * Uses dynamic clinic resolution (never silently cross-contaminating other clinic tenants)
  */
 export async function signUpPatientWithEmail(
   email: string,
   pass: string,
   fullName: string,
   phone?: string,
-  clinicId: string = DEFAULT_CLINIC_ID
+  clinicId?: string
 ): Promise<{ success: boolean; user?: User; message: string }> {
   try {
+    const resolvedClinicId = clinicId || (await resolveActiveClinicId());
+
     const cred = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), pass);
     const user = cred.user;
 
@@ -72,7 +90,7 @@ export async function signUpPatientWithEmail(
         email: user.email,
         displayName: fullName.trim(),
         role: 'patient',
-        clinicId,
+        clinicId: resolvedClinicId,
         phone: phone?.trim() || '',
         emailVerified: user.emailVerified,
         createdAt: serverTimestamp(),
@@ -98,7 +116,7 @@ export async function signUpPatientWithEmail(
 }
 
 /**
- * Authenticate existing user with token refresh check
+ * Authenticate existing user with self-healing token claims check
  */
 export async function signInUser(
   email: string,
@@ -109,24 +127,32 @@ export async function signInUser(
     const user = cred.user;
 
     // Fetch token result with claims
-    const tokenResult = await getIdTokenResult(user);
-    let role: UserRole = (tokenResult.claims.role as UserRole) || 'patient';
-    let clinicId: string = (tokenResult.claims.clinicId as string) || DEFAULT_CLINIC_ID;
+    let tokenResult = await getIdTokenResult(user);
+    let role = tokenResult.claims.role as UserRole | undefined;
+    let clinicId = tokenResult.claims.clinicId as string | undefined;
 
-    // Fallback lookup to users/{uid}
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      if (data.role) role = data.role as UserRole;
-      if (data.clinicId) clinicId = data.clinicId;
+    // Self-healing: If custom claims are missing from JWT (e.g. transient trigger hiccup),
+    // invoke the ensureUserClaims Cloud Function to re-apply claims and refresh token
+    if (!role || !clinicId) {
+      try {
+        const healFn = httpsCallable(functions, 'ensureUserClaims');
+        await healFn();
+        // Force token refresh to capture the newly signed claims
+        await getIdToken(user, true);
+        tokenResult = await getIdTokenResult(user);
+        role = tokenResult.claims.role as UserRole | undefined;
+        clinicId = tokenResult.claims.clinicId as string | undefined;
+      } catch (healErr) {
+        console.warn('ensureUserClaims notice:', healErr);
+      }
     }
 
     const profile: UserProfile = {
       uid: user.uid,
       email: user.email || '',
       displayName: user.displayName || user.email?.split('@')[0] || 'User',
-      role,
-      clinicId,
+      role: role || 'patient',
+      clinicId: clinicId || 'unassigned',
       emailVerified: user.emailVerified,
     };
 
@@ -142,7 +168,7 @@ export async function signInUser(
 }
 
 /**
- * Gotcha #3 Resolution: Force fresh ID token refresh
+ * Force fresh ID token refresh with self-healing check
  * Ensures newly granted custom claims or role promotions take effect immediately
  */
 export async function forceRefreshToken(): Promise<{ role: UserRole; clinicId: string } | null> {
@@ -152,10 +178,23 @@ export async function forceRefreshToken(): Promise<{ role: UserRole; clinicId: s
   try {
     // Passing true forces a token refresh from Firebase servers
     await getIdToken(user, true);
-    const tokenResult = await getIdTokenResult(user);
-    const role = (tokenResult.claims.role as UserRole) || 'patient';
-    const clinicId = (tokenResult.claims.clinicId as string) || DEFAULT_CLINIC_ID;
-    return { role, clinicId };
+    let tokenResult = await getIdTokenResult(user);
+    let role = tokenResult.claims.role as UserRole | undefined;
+    let clinicId = tokenResult.claims.clinicId as string | undefined;
+
+    if (!role || !clinicId) {
+      const healFn = httpsCallable(functions, 'ensureUserClaims');
+      await healFn();
+      await getIdToken(user, true);
+      tokenResult = await getIdTokenResult(user);
+      role = tokenResult.claims.role as UserRole | undefined;
+      clinicId = tokenResult.claims.clinicId as string | undefined;
+    }
+
+    return {
+      role: role || 'patient',
+      clinicId: clinicId || 'unassigned',
+    };
   } catch (err) {
     console.error('Token refresh error:', err);
     return null;
