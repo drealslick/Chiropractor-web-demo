@@ -81,6 +81,8 @@ import { LiveGatewayManager } from './admin/LiveGatewayManager';
 import { LocationManager } from './admin/LocationManager';
 import { SectionVisibilityManager } from './admin/SectionVisibilityManager';
 import { IntegrationsBillingManager } from './admin/IntegrationsBillingManager';
+import { ClientOnboardingWizard } from './admin/ClientOnboardingWizard';
+import { SuperAdminConsole } from './superadmin/SuperAdminConsole';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -99,6 +101,7 @@ interface AgencyWorkspaceProps {
 export type AdminTabId =
   // Dashboard
   | 'overview'
+  | 'onboarding'
   | 'checklist'
   | 'leads'
   | 'booking'
@@ -155,6 +158,7 @@ export function AgencyWorkspace({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
   const [selectedLeadToSchedule, setSelectedLeadToSchedule] = useState<PatientLead | null>(null);
+  const [isSuperAdminOpen, setIsSuperAdminOpen] = useState(false);
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
   const [socialPlatformPreview, setSocialPlatformPreview] = useState<'imessage' | 'twitter' | 'facebook'>('imessage');
@@ -201,6 +205,7 @@ export function AgencyWorkspace({
       collapsible: false,
       items: [
         { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: clinic.isProductionMode ? 'Live' : 'Demo' },
+        { id: 'onboarding' as AdminTabId, label: 'Client Onboarding Launchpad', icon: Sparkles, badge: 'Handoff', highlight: true },
         { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles, minRole: 'admin' as UserRole },
         { id: 'leads' as AdminTabId, label: 'Patient Inquiries', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
         ...(!isExternalSync ? [{ id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar }] : []),
@@ -402,6 +407,17 @@ export function AgencyWorkspace({
               </select>
             </div>
 
+            {/* Operator SaaS Cockpit Button */}
+            <button
+              type="button"
+              onClick={() => setIsSuperAdminOpen(true)}
+              className="bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/80 text-indigo-300 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+              title="Launch SaaS Operator Super Admin Cockpit"
+            >
+              <Shield className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden md:inline">SaaS Cockpit</span>
+            </button>
+
             <button
               onClick={onResetDefault}
               className="px-2.5 py-1 text-stone-400 hover:text-amber-400 transition hover:bg-stone-850 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-amber-900/50"
@@ -584,6 +600,7 @@ export function AgencyWorkspace({
                   if (tab === 'leads') setActiveTab('leads');
                   else if (tab === 'booking') setActiveTab('booking');
                   else if (tab === 'setup') setActiveTab('checklist');
+                  else if (tab === 'onboarding') setActiveTab('onboarding');
                   else if (tab === 'site') {
                     if (subTab === 'copy') setActiveTab('copy');
                     else if (subTab === 'blog') setActiveTab('blog');
@@ -595,6 +612,16 @@ export function AgencyWorkspace({
                 hasSupabase={hasSupabase}
                 syncStatus={syncStatus}
                 role={activeRolePreview}
+              />
+            )}
+
+            {/* 1B. CLIENT ONBOARDING LAUNCHPAD */}
+            {activeTab === 'onboarding' && (
+              <ClientOnboardingWizard
+                clinic={clinic}
+                onUpdateClinic={onUpdateClinic}
+                onClose={() => setActiveTab('overview')}
+                onNavigateTab={(tab) => setActiveTab(tab as AdminTabId)}
               />
             )}
 
@@ -2081,6 +2108,22 @@ export function AgencyWorkspace({
             </button>
           </div>
         </div>
+
+        {/* Super Admin Operator Cockpit Modal Overlay */}
+        {isSuperAdminOpen && (
+          <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md overflow-y-auto p-4 sm:p-6 flex items-center justify-center">
+            <div className="w-full max-w-6xl">
+              <SuperAdminConsole
+                currentClinic={clinic}
+                onSelectClinicToManage={(selectedClinic) => {
+                  onUpdateClinic(selectedClinic);
+                  setIsSuperAdminOpen(false);
+                }}
+                onClose={() => setIsSuperAdminOpen(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

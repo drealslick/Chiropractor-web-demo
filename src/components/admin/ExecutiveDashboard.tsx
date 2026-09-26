@@ -29,7 +29,7 @@ import { BookingEngineManager } from './BookingEngineManager';
 interface ExecutiveDashboardProps {
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
-  onNavigateTab: (tab: 'leads' | 'booking' | 'site' | 'setup', subTab?: string) => void;
+  onNavigateTab: (tab: 'leads' | 'booking' | 'site' | 'setup' | 'onboarding', subTab?: string) => void;
   hasSupabase: boolean;
   syncStatus: string;
   role?: UserRole;
@@ -397,6 +397,27 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           {quickActionsOpen && (
             <div className="p-4 pt-1 border-t border-stone-800 space-y-3 bg-stone-950/40 animate-fade-in">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                {/* Quick Action 0: Client Onboarding Launchpad */}
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('onboarding')}
+                  className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/80 to-stone-850 hover:from-emerald-900/90 border border-emerald-800/80 hover:border-emerald-500/60 text-left flex items-center justify-between transition cursor-pointer col-span-1 sm:col-span-3"
+                >
+                  <div>
+                    <div className="font-bold text-xs flex items-center gap-1.5 text-emerald-300">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                      <span>Client Onboarding Launchpad & Handoff Wizard</span>
+                      <span className="bg-emerald-500 text-stone-950 font-bold text-[10px] px-2 py-0.5 rounded-full ml-1">
+                        5-Step Setup
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-stone-300 mt-0.5">
+                      Configure doctor credentials, exam fees, contact info, and generate the printable reception welcome pack.
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-emerald-400 shrink-0" />
+                </button>
+
                 {/* Quick Action 1: Calendar or Inbox */}
                 {!isExternalSync ? (
                   <button
