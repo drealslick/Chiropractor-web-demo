@@ -340,23 +340,6 @@ export function GlobalAgencyController() {
       )}
 
       {/* Admin Gating: Never render admin shell unless authenticated with admin or staff role */}
-      {!isOpen && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 left-4 z-40 bg-stone-900/95 hover:bg-stone-850 text-stone-200 border border-stone-750 hover:border-indigo-500/80 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xl backdrop-blur-md transition-all cursor-pointer group hover:scale-105"
-          title="Open Admin Workspace & SaaS Cockpit (Shift+A)"
-        >
-          <div className="w-6 h-6 rounded-lg bg-indigo-950 border border-indigo-700/80 text-indigo-400 flex items-center justify-center font-bold">
-            <Shield className="w-3.5 h-3.5" />
-          </div>
-          <span>Admin & SaaS Cockpit</span>
-          <span className="bg-indigo-900/80 text-indigo-300 font-mono text-[10px] px-1.5 py-0.5 rounded-md border border-indigo-700/60 group-hover:bg-indigo-600 group-hover:text-white transition">
-            Shift+A
-          </span>
-        </button>
-      )}
-
       {isOpen && (
         !isAdminOrStaff ? (
           <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
