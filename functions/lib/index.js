@@ -86,12 +86,23 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
     }
     functions.logger.info(`Initialized user profile in Firestore for UID: ${user.uid} with clinicId: ${clinicId}`);
 });
+// Helper: Constant-time comparison using fixed-length SHA-256 digests
+function safeCompareTokens(provided, expected) {
+    try {
+        const hashA = crypto.createHash('sha256').update(provided).digest();
+        const hashB = crypto.createHash('sha256').update(expected).digest();
+        return crypto.timingSafeEqual(hashA, hashB);
+    }
+    catch {
+        return false;
+    }
+}
 /**
  * 2.1. First-Run Deployment Onboarding: claimInitialClinicAdmin
  * When a buyer deploys the template, allows the verified deployment owner
  * possessing the deploy-time setup token (CLINIC_SETUP_TOKEN) to claim the primary
  * clinic admin role and initialize clinic_config/active.
- * Prevents race condition / unauthorized claim hijacking.
+ * Hardened with crypto.timingSafeEqual and brute-force attempt rate-limiting.
  */
 exports.claimInitialClinicAdmin = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
@@ -107,57 +118,83 @@ exports.claimInitialClinicAdmin = functions.https.onCall(async (data, context) =
     const sanitizedClinicId = clinicId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
     const activeConfigRef = db.doc('clinic_config/active');
     const privateConfigRef = db.doc('clinic_config_private/active');
+    const rateLimitRef = db.doc('clinic_config_private/claim_rate_limit');
     // Verify setup token against environment variable or stored private hash
     const expectedEnvToken = process.env.CLINIC_SETUP_TOKEN || functions.config().clinic?.setup_token;
-    const providedHash = crypto.createHash('sha256').update(setupToken.trim()).digest('hex');
     return await db.runTransaction(async (transaction) => {
+        // 1. Rate Limiting Check (Max 5 attempts per rolling hour)
+        const rateLimitDoc = await transaction.get(rateLimitRef);
+        const now = Date.now();
+        const oneHour = 60 * 60 * 1000;
+        let failedAttempts = 0;
+        let windowStart = now;
+        if (rateLimitDoc.exists) {
+            const data = rateLimitDoc.data();
+            windowStart = data.windowStart || now;
+            if (now - windowStart < oneHour) {
+                failedAttempts = data.failedAttempts || 0;
+                if (failedAttempts >= 5) {
+                    throw new functions.https.HttpsError('resource-exhausted', 'Too many failed claim attempts. Temporarily locked for 1 hour to prevent brute force.');
+                }
+            }
+            else {
+                windowStart = now;
+                failedAttempts = 0;
+            }
+        }
         const configDoc = await transaction.get(activeConfigRef);
         const privateDoc = await transaction.get(privateConfigRef);
         if (configDoc.exists && configDoc.data()?.adminClaimed === true) {
             throw new functions.https.HttpsError('failed-precondition', 'This clinic deployment has already been claimed by a primary administrator.');
         }
-        // Verify token: must match env var or stored private hash
+        // 2. Timing-Safe Token Verification
         let tokenValid = false;
-        if (expectedEnvToken && setupToken.trim() === expectedEnvToken.trim()) {
-            tokenValid = true;
+        if (expectedEnvToken) {
+            tokenValid = safeCompareTokens(setupToken.trim(), expectedEnvToken.trim());
         }
         else if (privateDoc.exists && privateDoc.data()?.setupTokenHash) {
-            tokenValid = privateDoc.data().setupTokenHash === providedHash;
-        }
-        else if (expectedEnvToken) {
-            tokenValid = false;
+            const providedHash = crypto.createHash('sha256').update(setupToken.trim()).digest('hex');
+            tokenValid = safeCompareTokens(providedHash, privateDoc.data().setupTokenHash);
         }
         else {
             // If no env secret was pre-configured on deploy, enforce a high-entropy secret (min 8 chars)
             tokenValid = setupToken.trim().length >= 8;
         }
         if (!tokenValid) {
-            throw new functions.https.HttpsError('permission-denied', 'Invalid setup token. Please check CLINIC_SETUP_TOKEN from your deployment environment variables.');
+            // Increment failed attempt counter
+            transaction.set(rateLimitRef, {
+                failedAttempts: failedAttempts + 1,
+                windowStart,
+                lastAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastAttemptByUid: context.auth.uid,
+            }, { merge: true });
+            throw new functions.https.HttpsError('permission-denied', `Invalid setup token (${failedAttempts + 1}/5 attempts used). Please check CLINIC_SETUP_TOKEN from your deployment environment variables.`);
         }
-        // 1. Write public clinic configuration (safe for public reading by patient portal)
+        // 3. Reset rate limit on successful authentication
+        transaction.delete(rateLimitRef);
+        // 4. Write public clinic configuration (safe for public reading by patient portal)
         transaction.set(activeConfigRef, {
             primaryClinicId: sanitizedClinicId,
             clinicName: clinicName?.trim() || 'Primary Practice',
             adminClaimed: true,
             claimedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
-        // 2. Write sensitive admin details to private configuration (admin-only access)
+        // 5. Write sensitive admin details to private configuration (admin-only access)
         transaction.set(privateConfigRef, {
             primaryClinicId: sanitizedClinicId,
             primaryAdminUid: context.auth.uid,
             primaryAdminEmail: context.auth.token.email || '',
             claimedAt: admin.firestore.FieldValue.serverTimestamp(),
-            // Delete setup token hash if it existed
             setupTokenHash: admin.firestore.FieldValue.delete(),
         }, { merge: true });
-        // 3. Update user profile document in Firestore
+        // 6. Update user profile document in Firestore
         const userDocRef = db.collection('users').doc(context.auth.uid);
         transaction.set(userDocRef, {
             role: 'admin',
             clinicId: sanitizedClinicId,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
-        // 4. Set cryptographic Custom Claims via Firebase Admin SDK
+        // 7. Set cryptographic Custom Claims via Firebase Admin SDK
         await admin.auth().setCustomUserClaims(context.auth.uid, {
             role: 'admin',
             clinicId: sanitizedClinicId,
