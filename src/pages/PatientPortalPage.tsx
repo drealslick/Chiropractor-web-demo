@@ -100,6 +100,76 @@ export default function PatientPortalPage() {
 
   const receiptRef = useRef<HTMLDivElement>(null);
 
+  // Exercises state tracking
+  const [exerciseStatus, setExerciseStatus] = useState<Record<string, boolean>>({});
+  const [exerciseStreak, setExerciseStreak] = useState<number>(3); // start at a motivated 3-day streak!
+
+  const handleToggleExercise = (exerciseId: string) => {
+    setExerciseStatus(prev => {
+      const next = { ...prev, [exerciseId]: !prev[exerciseId] };
+      const currentCondition = selectedAppt?.condition || 'Back pain';
+      const exercisesList = getExercisesForCondition(currentCondition);
+      const allDone = exercisesList.every(ex => next[ex.id]);
+      if (allDone) {
+        setExerciseStreak(s => s + 1);
+      }
+      return next;
+    });
+  };
+
+  const getExercisesForCondition = (cond: string) => {
+    const lower = (cond || '').toLowerCase();
+    if (lower.includes('neck') || lower.includes('headache') || lower.includes('cervical') || lower.includes('posture')) {
+      return [
+        { id: 'ex-1', title: 'Cervical Chin Tucks', instructions: 'Sit upright, slide your chin straight back as if making a double chin. Hold 5s. Repeat 10 times.', frequency: '3x daily', benefit: 'Strengthens deep neck flexors & corrects head alignment' },
+        { id: 'ex-2', title: 'Suboccipital Soft Tissue Release', instructions: 'Place a firm foam ball under the base of your skull while lying flat. Gently tilt your chin up and down for 5 mins.', frequency: 'Nightly', benefit: 'Releases chronic upper neck nerve tension' },
+        { id: 'ex-3', title: 'Scapular Squeezes', instructions: 'Pull shoulders down and back, squeezing your shoulder blades together. Hold 3s. Repeat 15 times.', frequency: '2x daily', benefit: 'Stabilizes thoracic spine & supports posture' }
+      ];
+    }
+    if (lower.includes('back') || lower.includes('lumbar') || lower.includes('disc') || lower.includes('sciatica')) {
+      return [
+        { id: 'ex-1', title: 'Prone McKenzie Press-Ups', instructions: 'Lie flat on your stomach, push up with your hands keeping your hips down. Hold 2s, slowly lower down. Repeat 10 times.', frequency: '3x daily', benefit: 'Centers disc material & relieves sciatic pressure' },
+        { id: 'ex-2', title: 'Pelvic Tilts & Core Activation', instructions: 'Lie on your back, knees bent. Flatten your lower back into the floor by contracting your abs. Hold 5s. Repeat 15 times.', frequency: 'Daily', benefit: 'Stabilizes hyper-mobile lower spinal segments' },
+        { id: 'ex-3', title: 'Decompression Bench Hang', instructions: 'Hold a stable bar or table edge, bend knees slightly, letting your hips hang down to traction the lower spine. Hold 45s.', frequency: 'Twice daily', benefit: 'Gently tractions & rehydrates compressed discs' }
+      ];
+    }
+    // General Spine Care
+    return [
+      { id: 'ex-1', title: 'Cat-Cow Spinal Mobilization', instructions: 'On all fours, slowly arch your spine upward like a cat, then drop your belly toward the floor looking up. Perform 15 slow reps.', frequency: 'Daily', benefit: 'Improves segment-by-segment spinal column mobility' },
+      { id: 'ex-2', title: 'Thoracic Windmills', instructions: 'Lie on your side, knees tucked 90 degrees. Sweep your top arm open to the opposite side, rotating your upper chest. Repeat 10 times each side.', frequency: 'Daily', benefit: 'Restores chest expansion & thoracic rib movement' },
+      { id: 'ex-3', title: 'Deep Diaphragmatic Breathing', instructions: 'Inhale into your lower ribs for 4s, hold 2s, exhale 6s. Focus on expanding the ribcage outwards. Perform for 5 minutes.', frequency: 'Twice daily', benefit: 'Regulates autonomous nervous system and calms musculature' }
+    ];
+  };
+
+  const getTreatmentPlanForCondition = (cond: string) => {
+    const lower = (cond || '').toLowerCase();
+    if (lower.includes('neck') || lower.includes('headache') || lower.includes('cervical') || lower.includes('posture')) {
+      return {
+        phase: 'Phase 2: Corrective Spine Care & Structural Stabilization',
+        milestone: 'Suboccipital nerve pathways are 70% calm. Next up: Scapular tracking evaluation in 2 visits.',
+        progress: 70,
+        frequency: '1 visit every 2 weeks',
+        doctorNote: 'Maintain chin-tuck exercises at your desk. Avoid looking down at your mobile screen; lift the screen to eye level.'
+      };
+    }
+    if (lower.includes('back') || lower.includes('lumbar') || lower.includes('disc') || lower.includes('sciatica')) {
+      return {
+        phase: 'Phase 1: Acute Decompression & Pain Management',
+        milestone: 'Sciatic pain has centralized. Focus is on rehydrating the L4/L5 disc spaces. Re-evaluation in 3 visits.',
+        progress: 45,
+        frequency: '2 visits per week for 2 more weeks',
+        doctorNote: 'Strictly avoid heavy forward-bending or single-sided loaded carries. Continue McKenzie extension press-ups.'
+      };
+    }
+    return {
+      phase: 'Phase 3: Prevention, Maintenance & Spinal Resilience',
+      milestone: 'All major mechanical alignment blocks have resolved. Focus is on maintaining segment health and postural posture.',
+      progress: 90,
+      frequency: '1 wellness visit per month',
+      doctorNote: 'Maintain good core stability exercises. Schedule your monthly check-in whenever your mobility feels restricted.'
+    };
+  };
+
   // Check existing session or URL query params on mount
   useEffect(() => {
     const urlRef = searchParams.get('ref') || searchParams.get('query');
@@ -810,7 +880,7 @@ export default function PatientPortalPage() {
                         : 'text-stone-400 hover:text-stone-200'
                     }`}
                   >
-                    Itinerary
+                    Recovery Dashboard
                   </button>
                   {portalConfig.allowReceiptDownload && (
                     <button
@@ -854,9 +924,9 @@ export default function PatientPortalPage() {
                 </div>
               </div>
 
-              {/* TAB 1: ITINERARY VIEW */}
+              {/* TAB 1: RECOVERY DASHBOARD VIEW */}
               {activeTab === 'itinerary' && (
-                <div className="p-6 sm:p-8 space-y-6">
+                <div className="p-6 sm:p-8 space-y-6 animate-fade-in">
                   
                   {/* Appointment Highlights Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -902,33 +972,175 @@ export default function PatientPortalPage() {
                   </div>
 
                   {/* Actions & Calendar Export */}
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 pb-4 border-b border-stone-100">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleDownloadCalendarFile}
+                        className="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-2 shadow-2xs"
+                      >
+                        <Download className="w-4 h-4 text-emerald-400" />
+                        <span>Add to Calendar (.ics)</span>
+                      </button>
+
+                      <a
+                        href={mapDirectionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition cursor-pointer flex items-center gap-2 border border-stone-200"
+                      >
+                        <MapPin className="w-4 h-4 text-emerald-800" />
+                        <span>Directions to Practice</span>
+                        <ExternalLink className="w-3 h-3 text-stone-400" />
+                      </a>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={handleDownloadCalendarFile}
-                      className="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-2 shadow-2xs"
+                      onClick={() => openBookingModal()}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-950 text-white text-xs font-bold transition cursor-pointer flex items-center gap-2 shadow-sm border border-emerald-700/50"
                     >
-                      <Download className="w-4 h-4 text-emerald-400" />
-                      <span>Add to Calendar (.ics)</span>
+                      <Sparkles className="w-4 h-4 text-emerald-300 animate-pulse" />
+                      <span>Book Next Visit (Pre-Filled)</span>
                     </button>
-
-                    <a
-                      href={mapDirectionsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold transition cursor-pointer flex items-center gap-2 border border-stone-200"
-                    >
-                      <MapPin className="w-4 h-4 text-emerald-800" />
-                      <span>Directions to Practice</span>
-                      <ExternalLink className="w-3 h-3 text-stone-400" />
-                    </a>
                   </div>
 
-                  {/* Pre-Visit Checklist & Clinical Instructions */}
+                  {/* HEALTH DASHBOARD INTERACTIVE SECTIONS */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    
+                    {/* CARE PLAN PHASE & MILESTONES */}
+                    {(() => {
+                      const plan = getTreatmentPlanForCondition(selectedAppt.condition);
+                      return (
+                        <div className="p-6 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-4">
+                          <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                            <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
+                              <ShieldCheck className="w-5 h-5 text-emerald-750" />
+                              <span>Clinical Care Plan</span>
+                            </h3>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                              Active Track
+                            </span>
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">CURRENT CARE PHASE:</span>
+                            <span className="text-sm font-bold text-stone-900 block leading-tight">{plan.phase}</span>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-bold text-stone-750">
+                              <span>Milestone Progress</span>
+                              <span>{plan.progress}%</span>
+                            </div>
+                            <div className="w-full bg-stone-200 rounded-full h-2.5 overflow-hidden">
+                              <div 
+                                className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" 
+                                style={{ width: `${plan.progress}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 pt-1 text-xs">
+                            <span className="font-bold text-stone-800 block uppercase text-[10px]">NEXT OUTCOME TARGET:</span>
+                            <p className="text-stone-600 leading-relaxed font-sans">{plan.milestone}</p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 pt-2.5 text-xs border-t border-stone-150">
+                            <div>
+                              <span className="font-bold text-stone-400 block uppercase text-[9px] tracking-wider">PRESCRIBED FREQUENCY</span>
+                              <span className="font-bold text-stone-800 mt-0.5 block">{plan.frequency}</span>
+                            </div>
+                            <div>
+                              <span className="font-bold text-stone-400 block uppercase text-[9px] tracking-wider">CLINICAL EXCELLENCE</span>
+                              <span className="font-bold text-emerald-800 mt-0.5 block">Statutory Regulated</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* REHAB EXERCISES & STREAKS */}
+                    <div className="p-6 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-4">
+                      <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                        <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-750" />
+                          <span>Home Rehab Exercises</span>
+                        </h3>
+                        <div className="flex items-center gap-1.5 bg-amber-55 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-md text-xs font-bold">
+                          <span>🔥 {exerciseStreak} Day Streak</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        {getExercisesForCondition(selectedAppt.condition).map((ex) => (
+                          <div 
+                            key={ex.id}
+                            onClick={() => handleToggleExercise(ex.id)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
+                              exerciseStatus[ex.id] 
+                                ? 'bg-emerald-50/40 border-emerald-500/30 shadow-2xs' 
+                                : 'bg-white border-stone-250 hover:border-stone-350'
+                            }`}
+                          >
+                            <div className="pt-0.5 shrink-0">
+                              <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                                exerciseStatus[ex.id]
+                                  ? 'bg-emerald-600 border-emerald-600 text-white'
+                                  : 'border-stone-300 bg-white text-transparent'
+                              }`}>
+                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-xs font-bold truncate ${exerciseStatus[ex.id] ? 'text-stone-500 line-through' : 'text-stone-900'}`}>
+                                  {ex.title}
+                                </span>
+                                <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded shrink-0">
+                                  {ex.frequency}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-stone-500 leading-snug mt-0.5 font-sans">
+                                {ex.instructions}
+                              </p>
+                              <span className="text-[10px] text-emerald-700 font-semibold block mt-1">
+                                Benefit: {ex.benefit}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="text-[10px] text-stone-400 text-center italic pt-1 border-t border-stone-150">
+                        * Complete these daily to reinforce alignment. Tapping a finished exercise increases your daily recovery streak.
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* CLINICAL OUTCOME RECOMMENDATIONS */}
+                  {(() => {
+                    const plan = getTreatmentPlanForCondition(selectedAppt.condition);
+                    return (
+                      <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/50 border border-amber-250/70 space-y-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                          <AlertCircle className="w-4 h-4 text-amber-700" />
+                          <span>Specialist clinical recommendation</span>
+                        </span>
+                        <p className="text-xs sm:text-sm text-stone-750 leading-relaxed font-semibold">
+                          "{plan.doctorNote}"
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Before You Arrive */}
                   <div className="p-5 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
                     <h4 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-800" />
-                      <span>Before You Arrive</span>
+                      <span>Before You Arrive Checklist</span>
                     </h4>
                     <ul className="text-xs text-stone-600 space-y-2">
                       <li className="flex items-start gap-2">

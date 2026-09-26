@@ -208,6 +208,41 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Sync props and context state on modal open
   useEffect(() => {
     if (isOpen) {
+      // Check for active logged-in patient session in portal to auto-fill details!
+      try {
+        const savedSession = sessionStorage.getItem('vance_patient_portal_session_v2');
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          if (parsed?.name || parsed?.email) {
+            let matchedPhone = '';
+            try {
+              const allLeads = JSON.parse(localStorage.getItem('vance_leads_v1') || '[]');
+              if (Array.isArray(allLeads)) {
+                const match = allLeads.find(
+                  (l: any) =>
+                    (parsed.email && l.email?.toLowerCase() === parsed.email.toLowerCase()) ||
+                    (parsed.name && l.name?.toLowerCase() === parsed.name.toLowerCase())
+                );
+                if (match?.phone) {
+                  matchedPhone = match.phone;
+                }
+              }
+            } catch {
+              // ignore
+            }
+
+            setFormData((prev) => ({
+              ...prev,
+              name: prev.name || parsed.name || '',
+              email: prev.email || parsed.email || '',
+              phone: prev.phone || matchedPhone || '',
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to prefill patient booking details from session', err);
+      }
+
       const resolvedType = propInitialServiceType || context.bookingInitialServiceType || 'initial';
       const resolvedTitle = propInitialServiceTitle || context.bookingInitialServiceTitle || '';
       const resolvedPrice = propInitialServicePrice || context.bookingInitialServicePrice;
