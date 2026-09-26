@@ -1,0 +1,207 @@
+{
+  "entities": {
+    "clinics": {
+      "title": "Clinic Organizations (Multi-Tenant)",
+      "description": "Multi-tenant clinic entity with branding, address, and operational configurations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "zip": { "type": "string" },
+        "theme": { "type": "object" },
+        "stripeAccountId": { "type": "string" },
+        "stripePublishableKey": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "slug"]
+    },
+    "users": {
+      "title": "User Profiles & Roles",
+      "description": "Users across clinics with roles: admin, staff, patient",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "staff", "patient"] },
+        "phone": { "type": "string" },
+        "emailVerified": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "clinicId", "email", "role"]
+    },
+    "appointments": {
+      "title": "Appointments",
+      "description": "Scheduled appointments with denormalized doctor & clinic data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "patientEmail": { "type": "string" },
+        "patientPhone": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "conditionId": { "type": "string" },
+        "conditionName": { "type": "string" },
+        "branch": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "rescheduled", "cancelled", "completed"] },
+        "paymentStatus": { "type": "string", "enum": ["pending", "deposit_paid", "paid_full", "refunded"] },
+        "paymentAmount": { "type": "string" },
+        "stripePaymentIntentId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "clinicId", "patientId", "doctorId", "date", "time"]
+    },
+    "inquiries": {
+      "title": "Patient Inquiries & Leads",
+      "description": "Contact form submissions and lead inquiries for the clinic",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "condition": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "contacted", "converted", "archived"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "clinicId", "name", "email"]
+    },
+    "conditions": {
+      "title": "Clinical Conditions",
+      "description": "Conditions treated, symptoms, rehab tracks, and specialist assignments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "description": { "type": "string" },
+        "specialistDoctorId": { "type": "string" },
+        "specialistDoctorName": { "type": "string" },
+        "treatmentPlan": { "type": "object" },
+        "exercises": { "type": "array" }
+      },
+      "required": ["id", "clinicId", "name", "slug"]
+    },
+    "teamMembers": {
+      "title": "Clinical Team & Doctors",
+      "description": "Practitioners, chiropractors, and clinic staff with bios and credentials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "qualifications": { "type": "string" },
+        "specialties": { "type": "array" },
+        "bio": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "clinicId", "name", "role"]
+    },
+    "blogPosts": {
+      "title": "Educational Articles & Blog Posts",
+      "description": "SEO articles, recovery guides, and patient education posts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "tags": { "type": "array" },
+        "published": { "type": "boolean" },
+        "publishedAt": { "type": "string" }
+      },
+      "required": ["id", "clinicId", "title", "slug"]
+    },
+    "testimonials": {
+      "title": "Patient Reviews & Testimonials",
+      "description": "Verified patient outcomes and testimonials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "condition": { "type": "string" },
+        "quote": { "type": "string" },
+        "rating": { "type": "number" },
+        "verified": { "type": "boolean" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "clinicId", "patientName", "quote", "rating"]
+    },
+    "faqs": {
+      "title": "Frequently Asked Questions",
+      "description": "Clinic FAQs categorized by billing, clinical care, first visit, and insurance",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "category": { "type": "string" },
+        "question": { "type": "string" },
+        "answer": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "clinicId", "question", "answer"]
+    }
+  },
+  "firestore": {
+    "/clinics/{clinicId}": {
+      "schema": "clinics",
+      "description": "Clinic organization profile, branding and settings"
+    },
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profile with role (admin, staff, patient) and tenant clinicId"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "appointments",
+      "description": "Multi-tenant appointments with denormalized doctor and patient info"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "inquiries",
+      "description": "Lead and contact inquiries tied to clinicId"
+    },
+    "/conditions/{conditionId}": {
+      "schema": "conditions",
+      "description": "Treatable conditions and rehab plans per clinic"
+    },
+    "/teamMembers/{memberId}": {
+      "schema": "teamMembers",
+      "description": "Doctors and team members per clinic"
+    },
+    "/blogPosts/{postId}": {
+      "schema": "blogPosts",
+      "description": "Clinic blog articles and health guides"
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "testimonials",
+      "description": "Patient testimonials and reviews"
+    },
+    "/faqs/{faqId}": {
+      "schema": "faqs",
+      "description": "Clinic FAQ entries"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isClinicStaff(clinicId) {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.clinicId == clinicId
+      );
+    }
+
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < 5 * 1024 * 1024; // 5MB limit
+    }
+
+    // Clinic media (headshots, hero images, blog thumbnails, clinic photos)
+    match /clinics/{clinicId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isClinicStaff(clinicId) && isValidImage();
+    }
+
+    // Patient records / intake uploads (strictly private to patient and staff)
+    match /patients/{patientId}/{allPaths=**} {
+      allow read, write: if isAuthenticated() && (
+        request.auth.uid == patientId ||
+        request.auth.token.role in ['admin', 'staff']
+      );
+    }
+  }
+}

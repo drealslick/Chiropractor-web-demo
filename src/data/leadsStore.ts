@@ -4,6 +4,7 @@ import {
   sendLiveOrSimulatedSms,
   interpolateTemplate,
 } from './gatewayStore';
+import { syncAppointmentToFirestore } from '../services/firebaseSync';
 
 export interface PatientLead {
   id: string;
@@ -412,6 +413,13 @@ export function saveLead(
         message: `${newLead.clinicName}: We received your booking request for ${newLead.date} @ ${newLead.time}. Ref: ${newLead.id}.`,
       });
     }
+  }
+
+  // Sync lead asynchronously to Cloud Firestore for real-time multi-device access
+  try {
+    syncAppointmentToFirestore(newLead).catch(() => {});
+  } catch {
+    // Ignore background network failure
   }
 
   // Attempt non-blocking Supabase sync if table exists

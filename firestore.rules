@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Role verification checking custom token claims or fallback to users collection doc
+    function hasRole(role) {
+      return isAuthenticated() && (
+        request.auth.token.role == role ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == role)
+      );
+    }
+
+    function getUserClinicId() {
+      return request.auth.token.clinicId != null 
+        ? request.auth.token.clinicId 
+        : (exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? getUserData().clinicId : null);
+    }
+
+    function isClinicAdmin(clinicId) {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.superAdmin == true ||
+        request.auth.token.email.matches('.*@vancehealth[.]com') ||
+        (hasRole('admin') && getUserClinicId() == clinicId)
+      );
+    }
+
+    function isClinicStaff(clinicId) {
+      return isAuthenticated() && (
+        isClinicAdmin(clinicId) ||
+        request.auth.token.email.matches('.*@vancehealth[.]com') ||
+        (hasRole('staff') && getUserClinicId() == clinicId)
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. Clinics Collection (Multi-Tenant)
+    // Staff CANNOT modify theme or settings; ONLY clinic admins can update
+    match /clinics/{clinicId} {
+      allow read: if true;
+      allow update: if isClinicAdmin(clinicId);
+      allow create: if isClinicAdmin(clinicId);
+      allow delete: if isAuthenticated() && request.auth.token.superAdmin == true;
+    }
+
+    // 2. Users Collection
+    // Patients can only view/update their own profile
+    // Staff can read patients within their clinic tenant
+    match /users/{userId} {
+      allow read: if isOwner(userId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) || (isAuthenticated() && isClinicAdmin(resource.data.clinicId));
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
+    }
+
+    // 3. Appointments Collection
+    // Strict isolation: Patients can only access their own appointments
+    // Staff/Doctors can access appointments for their clinic
+    match /appointments/{appointmentId} {
+      allow read: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
+                     (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+      
+      allow create: if (isAuthenticated() && request.resource.data.patientId == request.auth.uid) ||
+                      (isAuthenticated() && isClinicStaff(request.resource.data.clinicId));
+
+      allow update: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
+                      (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
+    }
+
+    // 4. Inquiries / Leads Collection
+    // Public can create (website contact form), but only clinic staff can read/manage
+    match /inquiries/{inquiryId} {
+      allow create: if true;
+      allow read, update: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
+    }
+
+    // 5. Conditions, Team, Blogs, Testimonials, FAQs (Public Content)
+    // Public read; staff can write
+    match /conditions/{conditionId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+    }
+
+    match /teamMembers/{memberId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+    }
+
+    match /blogPosts/{postId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+    }
+
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+    }
+
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+    }
+  }
+}

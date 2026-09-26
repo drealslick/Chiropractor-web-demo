@@ -2040,28 +2040,13 @@ export function AgencyWorkspace({
         {/* Footer */}
         <div className="px-4 py-3 bg-stone-950 border-t border-stone-850 flex items-center justify-between text-xs text-stone-400 shrink-0">
           <div className="flex items-center gap-2">
-            {hasSupabase ? (
-              syncStatus === 'synced' ? (
-                <>
-                  <CloudCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="text-[11px] text-stone-300">
-                    <strong className="text-emerald-400 font-semibold">Cloud Synced</strong> • PostgreSQL / Supabase connected
-                  </span>
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
-                  <span className="text-[11px] text-amber-300">Syncing to cloud database...</span>
-                </>
-              )
-            ) : (
-              <>
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-[11px] text-stone-400">
-                  <strong className="text-stone-300 font-semibold">Local Storage</strong> • Active in this browser
-                </span>
-              </>
-            )}
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[11px] text-stone-300">
+              <strong className="text-emerald-400 font-semibold">Firebase Cloud Active</strong> • Cloud Firestore & Auth Online
+            </span>
           </div>
           <button
             onClick={onClose}

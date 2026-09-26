@@ -13,6 +13,14 @@ import {
   PatientAccount,
 } from '../data/leadsStore';
 import {
+  registerPatientWithFirebaseAuth,
+  loginPatientWithFirebaseAuth,
+  sendRealPasswordReset,
+  fetchAppointmentsByEmailFromFirestore,
+  fetchAppointmentByIdFromFirestore,
+  logoutPatientFromFirebase,
+} from '../services/firebaseSync';
+import {
   Calendar,
   Clock,
   User,
@@ -65,7 +73,7 @@ export default function PatientPortalPage() {
 
   // Auth Mode: 'account' (Email/Password) vs 'quickRef' (Booking ID)
   const [authMode, setAuthMode] = useState<'account' | 'quickRef'>('account');
-  const [accountTab, setAccountTab] = useState<'login' | 'register'>('login');
+  const [accountTab, setAccountTab] = useState<'login' | 'register' | 'forgot'>('login');
 
   // Account Form Fields
   const [emailInput, setEmailInput] = useState('');
@@ -197,7 +205,7 @@ export default function PatientPortalPage() {
     }
   }, [searchParams]);
 
-  const handleDirectRefLookup = (query: string, phoneCheck?: string) => {
+  const handleDirectRefLookup = async (query: string, phoneCheck?: string) => {
     setLoginError('');
     const cleanId = query.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
     if (!cleanId) {
@@ -205,7 +213,15 @@ export default function PatientPortalPage() {
       return;
     }
 
-    const matches = findPatientAppointments(cleanId);
+    let matches = findPatientAppointments(cleanId);
+    if (matches.length === 0) {
+      // Query Cloud Firestore directly
+      const firestoreAppt = await fetchAppointmentByIdFromFirestore(cleanId);
+      if (firestoreAppt) {
+        matches = [firestoreAppt];
+      }
+    }
+
     if (matches.length > 0) {
       const primary = matches[0];
 
@@ -249,10 +265,33 @@ export default function PatientPortalPage() {
     }, 400);
   };
 
-  const handleAccountAuth = (e: React.FormEvent) => {
+  const handleAccountAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     setLoginSuccessMessage('');
+
+    if (accountTab === 'forgot') {
+      if (!emailInput.trim()) {
+        setLoginError('Please enter your registered email address.');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const resetRes = await sendRealPasswordReset(emailInput.trim());
+        setIsLoading(false);
+        if (resetRes.success) {
+          setLoginSuccessMessage(resetRes.message);
+          setAccountTab('login');
+        } else {
+          setLoginError(resetRes.message);
+        }
+      } catch (err: any) {
+        setIsLoading(false);
+        setLoginError(err.message || 'Failed to dispatch password recovery link.');
+      }
+      return;
+    }
 
     if (accountTab === 'register') {
       if (!nameInput.trim() || !emailInput.trim() || !passwordInput.trim()) {
@@ -261,27 +300,40 @@ export default function PatientPortalPage() {
       }
 
       setIsLoading(true);
-      setTimeout(() => {
+      try {
+        // 1. Register with Firebase Auth & Cloud Firestore
+        const firebaseRes = await registerPatientWithFirebaseAuth(nameInput, emailInput, passwordInput, phoneInput);
+        
+        // Also register in local registry as cache fallback
+        registerPatientAccount(nameInput, emailInput, passwordInput, phoneInput);
+
         setIsLoading(false);
-        const res = registerPatientAccount(nameInput, emailInput, passwordInput, phoneInput);
-        if (res.success && res.account) {
-          const appts = findPatientAppointmentsByEmail(res.account.email);
-          setActivePatient({ name: res.account.name, email: res.account.email, isAccount: true });
+        if (firebaseRes.success && firebaseRes.account) {
+          // Fetch appointments from Cloud Firestore first, fallback to local store
+          let appts = await fetchAppointmentsByEmailFromFirestore(firebaseRes.account.email);
+          if (appts.length === 0) {
+            appts = findPatientAppointmentsByEmail(firebaseRes.account.email);
+          }
+
+          setActivePatient({ name: firebaseRes.account.name, email: firebaseRes.account.email, isAccount: true });
           setPatientAppointments(appts);
           if (appts.length > 0) setSelectedAppt(appts[0]);
 
           try {
             sessionStorage.setItem(
               PATIENT_SESSION_KEY,
-              JSON.stringify({ id: res.account.id, name: res.account.name, email: res.account.email, isAccount: true })
+              JSON.stringify({ id: firebaseRes.account.id, name: firebaseRes.account.name, email: firebaseRes.account.email, isAccount: true })
             );
           } catch {
             // Ignore
           }
         } else {
-          setLoginError(res.message);
+          setLoginError(firebaseRes.message);
         }
-      }, 400);
+      } catch (err: any) {
+        setIsLoading(false);
+        setLoginError(err.message || 'Account registration failed.');
+      }
     } else {
       // Login
       if (!emailInput.trim() || !passwordInput.trim()) {
@@ -290,31 +342,60 @@ export default function PatientPortalPage() {
       }
 
       setIsLoading(true);
-      setTimeout(() => {
+      try {
+        // Try Firebase Auth first
+        const authRes = await loginPatientWithFirebaseAuth(emailInput, passwordInput);
+        
         setIsLoading(false);
-        const res = authenticatePatientAccount(emailInput, passwordInput);
-        if (res.success && res.account) {
-          const appts = findPatientAppointmentsByEmail(res.account.email);
-          setActivePatient({ name: res.account.name, email: res.account.email, isAccount: true });
+        if (authRes.success && authRes.account) {
+          // Fetch live appointments from Cloud Firestore
+          let appts = await fetchAppointmentsByEmailFromFirestore(authRes.account.email);
+          if (appts.length === 0) {
+            appts = findPatientAppointmentsByEmail(authRes.account.email);
+          }
+
+          setActivePatient({ name: authRes.account.name, email: authRes.account.email, isAccount: true });
           setPatientAppointments(appts);
           if (appts.length > 0) setSelectedAppt(appts[0]);
 
           try {
             sessionStorage.setItem(
               PATIENT_SESSION_KEY,
-              JSON.stringify({ id: res.account.id, name: res.account.name, email: res.account.email, isAccount: true })
+              JSON.stringify({ id: authRes.account.id, name: authRes.account.name, email: authRes.account.email, isAccount: true })
             );
           } catch {
             // Ignore
           }
         } else {
-          setLoginError(res.message);
+          // Fallback check against local seed accounts
+          const localRes = authenticatePatientAccount(emailInput, passwordInput);
+          if (localRes.success && localRes.account) {
+            const appts = findPatientAppointmentsByEmail(localRes.account.email);
+            setActivePatient({ name: localRes.account.name, email: localRes.account.email, isAccount: true });
+            setPatientAppointments(appts);
+            if (appts.length > 0) setSelectedAppt(appts[0]);
+
+            try {
+              sessionStorage.setItem(
+                PATIENT_SESSION_KEY,
+                JSON.stringify({ id: localRes.account.id, name: localRes.account.name, email: localRes.account.email, isAccount: true })
+              );
+            } catch {
+              // Ignore
+            }
+          } else {
+            setLoginError(authRes.message || localRes.message);
+          }
         }
-      }, 400);
+      } catch (err: any) {
+        setIsLoading(false);
+        setLoginError(err.message || 'Authentication error.');
+      }
     }
   };
 
   const handleLogout = () => {
+    logoutPatientFromFirebase();
     sessionStorage.removeItem(PATIENT_SESSION_KEY);
     setActivePatient(null);
     setSelectedAppt(null);
@@ -496,17 +577,30 @@ export default function PatientPortalPage() {
                 </div>
               )}
 
+              {loginSuccessMessage && (
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>{loginSuccessMessage}</span>
+                </div>
+              )}
+
               {/* TAB 1: PATIENT ACCOUNT (EMAIL & PASSWORD) */}
               {authMode === 'account' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-stone-100 pb-3">
                     <div>
                       <h2 className="text-lg sm:text-xl font-serif font-bold text-stone-950">
-                        {accountTab === 'login' ? 'Patient Sign In' : 'Create Patient Account'}
+                        {accountTab === 'login' 
+                          ? 'Patient Sign In' 
+                          : accountTab === 'forgot'
+                          ? 'Forgot Password'
+                          : 'Create Patient Account'}
                       </h2>
                       <p className="text-xs text-stone-500 mt-0.5">
                         {accountTab === 'login'
                           ? 'Access all your visits, receipts & recovery plan without booking IDs.'
+                          : accountTab === 'forgot'
+                          ? 'Enter your registered email address to request a secure password recovery link.'
                           : 'Set up your credentials to automatically link all current and future bookings.'}
                       </p>
                     </div>
@@ -516,10 +610,11 @@ export default function PatientPortalPage() {
                         onClick={() => {
                           setAccountTab(accountTab === 'login' ? 'register' : 'login');
                           setLoginError('');
+                          setLoginSuccessMessage('');
                         }}
-                        className="text-emerald-800 hover:text-emerald-950 font-bold underline underline-offset-2 cursor-pointer"
+                        className="text-emerald-800 hover:text-emerald-950 font-bold underline underline-offset-2 cursor-pointer text-right min-w-[90px]"
                       >
-                        {accountTab === 'login' ? 'Create Account' : 'Already have account?'}
+                        {accountTab === 'login' ? 'Create Account' : 'Back to Login'}
                       </button>
                     </div>
                   </div>
@@ -570,19 +665,36 @@ export default function PatientPortalPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
-                        Password *
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={passwordInput}
-                        onChange={(e) => setPasswordInput(e.target.value)}
-                        className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
-                      />
-                    </div>
+                    {accountTab !== 'forgot' && (
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-stone-700">
+                            Password *
+                          </label>
+                          {accountTab === 'login' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAccountTab('forgot');
+                                setLoginError('');
+                                setLoginSuccessMessage('');
+                              }}
+                              className="text-[11px] text-stone-500 hover:text-emerald-800 underline font-medium cursor-pointer"
+                            >
+                              Forgot Password?
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="password"
+                          required
+                          placeholder="••••••••"
+                          value={passwordInput}
+                          onChange={(e) => setPasswordInput(e.target.value)}
+                          className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:bg-white focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700"
+                        />
+                      </div>
+                    )}
 
                     <button
                       type="submit"
@@ -594,6 +706,11 @@ export default function PatientPortalPage() {
                           <UserPlus className="w-4 h-4 text-emerald-400" />
                           <span>{isLoading ? 'Creating Account...' : 'Register & Enter Portal →'}</span>
                         </>
+                      ) : accountTab === 'forgot' ? (
+                        <>
+                          <Mail className="w-4 h-4 text-emerald-400 animate-pulse" />
+                          <span>{isLoading ? 'Sending Link...' : 'Send Recovery Link →'}</span>
+                        </>
                       ) : (
                         <>
                           <Lock className="w-4 h-4 text-emerald-400" />
@@ -601,6 +718,20 @@ export default function PatientPortalPage() {
                         </>
                       )}
                     </button>
+
+                    {accountTab === 'forgot' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountTab('login');
+                          setLoginError('');
+                          setLoginSuccessMessage('');
+                        }}
+                        className="w-full text-center text-xs font-bold text-stone-500 hover:text-stone-900 transition py-1 cursor-pointer"
+                      >
+                        ← Back to Sign In
+                      </button>
+                    )}
                   </form>
 
                   {/* Demo Account Passkeys */}
@@ -995,146 +1126,152 @@ export default function PatientPortalPage() {
                       </a>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => openBookingModal()}
-                      className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-950 text-white text-xs font-bold transition cursor-pointer flex items-center gap-2 shadow-sm border border-emerald-700/50"
-                    >
-                      <Sparkles className="w-4 h-4 text-emerald-300 animate-pulse" />
-                      <span>Book Next Visit (Pre-Filled)</span>
-                    </button>
+                    {activePatient?.isAccount === true && (
+                      <button
+                        type="button"
+                        onClick={() => openBookingModal()}
+                        className="px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-950 text-white text-xs font-bold transition cursor-pointer flex items-center gap-2 shadow-sm border border-emerald-700/50"
+                      >
+                        <Sparkles className="w-4 h-4 text-emerald-300 animate-pulse" />
+                        <span>Book Next Visit (Pre-Filled)</span>
+                      </button>
+                    )}
                   </div>
 
-                  {/* HEALTH DASHBOARD INTERACTIVE SECTIONS */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                    
-                    {/* CARE PLAN PHASE & MILESTONES */}
-                    {(() => {
-                      const plan = getTreatmentPlanForCondition(selectedAppt.condition);
-                      return (
+                  {activePatient?.isAccount === true && (
+                    <>
+                      {/* HEALTH DASHBOARD INTERACTIVE SECTIONS */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        
+                        {/* CARE PLAN PHASE & MILESTONES */}
+                        {(() => {
+                          const plan = getTreatmentPlanForCondition(selectedAppt.condition);
+                          return (
+                            <div className="p-6 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-4">
+                              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                                <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
+                                  <ShieldCheck className="w-5 h-5 text-emerald-750" />
+                                  <span>Clinical Care Plan</span>
+                                </h3>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                  Active Track
+                                </span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">CURRENT CARE PHASE:</span>
+                                <span className="text-sm font-bold text-stone-900 block leading-tight">{plan.phase}</span>
+                              </div>
+
+                              {/* Progress bar */}
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between text-xs font-bold text-stone-750">
+                                  <span>Milestone Progress</span>
+                                  <span>{plan.progress}%</span>
+                                </div>
+                                <div className="w-full bg-stone-200 rounded-full h-2.5 overflow-hidden">
+                                  <div 
+                                    className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" 
+                                    style={{ width: `${plan.progress}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-1 pt-1 text-xs">
+                                <span className="font-bold text-stone-800 block uppercase text-[10px]">NEXT OUTCOME TARGET:</span>
+                                <p className="text-stone-600 leading-relaxed font-sans">{plan.milestone}</p>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 pt-2.5 text-xs border-t border-stone-150">
+                                <div>
+                                  <span className="font-bold text-stone-400 block uppercase text-[9px] tracking-wider">PRESCRIBED FREQUENCY</span>
+                                  <span className="font-bold text-stone-800 mt-0.5 block">{plan.frequency}</span>
+                                </div>
+                                <div>
+                                  <span className="font-bold text-stone-400 block uppercase text-[9px] tracking-wider">CLINICAL EXCELLENCE</span>
+                                  <span className="font-bold text-emerald-800 mt-0.5 block">Statutory Regulated</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* REHAB EXERCISES & STREAKS */}
                         <div className="p-6 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-4">
                           <div className="flex items-center justify-between border-b border-stone-200 pb-3">
                             <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
-                              <ShieldCheck className="w-5 h-5 text-emerald-750" />
-                              <span>Clinical Care Plan</span>
+                              <CheckCircle2 className="w-5 h-5 text-emerald-750" />
+                              <span>Home Rehab Exercises</span>
                             </h3>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                              Active Track
-                            </span>
-                          </div>
-
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">CURRENT CARE PHASE:</span>
-                            <span className="text-sm font-bold text-stone-900 block leading-tight">{plan.phase}</span>
-                          </div>
-
-                          {/* Progress bar */}
-                          <div className="space-y-1.5">
-                            <div className="flex justify-between text-xs font-bold text-stone-750">
-                              <span>Milestone Progress</span>
-                              <span>{plan.progress}%</span>
+                            <div className="flex items-center gap-1.5 bg-amber-55 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-md text-xs font-bold">
+                              <span>🔥 {exerciseStreak} Day Streak</span>
                             </div>
-                            <div className="w-full bg-stone-200 rounded-full h-2.5 overflow-hidden">
+                          </div>
+
+                          <div className="space-y-3">
+                            {getExercisesForCondition(selectedAppt.condition).map((ex) => (
                               <div 
-                                className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" 
-                                style={{ width: `${plan.progress}%` }}
-                              />
-                            </div>
+                                key={ex.id}
+                                onClick={() => handleToggleExercise(ex.id)}
+                                className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
+                                  exerciseStatus[ex.id] 
+                                    ? 'bg-emerald-50/40 border-emerald-500/30 shadow-2xs' 
+                                    : 'bg-white border-stone-250 hover:border-stone-350'
+                                }`}
+                              >
+                                <div className="pt-0.5 shrink-0">
+                                  <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+                                    exerciseStatus[ex.id]
+                                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                                      : 'border-stone-300 bg-white text-transparent'
+                                  }`}>
+                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className={`text-xs font-bold truncate ${exerciseStatus[ex.id] ? 'text-stone-500 line-through' : 'text-stone-900'}`}>
+                                      {ex.title}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded shrink-0">
+                                      {ex.frequency}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-stone-500 leading-snug mt-0.5 font-sans">
+                                    {ex.instructions}
+                                  </p>
+                                  <span className="text-[10px] text-emerald-700 font-semibold block mt-1">
+                                    Benefit: {ex.benefit}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
 
-                          <div className="space-y-1 pt-1 text-xs">
-                            <span className="font-bold text-stone-800 block uppercase text-[10px]">NEXT OUTCOME TARGET:</span>
-                            <p className="text-stone-600 leading-relaxed font-sans">{plan.milestone}</p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 pt-2.5 text-xs border-t border-stone-150">
-                            <div>
-                              <span className="font-bold text-stone-400 block uppercase text-[9px] tracking-wider">PRESCRIBED FREQUENCY</span>
-                              <span className="font-bold text-stone-800 mt-0.5 block">{plan.frequency}</span>
-                            </div>
-                            <div>
-                              <span className="font-bold text-stone-400 block uppercase text-[9px] tracking-wider">CLINICAL EXCELLENCE</span>
-                              <span className="font-bold text-emerald-800 mt-0.5 block">Statutory Regulated</span>
-                            </div>
+                          <div className="text-[10px] text-stone-400 text-center italic pt-1 border-t border-stone-150">
+                            * Complete these daily to reinforce alignment. Tapping a finished exercise increases your daily recovery streak.
                           </div>
                         </div>
-                      );
-                    })()}
 
-                    {/* REHAB EXERCISES & STREAKS */}
-                    <div className="p-6 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-4">
-                      <div className="flex items-center justify-between border-b border-stone-200 pb-3">
-                        <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-750" />
-                          <span>Home Rehab Exercises</span>
-                        </h3>
-                        <div className="flex items-center gap-1.5 bg-amber-55 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-md text-xs font-bold">
-                          <span>🔥 {exerciseStreak} Day Streak</span>
-                        </div>
                       </div>
 
-                      <div className="space-y-3">
-                        {getExercisesForCondition(selectedAppt.condition).map((ex) => (
-                          <div 
-                            key={ex.id}
-                            onClick={() => handleToggleExercise(ex.id)}
-                            className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
-                              exerciseStatus[ex.id] 
-                                ? 'bg-emerald-50/40 border-emerald-500/30 shadow-2xs' 
-                                : 'bg-white border-stone-250 hover:border-stone-350'
-                            }`}
-                          >
-                            <div className="pt-0.5 shrink-0">
-                              <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
-                                exerciseStatus[ex.id]
-                                  ? 'bg-emerald-600 border-emerald-600 text-white'
-                                  : 'border-stone-300 bg-white text-transparent'
-                              }`}>
-                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                              </div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className={`text-xs font-bold truncate ${exerciseStatus[ex.id] ? 'text-stone-500 line-through' : 'text-stone-900'}`}>
-                                  {ex.title}
-                                </span>
-                                <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded shrink-0">
-                                  {ex.frequency}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-stone-500 leading-snug mt-0.5 font-sans">
-                                {ex.instructions}
-                              </p>
-                              <span className="text-[10px] text-emerald-700 font-semibold block mt-1">
-                                Benefit: {ex.benefit}
-                              </span>
-                            </div>
+                      {/* CLINICAL OUTCOME RECOMMENDATIONS */}
+                      {(() => {
+                        const plan = getTreatmentPlanForCondition(selectedAppt.condition);
+                        return (
+                          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/50 border border-amber-250/70 space-y-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                              <AlertCircle className="w-4 h-4 text-amber-700" />
+                              <span>Specialist clinical recommendation</span>
+                            </span>
+                            <p className="text-xs sm:text-sm text-stone-750 leading-relaxed font-semibold">
+                              "{plan.doctorNote}"
+                            </p>
                           </div>
-                        ))}
-                      </div>
-
-                      <div className="text-[10px] text-stone-400 text-center italic pt-1 border-t border-stone-150">
-                        * Complete these daily to reinforce alignment. Tapping a finished exercise increases your daily recovery streak.
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* CLINICAL OUTCOME RECOMMENDATIONS */}
-                  {(() => {
-                    const plan = getTreatmentPlanForCondition(selectedAppt.condition);
-                    return (
-                      <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/50 border border-amber-250/70 space-y-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
-                          <AlertCircle className="w-4 h-4 text-amber-700" />
-                          <span>Specialist clinical recommendation</span>
-                        </span>
-                        <p className="text-xs sm:text-sm text-stone-750 leading-relaxed font-semibold">
-                          "{plan.doctorNote}"
-                        </p>
-                      </div>
-                    );
-                  })()}
+                        );
+                      })()}
+                    </>
+                  )}
 
                   {/* Before You Arrive */}
                   <div className="p-5 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
