@@ -60,18 +60,21 @@ function sanitize(clinic: ClinicInfo) {
   return out;
 }
 
-function readCachedClinic(): ClinicInfo {
+function getInitialClinic(): ClinicInfo {
+  const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
+  const presetData = agencyDemoPresets[defaultPresetKey] || {};
+  const baseClinic = { ...defaultClinic, ...presetData };
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return { ...defaultClinic, ...JSON.parse(saved) };
+    if (saved) return { ...baseClinic, ...JSON.parse(saved) };
   } catch {
     // ignore
   }
-  return defaultClinic;
+  return baseClinic;
 }
 
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [clinicData, setClinicData] = useState<ClinicInfo>(readCachedClinic);
+  const [clinicData, setClinicData] = useState<ClinicInfo>(getInitialClinic);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'local_only');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -251,8 +254,11 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 
   const resetClinic = useCallback(() => {
-    setClinicData(defaultClinic);
-    persist(defaultClinic);
+    const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
+    const presetData = agencyDemoPresets[defaultPresetKey] || {};
+    const baseClinic = { ...defaultClinic, ...presetData };
+    setClinicData(baseClinic);
+    persist(baseClinic);
   }, [persist]);
 
   const loadPreset = useCallback(
@@ -269,7 +275,10 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const importClinicBlueprint = useCallback(
     (blueprint: Partial<ClinicInfo>) => {
       try {
-        const next: ClinicInfo = { ...defaultClinic, ...blueprint };
+        const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
+        const presetData = agencyDemoPresets[defaultPresetKey] || {};
+        const baseClinic = { ...defaultClinic, ...presetData };
+        const next: ClinicInfo = { ...baseClinic, ...blueprint };
         setClinicData(next);
         persist(next);
         return true;

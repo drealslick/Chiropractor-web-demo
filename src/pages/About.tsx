@@ -58,9 +58,16 @@ export default function About() {
   const doctorQuote =
     clinic.aboutDoctorQuote || clinic.doctorQuote || defaultAboutJourney.quote;
 
-  const journeyP1 = clinic.aboutJourneyParagraph1 || defaultAboutJourney.paragraph1;
-  const journeyP2 = clinic.aboutJourneyParagraph2 || defaultAboutJourney.paragraph2;
-  const journeyP3 = clinic.aboutJourneyParagraph3 || defaultAboutJourney.paragraph3;
+  const clinicName = clinic.name || 'Our Practice';
+  const journeyP1 = (clinic.aboutJourneyParagraph1 || defaultAboutJourney.paragraph1)
+    .replace(/Vance Health Practice Architecture/g, clinicName)
+    .replace(/Vance Health/g, clinicName);
+  const journeyP2 = (clinic.aboutJourneyParagraph2 || defaultAboutJourney.paragraph2)
+    .replace(/Vance Health Practice Architecture/g, clinicName)
+    .replace(/Vance Health/g, clinicName);
+  const journeyP3 = (clinic.aboutJourneyParagraph3 || defaultAboutJourney.paragraph3)
+    .replace(/Vance Health Practice Architecture/g, clinicName)
+    .replace(/Vance Health/g, clinicName);
 
   const renderPillarIcon = (iconName: string) => {
     switch (iconName) {
@@ -250,7 +257,7 @@ export default function About() {
               {clinic.aboutJourneySubtitle || 'Our Founding Story'}
             </span>
             <h2 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight">
-              {clinic.aboutJourneyTitle || 'The Journey Behind Vance Health'}
+              {clinic.aboutJourneyTitle || `The Journey Behind ${clinic.name || 'Vance Health'}`}
             </h2>
           </div>
 
