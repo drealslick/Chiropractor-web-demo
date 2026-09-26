@@ -640,7 +640,107 @@ export const sendTransactionalEmail = functions.https.onCall(async (data, contex
 });
 
 /**
- * 6. Scheduled Cleanup Function: cleanupStaleDemoSessions
+ * 6. Callable Cloud Function: sendAutomatedNotification
+ * Server-side SMS & Email dispatcher for Twilio & Resend
+ */
+export const sendAutomatedNotification = functions.https.onCall(async (data, context) => {
+  const { channel, recipient, messageText, subject, eventType, clinicName } = data;
+
+  if (!recipient || !channel || !messageText) {
+    throw new functions.https.HttpsError('invalid-argument', 'channel, recipient, and messageText are required.');
+  }
+
+  // 1. Channel = SMS via Twilio
+  if (channel === 'sms') {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID || functions.config().twilio?.account_sid;
+    const authToken = process.env.TWILIO_AUTH_TOKEN || functions.config().twilio?.auth_token;
+    const fromPhone = process.env.TWILIO_PHONE_NUMBER || functions.config().twilio?.phone_number;
+
+    if (!accountSid || !authToken || !fromPhone) {
+      functions.logger.info(`Twilio not fully configured in environment. Returning simulated dispatch for SMS to ${recipient}`);
+      return {
+        success: true,
+        mode: 'simulated',
+        channel: 'sms',
+        recipient,
+        message: `Simulated SMS dispatched to ${recipient}`,
+      };
+    }
+
+    try {
+      const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+      const formData = new URLSearchParams();
+      formData.append('To', recipient);
+      formData.append('From', fromPhone);
+      formData.append('Body', messageText);
+
+      const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+
+      const twilioRes: any = await response.json();
+      if (response.ok && (twilioRes.status === 'queued' || twilioRes.status === 'sent' || twilioRes.sid)) {
+        return {
+          success: true,
+          mode: 'live',
+          channel: 'sms',
+          sid: twilioRes.sid,
+          message: `Live Twilio SMS queued (SID: ${twilioRes.sid})`,
+        };
+      } else {
+        throw new Error(twilioRes.message || 'Twilio transmission failed');
+      }
+    } catch (err: any) {
+      functions.logger.error('Twilio dispatch error:', err);
+      throw new functions.https.HttpsError('internal', err.message || 'SMS dispatch failed');
+    }
+  }
+
+  // 2. Channel = Email via Resend
+  if (channel === 'email') {
+    try {
+      const res = await sendEmailHelper({
+        to: recipient,
+        subject: subject || `${clinicName || 'Chiropractic Clinic'} Notification`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e7e5e4; border-radius: 16px; background-color: #ffffff; color: #1c1917;">
+            <div style="background-color: #064e3b; padding: 16px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+              <h2 style="color: #ffffff; margin: 0; font-size: 20px;">${clinicName || 'Clinic Notification'}</h2>
+            </div>
+            <div style="font-size: 14px; line-height: 1.6; color: #292524; white-space: pre-line;">
+              ${messageText}
+            </div>
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e7e5e4; font-size: 11px; color: #78716c; text-align: center;">
+              This notification was generated automatically by your clinic portal.
+            </div>
+          </div>
+        `,
+      });
+
+      return {
+        success: !!res,
+        mode: 'live',
+        channel: 'email',
+        recipient,
+        result: res,
+      };
+    } catch (err: any) {
+      functions.logger.error('Resend email error:', err);
+      throw new functions.https.HttpsError('internal', err.message || 'Email dispatch failed');
+    }
+  }
+
+  return { success: false, message: 'Unsupported channel' };
+});
+
+/**
+ * 7. Scheduled Cleanup Function: cleanupStaleDemoSessions
  * Runs daily at midnight to purge expired temporary preview/demo sessions
  */
 export const cleanupStaleDemoSessions = functions.pubsub.schedule('every 24 hours').onRun(async () => {

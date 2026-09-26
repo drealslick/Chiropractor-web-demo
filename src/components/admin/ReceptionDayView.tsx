@@ -28,9 +28,18 @@ import {
   ShieldCheck,
   ShieldAlert,
   RotateCcw,
+  Activity,
+  Printer,
+  MessageSquare,
+  Send,
+  Smartphone,
 } from 'lucide-react';
 import { PatientLead, updateLeadDetails, updateLeadStatus, saveLead, updateLeadPayment } from '../../data/leadsStore';
 import { PublicTeamMember } from '../../types';
+import { BodyPainLocator } from '../BodyPainLocator';
+import { IntakeQuestionnaireModal } from '../IntakeQuestionnaireModal';
+import { ClinicalChartPrintExport } from './ClinicalChartPrintExport';
+import { sendLiveOrSimulatedSms, getGatewaySettings, interpolateTemplate } from '../../data/gatewayStore';
 
 interface ReceptionDayViewProps {
   leads: PatientLead[];
@@ -80,6 +89,11 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
   // Selected appointment for patient profile slide-out panel
   const [selectedPatient, setSelectedPatient] = useState<PatientLead | null>(null);
 
+  // Digital Clinical Intake review modal state
+  const [viewingIntakeLead, setViewingIntakeLead] = useState<PatientLead | null>(null);
+  const [completingIntakeLead, setCompletingIntakeLead] = useState<PatientLead | null>(null);
+  const [exportingChartLead, setExportingChartLead] = useState<PatientLead | null>(null);
+
   // New staff note inside patient slide-out
   const [newStaffNote, setNewStaffNote] = useState<string>('');
 
@@ -87,6 +101,56 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ doctor: string; time: string } | null>(null);
   const [rescheduleToast, setRescheduleToast] = useState<string | null>(null);
+  const [lastDispatchedToast, setLastDispatchedToast] = useState<string | null>(null);
+
+  const handleDispatchQuickSms = async (
+    patient: PatientLead,
+    eventType: 'reminder_24h' | 'reminder_2h' | 'intake_nudge' | 'review_request'
+  ) => {
+    if (!patient.phone) {
+      setLastDispatchedToast(`Cannot send SMS: No phone on file for ${patient.name}`);
+      setTimeout(() => setLastDispatchedToast(null), 4000);
+      return;
+    }
+
+    const settings = getGatewaySettings();
+    let template = settings.customSmsReminderTemplate;
+    let label = '24h Reminder';
+
+    if (eventType === 'reminder_2h') {
+      template =
+        settings.customSms2hReminderTemplate ||
+        '{{clinic_name}} Alert: See you in 2 hours at {{time}}! Address: {{clinic_address}}. Free parking in rear.';
+      label = '2h Arrival Alert';
+    } else if (eventType === 'intake_nudge') {
+      template =
+        settings.customSmsIntakeNudgeTemplate ||
+        '{{clinic_name}}: Hi {{patient_name}}, please take 2 minutes to map your spinal pain points and complete your pre-visit health intake before arrival: {{portal_url}}';
+      label = 'Intake Nudge';
+    } else if (eventType === 'review_request') {
+      template = settings.customSmsReviewTemplate;
+      label = 'Review Booster';
+    }
+
+    const vars = {
+      patient_name: patient.name,
+      clinic_name: clinicName,
+      doctor_name: patient.practitionerName || 'Dr. Marcus Vance, D.C.',
+      date: patient.date,
+      time: patient.time,
+      ref_code: patient.id,
+      portal_url: `${window.location.origin}/portal?ref=${patient.id}`,
+      clinic_address: '44 Wicklow St, Birmingham',
+      phone: '0121 496 0888',
+      review_url: 'https://g.page/review',
+    };
+
+    const text = interpolateTemplate(template, vars);
+    await sendLiveOrSimulatedSms(patient.phone, text, eventType);
+
+    setLastDispatchedToast(`${label} dispatched to ${patient.name} (${patient.phone}) ✓`);
+    setTimeout(() => setLastDispatchedToast(null), 5000);
+  };
 
   // Doctor filter
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>('all');
@@ -816,6 +880,177 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                 </div>
               </div>
 
+              {/* Digital Pre-Visit Intake & Clinical Triage Panel */}
+              <div className="p-3.5 rounded-xl bg-stone-850 border border-stone-800 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-emerald-400">
+                    <FileText className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-300">
+                      Pre-Visit Health Intake
+                    </span>
+                  </div>
+                  {selectedPatient.intakeForm ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-950 text-emerald-300 border border-emerald-800">
+                      Completed ✓
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-950 text-amber-300 border border-amber-800">
+                      Pending
+                    </span>
+                  )}
+                </div>
+
+                {selectedPatient.intakeForm ? (
+                  <div className="space-y-2 text-stone-300">
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-400">Pain Intensity:</span>
+                      <span className="font-bold text-white">
+                        {selectedPatient.intakeForm.painLevel} / 10 ({selectedPatient.intakeForm.painType || 'Sharp'})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-400">Primary Area:</span>
+                      <span className="font-semibold text-emerald-300">
+                        {selectedPatient.intakeForm.painArea}
+                      </span>
+                    </div>
+
+                    {selectedPatient.intakeForm.hasRedFlags && (
+                      <div className="p-2 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-[11px] flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                        <span>Clinical Triage Alert: Red flags noted in medical history.</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1 border-t border-stone-800 text-[11px] text-stone-400">
+                      <span>Digital Signature:</span>
+                      <span className="text-emerald-400 font-mono">
+                        {selectedPatient.intakeForm.signatureDataUrl ? 'Verified on file ✓' : 'Consent Agreed ✓'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setViewingIntakeLead(selectedPatient)}
+                      className="w-full mt-2 py-2 px-3 bg-emerald-900/60 hover:bg-emerald-800 border border-emerald-700 text-emerald-100 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+                      <span>Open Clinical Chart & Pain Map</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExportingChartLead(selectedPatient)}
+                      className="w-full py-2 px-3 bg-stone-800 hover:bg-stone-750 border border-stone-700 text-emerald-300 hover:text-emerald-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Print / Export Superbill (PDF)</span>
+                    </button>
+
+                    <p className="text-[10px] text-amber-300/85 bg-amber-950/40 p-2 rounded-lg border border-amber-900/60 leading-snug">
+                      ⚖️ This intake is educational and administrative. It does not replace professional clinical judgment. All findings must be reviewed by a licensed practitioner before treatment.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-stone-400">
+                      Patient has not submitted their pre-visit questionnaire online yet.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCompletingIntakeLead(selectedPatient)}
+                      className="w-full py-1.5 px-3 bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition cursor-pointer"
+                    >
+                      <span>Complete Intake at Reception Desk</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Automated Patient SMS & Email Reminders */}
+              <div className="p-3.5 rounded-xl bg-stone-850 border border-stone-800 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-emerald-400">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-300">
+                      Automated Reminders (Twilio / Resend)
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    {selectedPatient.phone || 'No phone on file'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleDispatchQuickSms(selectedPatient, 'reminder_24h')}
+                    className="p-2 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-750 text-left transition cursor-pointer flex items-center justify-between group"
+                  >
+                    <div>
+                      <span className="font-bold text-stone-200 block text-[11px] group-hover:text-emerald-300">
+                        Send 24h Reminder
+                      </span>
+                      <span className="text-[10px] text-stone-400">Time, address & directions</span>
+                    </div>
+                    <Send className="w-3 h-3 text-stone-500 group-hover:text-emerald-400 shrink-0" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDispatchQuickSms(selectedPatient, 'intake_nudge')}
+                    className="p-2 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-750 text-left transition cursor-pointer flex items-center justify-between group"
+                  >
+                    <div>
+                      <span className="font-bold text-stone-200 block text-[11px] group-hover:text-emerald-300">
+                        Send Intake Nudge
+                      </span>
+                      <span className="text-[10px] text-stone-400">
+                        {selectedPatient.intakeForm ? 'Completed ✓' : 'Nudge 2D Pain Map'}
+                      </span>
+                    </div>
+                    <Smartphone className="w-3 h-3 text-stone-500 group-hover:text-emerald-400 shrink-0" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDispatchQuickSms(selectedPatient, 'reminder_2h')}
+                    className="p-2 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-750 text-left transition cursor-pointer flex items-center justify-between group"
+                  >
+                    <div>
+                      <span className="font-bold text-stone-200 block text-[11px] group-hover:text-emerald-300">
+                        Send 2h Arrival Alert
+                      </span>
+                      <span className="text-[10px] text-stone-400">Parking & arrival note</span>
+                    </div>
+                    <Clock className="w-3 h-3 text-stone-500 group-hover:text-emerald-400 shrink-0" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDispatchQuickSms(selectedPatient, 'review_request')}
+                    className="p-2 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-750 text-left transition cursor-pointer flex items-center justify-between group"
+                  >
+                    <div>
+                      <span className="font-bold text-stone-200 block text-[11px] group-hover:text-emerald-300">
+                        Send Review Booster
+                      </span>
+                      <span className="text-[10px] text-stone-400">Google 5-star link</span>
+                    </div>
+                    <Sparkles className="w-3 h-3 text-stone-500 group-hover:text-emerald-400 shrink-0" />
+                  </button>
+                </div>
+
+                {lastDispatchedToast && (
+                  <div className="p-2.5 rounded-lg bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-[11px] flex items-center gap-1.5 animate-fade-in font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                    <span>{lastDispatchedToast}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Primary Concern / Chief Complaint */}
               <div className="p-3.5 rounded-xl bg-stone-850 border border-stone-800 space-y-1.5 text-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
@@ -863,6 +1098,248 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* FULL CLINICAL INTAKE REVIEW MODAL */}
+      {viewingIntakeLead && viewingIntakeLead.intakeForm && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-3xl bg-stone-900 border border-stone-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Header */}
+            <div className="p-5 border-b border-stone-800 bg-stone-950 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-white">
+                    Clinical Intake Chart & Triage File
+                  </h3>
+                  <p className="text-xs text-stone-400">
+                    Patient: <strong className="text-white">{viewingIntakeLead.name}</strong> • Ref:{' '}
+                    <span className="font-mono text-emerald-400">{viewingIntakeLead.id}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingIntakeLead(null)}
+                className="p-1.5 text-stone-400 hover:text-white rounded-lg hover:bg-stone-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Clinician Advisory & Medico-Legal Disclaimer Banner */}
+            <div className="bg-amber-500/15 border-b border-amber-500/30 px-5 py-3 flex items-start gap-3 text-amber-200">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-bold text-amber-300 uppercase tracking-wide text-[10px]">
+                  Clinical Advisory & Medical Disclaimer
+                </p>
+                <p className="text-xs leading-relaxed text-amber-100 font-medium">
+                  This intake is educational and administrative. It does not replace professional clinical judgment. All findings must be reviewed by a licensed practitioner before treatment.
+                </p>
+              </div>
+            </div>
+
+            {/* Chart Body */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+              {/* Patient & Appointment Recap Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-stone-950 rounded-2xl border border-stone-800 text-stone-300">
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Appt Date</span>
+                  <span className="font-semibold text-white">{viewingIntakeLead.date} at {viewingIntakeLead.time}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Clinician</span>
+                  <span className="font-semibold text-white">{viewingIntakeLead.practitionerName || 'Chiropractor'}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Pain Score</span>
+                  <span className={`font-bold ${viewingIntakeLead.intakeForm.painLevel >= 7 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {viewingIntakeLead.intakeForm.painLevel} / 10 ({viewingIntakeLead.intakeForm.painType || 'Sharp'})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Triage Status</span>
+                  <span className={`font-bold ${viewingIntakeLead.intakeForm.hasRedFlags ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    {viewingIntakeLead.intakeForm.hasRedFlags ? '⚠️ Red Flag Flagged' : 'Cleared for Care ✓'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 2D Anatomical Body Map (Read-Only) */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block">
+                  Patient-Mapped Anatomical Pain Zones
+                </span>
+                <BodyPainLocator
+                  selectedRegions={viewingIntakeLead.intakeForm.bodyRegions || []}
+                  onChange={() => {}}
+                  readOnly={true}
+                />
+              </div>
+
+              {/* Symptoms & Aggravators */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-stone-950 rounded-2xl border border-stone-800 space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                    Reported Symptoms
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingIntakeLead.intakeForm.symptoms?.map((s) => (
+                      <span key={s} className="px-2.5 py-1 rounded-lg bg-stone-900 border border-stone-750 text-stone-200 text-xs">
+                        {s}
+                      </span>
+                    )) || <span className="text-stone-500">None specified</span>}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-stone-950 rounded-2xl border border-stone-800 space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                    Aggravating Factors
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingIntakeLead.intakeForm.aggravatingFactors?.map((f) => (
+                      <span key={f} className="px-2.5 py-1 rounded-lg bg-stone-900 border border-stone-750 text-stone-200 text-xs">
+                        {f}
+                      </span>
+                    )) || <span className="text-stone-500">None specified</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Contraindications & Red Flag Screen */}
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                  Contraindication & Neurologic Red Flag Evaluation
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                    viewingIntakeLead.intakeForm.contraindications?.lossOfBowelBladder
+                      ? 'bg-rose-950/60 border-rose-700 text-rose-200 font-bold'
+                      : 'bg-stone-900 border-stone-800 text-stone-300'
+                  }`}>
+                    <span>Cauda Equina / Saddle Numbness</span>
+                    <span>{viewingIntakeLead.intakeForm.contraindications?.lossOfBowelBladder ? '⚠️ POSITIVE' : 'Negative'}</span>
+                  </div>
+
+                  <div className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                    viewingIntakeLead.intakeForm.contraindications?.osteoporosisOrFracture
+                      ? 'bg-amber-950/60 border-amber-700 text-amber-200 font-bold'
+                      : 'bg-stone-900 border-stone-800 text-stone-300'
+                  }`}>
+                    <span>Osteoporosis / Bone Fracture</span>
+                    <span>{viewingIntakeLead.intakeForm.contraindications?.osteoporosisOrFracture ? '⚠️ POSITIVE' : 'Negative'}</span>
+                  </div>
+
+                  <div className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                    viewingIntakeLead.intakeForm.contraindications?.bloodThinners
+                      ? 'bg-amber-950/60 border-amber-700 text-amber-200 font-bold'
+                      : 'bg-stone-900 border-stone-800 text-stone-300'
+                  }`}>
+                    <span>Blood Thinners / Anticoagulants</span>
+                    <span>{viewingIntakeLead.intakeForm.contraindications?.bloodThinners ? '⚠️ POSITIVE' : 'Negative'}</span>
+                  </div>
+
+                  <div className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                    viewingIntakeLead.intakeForm.contraindications?.pacemakerOrImplant
+                      ? 'bg-stone-900 border-stone-750 text-stone-200'
+                      : 'bg-stone-900 border-stone-800 text-stone-300'
+                  }`}>
+                    <span>Cardiac Pacemaker / Implant</span>
+                    <span>{viewingIntakeLead.intakeForm.contraindications?.pacemakerOrImplant ? 'Positive' : 'Negative'}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-stone-400">
+                  <strong>Surgeries & Medical History:</strong>{' '}
+                  <span>{viewingIntakeLead.intakeForm.priorSurgeries || 'None reported.'}</span>
+                </div>
+              </div>
+
+              {/* Digital Signature & Informed Consent Record */}
+              <div className="p-4 bg-stone-950 rounded-2xl border border-stone-800 space-y-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                  Legal Informed Consent & Patient Signature
+                </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Informed Consent Agreement Executed</span>
+                    </div>
+                    <p className="text-[11px] text-stone-400 mt-0.5">
+                      Completed: {viewingIntakeLead.intakeForm.completedAt ? new Date(viewingIntakeLead.intakeForm.completedAt).toLocaleString() : 'Recorded'}
+                    </p>
+                  </div>
+
+                  {viewingIntakeLead.intakeForm.signatureDataUrl ? (
+                    <div className="p-2 bg-white rounded-xl border border-stone-300 max-w-[220px]">
+                      <img
+                        src={viewingIntakeLead.intakeForm.signatureDataUrl}
+                        alt="Patient Signature"
+                        className="h-12 w-auto object-contain mx-auto"
+                      />
+                      <span className="text-[9px] text-stone-500 text-center block mt-0.5 font-mono">
+                        Verified Electronic Signature
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="px-3 py-1.5 rounded-lg bg-stone-800 text-stone-300 text-xs font-mono">
+                      Consent Checked ✓
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between">
+              <span className="text-[11px] text-stone-500">
+                Encrypted in Firestore • Ready for Clinician Consultation
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setExportingChartLead(viewingIntakeLead)}
+                  className="px-4 py-2 bg-stone-800 hover:bg-stone-750 text-emerald-300 border border-emerald-800/80 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Export Superbill (PDF)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingIntakeLead(null)}
+                  className="px-5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Done Reviewing Chart ✓
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CLINICAL CHART PRINT & SUPERBILL EXPORT MODAL */}
+      {exportingChartLead && (
+        <ClinicalChartPrintExport
+          lead={exportingChartLead}
+          onClose={() => setExportingChartLead(null)}
+        />
+      )}
+
+      {/* RECEPTION DESK INTAKE MODAL */}
+      {completingIntakeLead && (
+        <IntakeQuestionnaireModal
+          isOpen={Boolean(completingIntakeLead)}
+          onClose={() => setCompletingIntakeLead(null)}
+          lead={completingIntakeLead}
+          onIntakeCompleted={(updated) => {
+            setSelectedPatient(updated);
+            setCompletingIntakeLead(null);
+          }}
+        />
       )}
     </div>
   );

@@ -60,6 +60,7 @@
         "paymentStatus": { "type": "string", "enum": ["pending", "deposit_paid", "paid_full", "refunded"] },
         "paymentAmount": { "type": "string" },
         "stripePaymentIntentId": { "type": "string" },
+        "intakeForm": { "type": "object" },
         "createdAt": { "type": "string" }
       },
       "required": ["id", "clinicId", "patientId", "doctorId", "date", "time"]

@@ -12,15 +12,21 @@ export interface GatewaySettings {
   webhookSecret: string;
   autoSendBookingConfirmation: boolean;
   autoSend24hReminder: boolean;
+  autoSend2hReminder: boolean;
+  autoSendIntakeNudge: boolean;
   autoSendRescheduleAlert: boolean;
   autoSendCancellationAlert: boolean;
   autoSendReviewRequest: boolean;
   customSmsBookingTemplate: string;
   customSmsReminderTemplate: string;
+  customSms2hReminderTemplate: string;
+  customSmsIntakeNudgeTemplate: string;
   customSmsRescheduleTemplate: string;
   customSmsCancellationTemplate: string;
   customSmsReviewTemplate: string;
   customEmailBookingSubject: string;
+  customEmailIntakeSubject: string;
+  customEmailIntakeBody: string;
 }
 
 export interface GatewayLogEntry {
@@ -29,7 +35,15 @@ export interface GatewayLogEntry {
   channel: 'sms' | 'email' | 'webhook';
   provider: string;
   recipient: string;
-  eventType: 'booking_confirmation' | 'reminder_24h' | 'reschedule' | 'cancellation' | 'review_request' | 'test';
+  eventType:
+    | 'booking_confirmation'
+    | 'reminder_24h'
+    | 'reminder_2h'
+    | 'intake_nudge'
+    | 'reschedule'
+    | 'cancellation'
+    | 'review_request'
+    | 'test';
   status: 'delivered' | 'sent' | 'failed' | 'simulated';
   payloadPreview: string;
   errorMessage?: string;
@@ -45,22 +59,28 @@ export const DEFAULT_GATEWAY_SETTINGS: GatewaySettings = {
   twilioPhoneNumber: '+44 7700 900192',
   emailProvider: 'simulator',
   sendgridApiKey: '',
-  sendgridFromEmail: 'care@vancehealth.co.uk',
-  sendgridFromName: 'Vance Health Reception',
+  sendgridFromEmail: 'care@columbuschiropractic.co.uk',
+  sendgridFromName: 'Columbus Chiropractic Reception',
   resendApiKey: '',
   webhookUrl: '',
   webhookSecret: '',
   autoSendBookingConfirmation: true,
   autoSend24hReminder: true,
+  autoSend2hReminder: true,
+  autoSendIntakeNudge: true,
   autoSendRescheduleAlert: true,
   autoSendCancellationAlert: true,
   autoSendReviewRequest: true,
-  customSmsBookingTemplate: '{{clinic_name}}: Hello {{patient_name}}! Your appointment with {{doctor_name}} is confirmed for {{date}} at {{time}}. Ref: {{ref_code}}. Manage or reschedule at {{portal_url}}',
-  customSmsReminderTemplate: '{{clinic_name}} Reminder: Your appointment is tomorrow {{date}} at {{time}}. Please arrive 10m early in comfortable athletic wear. Address: {{clinic_address}}',
+  customSmsBookingTemplate: '{{clinic_name}}: Hello {{patient_name}}! Your appointment with {{doctor_name}} is confirmed for {{date}} at {{time}}. Ref: {{ref_code}}. Manage or complete intake at {{portal_url}}',
+  customSmsReminderTemplate: '{{clinic_name}} 24h Reminder: Your appointment is tomorrow {{date}} at {{time}} with {{doctor_name}}. Please arrive 10m early. Reply YES to confirm or manage at {{portal_url}}',
+  customSms2hReminderTemplate: '{{clinic_name}} Alert: See you in 2 hours at {{time}}! Address: {{clinic_address}}. Free patient parking in rear. Call {{phone}} if delayed.',
+  customSmsIntakeNudgeTemplate: '{{clinic_name}}: Hi {{patient_name}}, please take 2 minutes to map your spinal pain points and complete your pre-visit health intake before arrival: {{portal_url}}',
   customSmsRescheduleTemplate: '{{clinic_name}}: Your appointment has been updated to {{date}} at {{time}} with {{doctor_name}}. Need to change? Reply or visit {{portal_url}}',
   customSmsCancellationTemplate: '{{clinic_name}}: Your booking for {{date}} has been cancelled. If you need further care, rebook anytime at {{portal_url}}',
-  customSmsReviewTemplate: '{{clinic_name}}: Thank you for visiting today, {{patient_name}}! How is your spine feeling? We would love your feedback: {{review_url}}',
+  customSmsReviewTemplate: '{{clinic_name}}: Thank you for visiting today, {{patient_name}}! How is your spine feeling? We would love your 5-star review: {{review_url}}',
   customEmailBookingSubject: 'Appointment Confirmed: {{clinic_name}} - {{date}} at {{time}}',
+  customEmailIntakeSubject: 'Action Required: Pre-Visit Digital Pain Map for {{date}} at {{time}}',
+  customEmailIntakeBody: 'Hi {{patient_name}},\n\nTo save you 15 minutes of paperwork in our reception lounge and allow {{doctor_name}} to review your case prior to arrival, please complete your interactive 2D anatomical pain map and medical history questionnaire here:\n\n{{portal_url}}\n\nThank you,\n{{clinic_name}} Reception Team',
 };
 
 export const DEFAULT_INITIAL_GATEWAY_LOGS: GatewayLogEntry[] = [

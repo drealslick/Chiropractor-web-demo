@@ -39,11 +39,26 @@ export interface PatientLead {
   noShowProtected?: boolean;
   intakeForm?: {
     painArea: string;
+    bodyRegions?: string[];
     painLevel: number; // 1-10
     painDuration: string; // e.g. "2-4 weeks"
     painType: string; // e.g. "Sharp / Stabbing"
     symptoms: string[]; // e.g. ["Numbness in toes", "Morning stiffness"]
+    aggravatingFactors?: string[];
     priorSurgeries: string;
+    contraindications?: {
+      unexplainedWeightLoss?: boolean;
+      lossOfBowelBladder?: boolean;
+      historyOfCancer?: boolean;
+      osteoporosisOrFracture?: boolean;
+      pacemakerOrImplant?: boolean;
+      bloodThinners?: boolean;
+      pregnant?: boolean;
+    };
+    hasRedFlags?: boolean;
+    informedConsentAgreed?: boolean;
+    signatureDataUrl?: string;
+    signedAt?: string;
     completedAt: string;
   };
 }
@@ -950,6 +965,28 @@ export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['i
     try {
       localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLeads));
       window.dispatchEvent(new CustomEvent('leads_updated', { detail: updatedLeads }));
+
+      // Sync directly to Firestore cloud database
+      syncAppointmentToFirestore(updatedLead);
+
+      // Create staff notification
+      const newNotif: DispatchedNotification = {
+        id: `notif-intake-${Date.now()}`,
+        type: 'status_update',
+        recipient: 'Clinical Team',
+        channel: 'email',
+        subject: `Pre-Visit Intake Received: ${(updatedLead as PatientLead).name}`,
+        message: `${(updatedLead as PatientLead).name} completed their pre-visit digital intake questionnaire. Pain: ${(updatedLead as PatientLead).intakeForm?.painLevel}/10 (${(updatedLead as PatientLead).intakeForm?.painArea}). Chart ready for review.`,
+        timestamp: new Date().toISOString(),
+        status: 'delivered',
+        priority: (updatedLead as PatientLead).intakeForm?.hasRedFlags ? 'high' : 'info',
+        read: false,
+      };
+
+      const currentNotifs = getDispatchedNotifications();
+      const updatedNotifs = [newNotif, ...currentNotifs];
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
+      window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updatedNotifs }));
     } catch {
       // ignore
     }

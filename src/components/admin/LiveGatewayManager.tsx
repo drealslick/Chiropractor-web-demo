@@ -57,7 +57,11 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Active Template Preview
-  const [selectedTemplateTab, setSelectedTemplateTab] = useState<'booking' | 'reminder' | 'reschedule' | 'review'>('booking');
+  const [selectedTemplateTab, setSelectedTemplateTab] = useState<
+    'booking' | 'reminder24' | 'reminder2h' | 'intake' | 'reschedule' | 'review'
+  >('booking');
+  const [previewMode, setPreviewMode] = useState<'sms' | 'email'>('sms');
+  const [testEmail, setTestEmail] = useState(clinic.email || 'doctor@columbuschiropractic.co.uk');
 
   const [savedNotification, setSavedNotification] = useState<string | null>(null);
   const [copiedVar, setCopiedVar] = useState<string | null>(null);
@@ -79,29 +83,39 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
 
   const handleSaveAll = () => {
     saveGatewaySettings(settings);
-    setSavedNotification('Gateway credentials & triggers updated successfully!');
+    setSavedNotification('Gateway credentials, triggers & templates saved successfully!');
     setTimeout(() => setSavedNotification(null), 3000);
   };
 
   const sampleVars = {
     patient_name: 'John Doe',
-    clinic_name: clinic.name || 'Vance Health',
-    doctor_name: clinic.leadPractitionerName || 'Dr. Alistair Vance',
+    clinic_name: clinic.name || 'Columbus Chiropractic',
+    doctor_name: clinic.leadPractitionerName || 'Dr. Marcus Vance, D.C.',
     date: 'Tomorrow, Oct 14',
     time: '12:00 PM',
     ref_code: 'VH-9428-K82X',
-    portal_url: 'vancehealth.co.uk/portal?ref=VH-9428-K82X',
-    clinic_address: clinic.address || '44 Wicklow St, London',
-    phone: clinic.phone || '+44 20 7946 0192',
-    review_url: 'g.page/vance-health/review',
+    portal_url: 'columbuschiropractic.co.uk/portal?ref=VH-9428-K82X',
+    clinic_address: clinic.address || '44 Wicklow St, Birmingham',
+    phone: clinic.phone || '0121 496 0888',
+    review_url: 'g.page/columbus-chiropractic/review',
   };
 
   const getActiveTemplateText = () => {
     switch (selectedTemplateTab) {
       case 'booking':
         return settings.customSmsBookingTemplate;
-      case 'reminder':
+      case 'reminder24':
         return settings.customSmsReminderTemplate;
+      case 'reminder2h':
+        return (
+          settings.customSms2hReminderTemplate ||
+          '{{clinic_name}} Alert: See you in 2 hours at {{time}}! Address: {{clinic_address}}. Free parking in rear.'
+        );
+      case 'intake':
+        return (
+          settings.customSmsIntakeNudgeTemplate ||
+          '{{clinic_name}}: Hi {{patient_name}}, please take 2 minutes to map your spinal pain points and complete your pre-visit health intake before arrival: {{portal_url}}'
+        );
       case 'reschedule':
         return settings.customSmsRescheduleTemplate;
       case 'review':
@@ -244,15 +258,40 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
 
               {/* Template Selector for Test */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1.5">
-                  Select Event Notification Type
-                </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-stone-300">
+                    Select Automated Sequence Trigger
+                  </label>
+                  <div className="flex items-center gap-1 bg-stone-900 p-0.5 rounded-lg border border-stone-800 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('sms')}
+                      className={`px-2 py-0.5 rounded font-semibold transition cursor-pointer ${
+                        previewMode === 'sms' ? 'bg-emerald-800 text-white' : 'text-stone-400 hover:text-stone-200'
+                      }`}
+                    >
+                      📱 SMS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('email')}
+                      className={`px-2 py-0.5 rounded font-semibold transition cursor-pointer ${
+                        previewMode === 'email' ? 'bg-emerald-800 text-white' : 'text-stone-400 hover:text-stone-200'
+                      }`}
+                    >
+                      ✉️ Email
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
-                    { id: 'booking', type: 'booking_confirmation', label: 'Booking Confirmation' },
-                    { id: 'reminder', type: 'reminder_24h', label: '24-Hour Reminder' },
-                    { id: 'reschedule', type: 'reschedule', label: 'Reschedule Alert' },
-                    { id: 'review', type: 'review_request', label: 'Google Review Booster' },
+                    { id: 'booking', type: 'booking_confirmation', label: '1. Booking Confirmed' },
+                    { id: 'reminder24', type: 'reminder_24h', label: '2. 24h Pre-Visit' },
+                    { id: 'reminder2h', type: 'reminder_2h', label: '3. 2h Arrival Alert' },
+                    { id: 'intake', type: 'intake_nudge', label: '4. Pain Map Nudge' },
+                    { id: 'reschedule', type: 'reschedule', label: '5. Rescheduled' },
+                    { id: 'review', type: 'review_request', label: '6. Google Review' },
                   ].map((t) => (
                     <button
                       key={t.id}
@@ -273,22 +312,40 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
                 </div>
               </div>
 
-              {/* Recipient Phone Input */}
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1.5">
-                  Recipient Mobile Number
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
-                  <input
-                    type="tel"
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                    placeholder="+44 7911 123456 or (555) 234-5678"
-                    className="w-full pl-9 pr-3 py-2 bg-stone-900 border border-stone-750 rounded-xl text-xs text-stone-100 font-mono focus:border-emerald-500 focus:outline-none"
-                  />
+              {/* Recipient Input (Phone or Email based on previewMode) */}
+              {previewMode === 'sms' ? (
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1.5">
+                    Recipient Mobile Number (E.164 format)
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
+                    <input
+                      type="tel"
+                      value={testPhone}
+                      onChange={(e) => setTestPhone(e.target.value)}
+                      placeholder="+44 7911 123456 or (555) 234-5678"
+                      className="w-full pl-9 pr-3 py-2 bg-stone-900 border border-stone-750 rounded-xl text-xs text-stone-100 font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1.5">
+                    Recipient Test Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
+                    <input
+                      type="email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      placeholder="doctor@columbuschiropractic.co.uk"
+                      className="w-full pl-9 pr-3 py-2 bg-stone-900 border border-stone-750 rounded-xl text-xs text-stone-100 font-mono focus:border-emerald-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Dispatch Button */}
               <button
@@ -298,7 +355,13 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
                 className="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs transition cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{isSendingTest ? 'Transmitting Carrier Signal...' : 'Dispatch Test SMS Message →'}</span>
+                <span>
+                  {isSendingTest
+                    ? 'Transmitting Carrier Signal...'
+                    : previewMode === 'sms'
+                    ? 'Dispatch Test SMS Message →'
+                    : 'Dispatch Test Email via Resend →'}
+                </span>
               </button>
 
               {testResult && (
@@ -351,45 +414,125 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
             </div>
           </div>
 
-          {/* Right Column: Visual Smartphone Simulator */}
+          {/* Right Column: Visual Smartphone Simulator / Email Mockup */}
           <div className="lg:col-span-6 flex justify-center">
-            <div className="w-full max-w-[340px] bg-stone-950 border-4 border-stone-750 rounded-[40px] p-3 shadow-2xl relative overflow-hidden">
-              {/* Phone Notch / Speaker */}
-              <div className="w-28 h-4 bg-stone-900 rounded-full mx-auto mb-3 flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-stone-950" />
-              </div>
-
-              {/* Message Header */}
-              <div className="border-b border-stone-800 pb-2 text-center">
-                <div className="w-10 h-10 rounded-full bg-emerald-900/80 text-emerald-200 font-serif font-bold text-sm flex items-center justify-center mx-auto mb-1">
-                  {(clinic.name || 'V').charAt(0)}
-                </div>
-                <strong className="text-xs text-stone-200 block truncate">{clinic.name || 'Vance Health'}</strong>
-                <span className="text-[10px] text-stone-500 font-mono">
-                  {settings.smsProvider === 'twilio' ? settings.twilioPhoneNumber || '+44 7700 900192' : 'Verified SMS Gateway'}
-                </span>
-              </div>
-
-              {/* Simulated Chat Thread */}
-              <div className="py-5 px-1 space-y-3 min-h-[280px] flex flex-col justify-end">
-                <span className="text-[10px] text-stone-500 font-mono text-center block">Today 12:00 PM</span>
-
-                <div className="bg-emerald-700 text-white rounded-2xl rounded-bl-xs p-3.5 text-xs leading-relaxed shadow-sm">
-                  {renderedPreviewText}
+            {previewMode === 'sms' ? (
+              <div className="w-full max-w-[340px] bg-stone-950 border-4 border-stone-750 rounded-[40px] p-3 shadow-2xl relative overflow-hidden">
+                {/* Phone Notch / Speaker */}
+                <div className="w-28 h-4 bg-stone-900 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-stone-950" />
                 </div>
 
-                <div className="text-[10px] text-stone-500 text-right pr-1 flex items-center justify-end gap-1 font-mono">
-                  <span>Delivered</span>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500 inline" />
+                {/* Message Header */}
+                <div className="border-b border-stone-800 pb-2 text-center">
+                  <div className="w-10 h-10 rounded-full bg-emerald-900/80 text-emerald-200 font-serif font-bold text-sm flex items-center justify-center mx-auto mb-1">
+                    {(clinic.name || 'C').charAt(0)}
+                  </div>
+                  <strong className="text-xs text-stone-200 block truncate">{clinic.name || 'Columbus Chiropractic'}</strong>
+                  <span className="text-[10px] text-stone-500 font-mono">
+                    {settings.smsProvider === 'twilio' ? settings.twilioPhoneNumber || '+44 7700 900192' : 'Verified SMS Gateway'}
+                  </span>
+                </div>
+
+                {/* Simulated Chat Thread */}
+                <div className="py-5 px-1 space-y-3 min-h-[280px] flex flex-col justify-end">
+                  <span className="text-[10px] text-stone-500 font-mono text-center block">Today 12:00 PM</span>
+
+                  <div className="bg-emerald-700 text-white rounded-2xl rounded-bl-xs p-3.5 text-xs leading-relaxed shadow-sm">
+                    {renderedPreviewText}
+                  </div>
+
+                  <div className="text-[10px] text-stone-500 text-right pr-1 flex items-center justify-end gap-1 font-mono">
+                    <span>Delivered</span>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-500 inline" />
+                  </div>
+                </div>
+
+                {/* Phone Bottom Pill bar */}
+                <div className="mt-4 pt-2 border-t border-stone-800/80 flex items-center justify-between px-2 text-[10px] text-stone-500">
+                  <span>{renderedPreviewText.length} Characters</span>
+                  <span>1 Segment (GSM-7)</span>
                 </div>
               </div>
+            ) : (
+              /* Resend HTML Email Mockup */
+              <div className="w-full max-w-[400px] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden text-stone-900 text-xs">
+                {/* Email Client Header */}
+                <div className="bg-stone-100 p-3 border-b border-stone-200 space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-stone-600">
+                    <span className="font-semibold text-stone-800 truncate">
+                      From: {clinic.name || 'Columbus Chiropractic'} &lt;appointments@{clinic.name?.toLowerCase().replace(/\s+/g, '') || 'clinic'}.co.uk&gt;
+                    </span>
+                    <span className="font-mono text-[9px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">
+                      Resend Verified ✓
+                    </span>
+                  </div>
+                  <div className="font-bold text-stone-900 text-xs truncate">
+                    Subject: {selectedTemplateTab === 'intake'
+                      ? interpolateTemplate(settings.customEmailIntakeSubject || 'Action Required: Pre-Visit Digital Pain Map', sampleVars)
+                      : interpolateTemplate(settings.customEmailBookingSubject, sampleVars)}
+                  </div>
+                </div>
 
-              {/* Phone Bottom Pill bar */}
-              <div className="mt-4 pt-2 border-t border-stone-800/80 flex items-center justify-between px-2 text-[10px] text-stone-500">
-                <span>{renderedPreviewText.length} Characters</span>
-                <span>1 Segment (GSM-7)</span>
+                {/* Email Body */}
+                <div className="p-5 space-y-4 font-sans">
+                  {/* Brand Header */}
+                  <div className="text-center pb-3 border-b border-stone-100">
+                    <h3 className="font-serif font-black text-emerald-900 text-base">
+                      {clinic.name || 'Columbus Chiropractic & Spine'}
+                    </h3>
+                    <p className="text-[10px] text-stone-500">
+                      {clinic.address || '44 Wicklow St, Birmingham'} • Tel: {clinic.phone || '0121 496 0888'}
+                    </p>
+                  </div>
+
+                  <p className="text-stone-800">
+                    Dear <strong>John Doe</strong>,
+                  </p>
+
+                  {selectedTemplateTab === 'intake' ? (
+                    <div className="space-y-3">
+                      <p className="text-stone-600 leading-relaxed">
+                        To save you 15 minutes of paperwork in our reception lounge and allow <strong>Dr. Marcus Vance, D.C.</strong> to review your case prior to arrival, please complete your interactive 2D anatomical pain map and medical history questionnaire:
+                      </p>
+                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center space-y-2">
+                        <span className="block text-[11px] font-bold text-emerald-950">Pre-Visit Clinical Intake</span>
+                        <a
+                          href="#simulate"
+                          className="inline-block px-4 py-2 bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs"
+                        >
+                          Complete 2D Pain Map Online →
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-stone-600 leading-relaxed">
+                        Your clinical consultation and spinal examination has been confirmed.
+                      </p>
+                      <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-1 text-[11px]">
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Practitioner:</span>
+                          <strong className="text-stone-800">Dr. Marcus Vance, D.C.</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Date & Time:</span>
+                          <strong className="text-emerald-800">Tomorrow at 12:00 PM</strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Booking Reference:</span>
+                          <span className="font-mono text-stone-700">VH-9428-K82X</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-stone-100 text-[10px] text-stone-500 text-center leading-relaxed">
+                    If you need to reschedule, please provide at least 24 hours notice to avoid cancellation fees.
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
         </div>
@@ -421,6 +564,16 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
                   key: 'autoSend24hReminder',
                   label: '24-Hour Pre-Appointment SMS',
                   desc: 'Reminds patient of upcoming time slot, parking, and arrival instructions.',
+                },
+                {
+                  key: 'autoSend2hReminder',
+                  label: '2-Hour "On the Way" Arrival Alert',
+                  desc: 'Sends clinic address, parking notes, and arrival guidelines 2 hours prior.',
+                },
+                {
+                  key: 'autoSendIntakeNudge',
+                  label: 'Pre-Visit Digital Pain Map Intake Nudge',
+                  desc: 'Reminds patient to complete 2D spine map before arrival, eliminating waiting room paperwork.',
                 },
                 {
                   key: 'autoSendRescheduleAlert',
@@ -488,12 +641,14 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
             </div>
 
             {/* Template Tabs */}
-            <div className="flex gap-2 border-b border-stone-800 pb-2">
+            <div className="flex flex-wrap gap-2 border-b border-stone-800 pb-2">
               {[
                 { id: 'booking', label: '1. Booking SMS' },
-                { id: 'reminder', label: '2. 24h Reminder SMS' },
-                { id: 'reschedule', label: '3. Reschedule SMS' },
-                { id: 'review', label: '4. Google Review Booster' },
+                { id: 'reminder24', label: '2. 24h Reminder SMS' },
+                { id: 'reminder2h', label: '3. 2h Arrival SMS' },
+                { id: 'intake', label: '4. Pain Map Intake Nudge' },
+                { id: 'reschedule', label: '5. Reschedule SMS' },
+                { id: 'review', label: '6. Review Booster' },
               ].map((t) => (
                 <button
                   key={t.id}
@@ -525,7 +680,7 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
               </div>
             )}
 
-            {selectedTemplateTab === 'reminder' && (
+            {selectedTemplateTab === 'reminder24' && (
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1">
                   24-Hour Pre-Visit Reminder SMS Template
@@ -536,6 +691,51 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
                   onChange={(e) => handleUpdateSetting('customSmsReminderTemplate', e.target.value)}
                   className="w-full p-3 bg-stone-900 border border-stone-750 rounded-xl text-xs text-stone-200 font-mono leading-relaxed focus:border-emerald-500 focus:outline-none"
                 />
+              </div>
+            )}
+
+            {selectedTemplateTab === 'reminder2h' && (
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1">
+                  2-Hour "On the Way" Arrival Alert SMS Template
+                </label>
+                <textarea
+                  rows={3}
+                  value={settings.customSms2hReminderTemplate || ''}
+                  onChange={(e) => handleUpdateSetting('customSms2hReminderTemplate', e.target.value)}
+                  placeholder="{{clinic_name}} Alert: See you in 2 hours at {{time}}! Address: {{clinic_address}}. Free parking in rear."
+                  className="w-full p-3 bg-stone-900 border border-stone-750 rounded-xl text-xs text-stone-200 font-mono leading-relaxed focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+            )}
+
+            {selectedTemplateTab === 'intake' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1">
+                    Pre-Visit Digital Pain Map Intake Nudge (SMS)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={settings.customSmsIntakeNudgeTemplate || ''}
+                    onChange={(e) => handleUpdateSetting('customSmsIntakeNudgeTemplate', e.target.value)}
+                    placeholder="{{clinic_name}}: Hi {{patient_name}}, please take 2 minutes to map your spinal pain points and complete your pre-visit health intake before arrival: {{portal_url}}"
+                    className="w-full p-3 bg-stone-900 border border-stone-750 rounded-xl text-xs text-stone-200 font-mono leading-relaxed focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-300 mb-1">
+                    Pre-Visit Digital Pain Map Intake Subject (Email)
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.customEmailIntakeSubject || ''}
+                    onChange={(e) => handleUpdateSetting('customEmailIntakeSubject', e.target.value)}
+                    placeholder="Action Required: Pre-Visit Digital Pain Map for {{date}} at {{time}}"
+                    className="w-full p-2.5 bg-stone-900 border border-stone-750 rounded-xl text-xs text-stone-200 font-mono focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
               </div>
             )}
 

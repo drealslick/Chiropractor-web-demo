@@ -31,10 +31,11 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData, PublicTeamMember, ClinicSchedulingRules, PricingFeeItem } from '../types';
 import { useClinic } from '../data/ClinicContext';
-import { saveLead } from '../data/leadsStore';
+import { saveLead, getStoredLeads } from '../data/leadsStore';
 import { defaultPublicTeamMembers } from '../data/defaultTeamData';
 import { defaultSchedulingRules, defaultPaymentPolicy } from '../data/clinicData';
 import { StripeElementsCheckout } from './StripeElementsCheckout';
+import { IntakeQuestionnaireModal } from './IntakeQuestionnaireModal';
 
 interface BookingModalProps {
   isOpen?: boolean;
@@ -119,6 +120,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [copiedKey, setCopiedKey] = useState<boolean>(false);
   const [checkoutMode, setCheckoutMode] = useState<'elements' | 'simulator'>('elements');
   const [elementsFallbackNotice, setElementsFallbackNotice] = useState<string | null>(null);
+  const [showIntakeModal, setShowIntakeModal] = useState<boolean>(false);
+  const [intakeDone, setIntakeDone] = useState<boolean>(false);
 
   const detectedBrand = useMemo(() => {
     const clean = cardNumber.replace(/\s+/g, '');
@@ -2048,6 +2051,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       </div>
 
                       <div className="pt-1 flex flex-col gap-2.5">
+                        {/* Prominent Intake Questionnaire Callout */}
+                        <button
+                          type="button"
+                          onClick={() => setShowIntakeModal(true)}
+                          className="w-full py-3 px-4 bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
+                        >
+                          <Activity className="w-4 h-4 text-emerald-300" />
+                          <span>
+                            {intakeDone ? 'Pre-Visit Intake Completed ✓ (Click to Review)' : 'Fill Out Pre-Visit Digital Intake Now (Skip Clipboard)'}
+                          </span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => {
@@ -2091,6 +2106,32 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                       </div>
                     </div>
+                  )}
+
+                  {/* Pre-Visit Health Intake Modal */}
+                  {showIntakeModal && (
+                    <IntakeQuestionnaireModal
+                      isOpen={showIntakeModal}
+                      onClose={() => setShowIntakeModal(false)}
+                      lead={
+                        getStoredLeads().find((l) => l.id === createdBookingRefId) || {
+                          id: createdBookingRefId || 'VH-TEMP-HOLD',
+                          source: 'booking',
+                          name: formData.name,
+                          email: formData.email,
+                          phone: formData.phone,
+                          condition: formData.condition || activeServiceDetails.title,
+                          practitionerName: formData.preferredPractitionerName,
+                          date: formData.date,
+                          time: formData.time,
+                          createdAt: new Date().toISOString(),
+                          status: 'confirmed',
+                        }
+                      }
+                      onIntakeCompleted={() => {
+                        setIntakeDone(true);
+                      }}
+                    />
                   )}
                 </div>
               </>

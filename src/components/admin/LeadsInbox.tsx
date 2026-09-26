@@ -19,6 +19,7 @@ import {
   X,
   CreditCard,
   ShieldCheck,
+  Printer,
 } from 'lucide-react';
 import {
   PatientLead,
@@ -30,6 +31,7 @@ import {
   saveLead,
 } from '../../data/leadsStore';
 import { UserRole } from '../../types';
+import { ClinicalChartPrintExport } from './ClinicalChartPrintExport';
 
 interface LeadsInboxProps {
   clinicName: string;
@@ -58,6 +60,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
   const [filter, setFilter] = useState<'all' | 'new' | 'contacted' | 'booked' | 'archived'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [bookingPromptLead, setBookingPromptLead] = useState<PatientLead | null>(null);
+  const [selectedExportLead, setSelectedExportLead] = useState<PatientLead | null>(null);
 
   const isStaff = role === 'staff';
 
@@ -457,6 +460,17 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
                         <span className="hidden sm:inline">Schedule Slot</span>
                       </button>
                     )}
+
+                    {/* Quick Superbill & Chart Export Button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedExportLead(lead)}
+                      className="px-2.5 py-1 rounded text-xs font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/60 border border-emerald-900/60 transition flex items-center gap-1 cursor-pointer"
+                      title="Export Clinical Encounter Note & Superbill (PDF)"
+                    >
+                      <Printer className="w-3 h-3 text-emerald-400" />
+                      <span className="hidden sm:inline">Superbill PDF</span>
+                    </button>
                   </div>
 
                   <button
@@ -531,6 +545,14 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
             </div>
           </div>
         </div>
+      )}
+
+      {/* Clinical Superbill & Chart Export Modal */}
+      {selectedExportLead && (
+        <ClinicalChartPrintExport
+          lead={selectedExportLead}
+          onClose={() => setSelectedExportLead(null)}
+        />
       )}
 
       {leads.length > 0 && (

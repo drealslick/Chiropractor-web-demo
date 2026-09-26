@@ -78,6 +78,19 @@ export default function Terms() {
             })}
           </div>
 
+          {/* Statutory Clinical Disclaimer Box */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-2 text-xs text-amber-950">
+            <h3 className="font-bold text-amber-900 text-xs sm:text-sm flex items-center gap-1.5">
+              <span>⚠️ Medical & Clinical Disclaimer</span>
+            </h3>
+            <p className="leading-relaxed text-amber-900 font-medium">
+              This digital intake and website content is educational and administrative. It does not replace professional clinical judgment. All findings must be reviewed by a licensed practitioner before treatment.
+            </p>
+            <p className="text-[11px] text-amber-800 leading-snug">
+              If you are experiencing sudden loss of bowel or bladder control, numbness in the saddle/groin area, or acute neurological weakness, seek immediate emergency medical care (A&E / 999 / 911).
+            </p>
+          </div>
+
           {/* Contact Box */}
           <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-2 text-xs text-stone-600">
             <h3 className="font-bold text-stone-900 text-xs sm:text-sm">Questions Regarding Terms</h3>
