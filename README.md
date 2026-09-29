@@ -179,6 +179,9 @@ RESEND_API_KEY=re_YOUR_RESEND_API_KEY
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
+
+# 7. Live Frontend URL (used in email footers and notification links)
+APP_URL=https://your-clinic.vercel.app
 ```
 
 ### Step 4.3: Deploy the Updated Functions
@@ -189,7 +192,7 @@ firebase deploy --only functions
 ```
 Firebase will automatically package your `.env` variables and upload them securely to your Cloud Functions runtime.
 
-*(Note for legacy setups: If you prefer using CLI commands, `firebase functions:config:set stripe.secret_key="..." clinic.setup_token="..." resend.api_key="..."` is also supported as a fallback in code).*
+*(Note for legacy setups: If you prefer using CLI commands, `firebase functions:config:set stripe.secret_key="..." clinic.setup_token="..." resend.api_key="..." app.url="https://your-clinic.vercel.app"` is also supported as a fallback in code).*
 
 ---
 
@@ -209,6 +212,7 @@ Expand the **Environment Variables** panel in Vercel. Add the following public v
 
 | Variable Name | Required? | Example Value | Description |
 | :--- | :--- | :--- | :--- |
+| `VITE_APP_URL` | **Recommended** | `https://your-clinic.vercel.app` | Canonical live URL used for password reset redirects and OpenGraph links. |
 | `VITE_CLINIC_ID` | Optional | `columbus-chiropractic` | The URL slug / tenant ID for this clinic. |
 | `VITE_DEFAULT_PRESET` | Optional | `austin` | Visual styling preset (`austin`, `dallas`, `seattle`). |
 | `VITE_FIREBASE_API_KEY` | **Required** | `AIzaSyCMxDCWnOM...` | Copied from Firebase Project Settings (Step 2.7). |
@@ -238,6 +242,28 @@ Firebase Authentication blocks logins and patient signups by default unless your
 7. Click **Done**.
 
 > ⚠️ **Warning:** If you skip this step, patient bookings and staff logins will fail with an `auth/unauthorized-domain` error.
+
+### Step 5.5: Custom Domain Sitemap & SEO (Optional)
+To provide a dedicated XML sitemap for search engines for your custom clinic domain:
+1. Create a `sitemap.xml` inside your `public/` directory with your live clinic domain:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://yourclinic.com/</loc></url>
+  <url><loc>https://yourclinic.com/conditions</loc></url>
+  <url><loc>https://yourclinic.com/first-visit</loc></url>
+  <url><loc>https://yourclinic.com/about</loc></url>
+  <url><loc>https://yourclinic.com/pricing</loc></url>
+  <url><loc>https://yourclinic.com/contact</loc></url>
+  <url><loc>https://yourclinic.com/blog</loc></url>
+</urlset>
+```
+2. Add the reference to `public/robots.txt`:
+```text
+User-agent: *
+Allow: /
+Sitemap: https://yourclinic.com/sitemap.xml
+```
 
 ---
 

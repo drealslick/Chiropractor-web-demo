@@ -208,7 +208,9 @@ export async function dispatchPasswordReset(
   email: string
 ): Promise<{ success: boolean; message: string }> {
   try {
-    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+    const appUrl = (import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')).trim();
+    const actionCodeSettings = appUrl ? { url: `${appUrl}/portal` } : undefined;
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase(), actionCodeSettings);
     return {
       success: true,
       message: `A secure password reset link has been dispatched to ${email}.`,

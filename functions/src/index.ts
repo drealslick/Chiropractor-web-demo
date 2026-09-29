@@ -705,6 +705,7 @@ export const sendAutomatedNotification = functions.https.onCall(async (data, con
   // 2. Channel = Email via Resend
   if (channel === 'email') {
     try {
+      const appUrl = (process.env.APP_URL || (functions.config().app && functions.config().app.url) || '').trim();
       const res = await sendEmailHelper({
         to: recipient,
         subject: subject || `${clinicName || 'Chiropractic Clinic'} Notification`,
@@ -717,7 +718,7 @@ export const sendAutomatedNotification = functions.https.onCall(async (data, con
               ${messageText}
             </div>
             <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e7e5e4; font-size: 11px; color: #78716c; text-align: center;">
-              This notification was generated automatically by your clinic portal.
+              This notification was generated automatically by your clinic portal.${appUrl ? `<br><a href="${appUrl}" style="color: #059669; text-decoration: underline; margin-top: 6px; display: inline-block;">Access Clinic Portal</a>` : ''}
             </div>
           </div>
         `,

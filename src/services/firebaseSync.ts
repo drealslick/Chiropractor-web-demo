@@ -206,7 +206,9 @@ export async function sendRealPasswordReset(
 ): Promise<{ success: boolean; message: string }> {
   try {
     const cleanEmail = email.trim().toLowerCase();
-    await sendPasswordResetEmail(auth, cleanEmail);
+    const appUrl = (import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')).trim();
+    const actionCodeSettings = appUrl ? { url: `${appUrl}/portal` } : undefined;
+    await sendPasswordResetEmail(auth, cleanEmail, actionCodeSettings);
     return {
       success: true,
       message: `A secure password recovery email has been sent by Firebase to ${cleanEmail}. Please check your inbox and spam folder.`,
