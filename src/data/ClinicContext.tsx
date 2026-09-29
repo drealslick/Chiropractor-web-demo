@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode, useCallback } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth } from '../lib/firebase';
 import { ClinicInfo, ClinicLocation } from '../types';
 import { defaultClinic, defaultLocations } from './clinicData';
 import { agencyDemoPresets } from './presets';
 import { clinicRowId, supabase } from './supabaseClient';
+import { LoadingScreen } from '../components/LoadingScreen';
 
 export const STORAGE_KEY = 'agency_clinic_config_v1';
+export const CACHE_KEY = 'clinic_config';
 
 export function getActiveClinicId(): string {
   if (typeof window === 'undefined') return 'columbus-chiropractic';
@@ -58,6 +61,8 @@ interface ClinicContextType {
   patientPortalInitialQuery: string;
   openPatientPortal: (query?: string) => void;
   closePatientPortal: () => void;
+  isConfigLoaded: boolean;
+  isAuthReady: boolean;
 }
 
 export const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -75,21 +80,24 @@ function sanitize(clinic: ClinicInfo) {
   return out;
 }
 
-function getInitialClinic(): ClinicInfo {
+function getInitialClinic(): { data: ClinicInfo; hasCache: boolean } {
   const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
   const presetData = agencyDemoPresets[defaultPresetKey] || {};
   const baseClinic = { ...defaultClinic, ...presetData };
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return { ...baseClinic, ...JSON.parse(saved) };
+    const saved = localStorage.getItem(CACHE_KEY) || localStorage.getItem(STORAGE_KEY);
+    if (saved) return { data: { ...baseClinic, ...JSON.parse(saved) }, hasCache: true };
   } catch {
     // ignore
   }
-  return baseClinic;
+  return { data: baseClinic, hasCache: false };
 }
 
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [clinicData, setClinicData] = useState<ClinicInfo>(getInitialClinic);
+  const initial = useMemo(() => getInitialClinic(), []);
+  const [clinicData, setClinicData] = useState<ClinicInfo>(initial.data);
+  const [isConfigLoaded, setIsConfigLoaded] = useState<boolean>(initial.hasCache);
+  const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'local_only');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -99,6 +107,30 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [bookingInitialServiceTitle, setBookingInitialServiceTitle] = useState<string>('Initial Consultation & Examination');
   const [bookingInitialServicePrice, setBookingInitialServicePrice] = useState<string | undefined>(undefined);
   const [bookingInitialPractitionerId, setBookingInitialPractitionerId] = useState<string | undefined>(undefined);
+
+  // 1. Gate on Firebase Auth initialization (prevent Sign In / My Account flash)
+  useEffect(() => {
+    let unsubAuth: (() => void) | undefined;
+    try {
+      unsubAuth = onAuthStateChanged(auth, () => {
+        setIsAuthReady(true);
+      });
+    } catch {
+      setIsAuthReady(true);
+    }
+    return () => {
+      if (unsubAuth) unsubAuth();
+    };
+  }, []);
+
+  // 2. Safety timeout so app never blocks indefinitely if offline / network stalled
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsConfigLoaded(true);
+      setIsAuthReady(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Patient Self-Service Portal State
   const [isPatientPortalOpen, setIsPatientPortalOpen] = useState<boolean>(false);
@@ -207,21 +239,25 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 notes: data.notes || prev.notes,
               };
               try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(merged));
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
               } catch {
                 // ignore
               }
               return merged;
             });
+            setIsConfigLoaded(true);
             setSyncStatus('synced');
             setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           } else {
             // First time clinic setup: persist current base clinic to Firestore so operator console sees it
+            setIsConfigLoaded(true);
             setSyncStatus('synced');
           }
         },
         (err) => {
           console.warn('Firestore clinic real-time snapshot note:', err);
+          setIsConfigLoaded(true);
           setSyncStatus('local_only');
         }
       );
@@ -377,6 +413,8 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       patientPortalInitialQuery,
       openPatientPortal,
       closePatientPortal,
+      isConfigLoaded,
+      isAuthReady,
     }),
     [
       clinicData,
@@ -403,8 +441,16 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       patientPortalInitialQuery,
       openPatientPortal,
       closePatientPortal,
+      isConfigLoaded,
+      isAuthReady,
     ]
   );
+
+  // Gate initial paint until clinic config and auth state are ready
+  // Eliminates flash of unconfigured text or "Sign In" button flicker
+  if (!isConfigLoaded || !isAuthReady) {
+    return <LoadingScreen clinic={clinicData} />;
+  }
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 };

@@ -243,12 +243,13 @@ Firebase Authentication blocks logins and patient signups by default unless your
 
 > ⚠️ **Warning:** If you skip this step, patient bookings and staff logins will fail with an `auth/unauthorized-domain` error.
 
-### Step 5.5: Custom Domain Sitemap & SEO (Optional)
-To provide a dedicated XML sitemap for search engines for your custom clinic domain:
-1. Create a `sitemap.xml` inside your `public/` directory with your live clinic domain:
+### Step 5.5: Custom Domain Sitemap & SEO (Recommended)
+A pre-formatted sitemap template is included at `public/sitemap.xml`. Before going live:
+1. Open `public/sitemap.xml` in your editor and replace `YOUR-CLINIC.com` with your real domain:
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Replace YOUR-CLINIC.com with your real domain before deploying -->
   <url><loc>https://yourclinic.com/</loc></url>
   <url><loc>https://yourclinic.com/conditions</loc></url>
   <url><loc>https://yourclinic.com/first-visit</loc></url>
@@ -256,12 +257,15 @@ To provide a dedicated XML sitemap for search engines for your custom clinic dom
   <url><loc>https://yourclinic.com/pricing</loc></url>
   <url><loc>https://yourclinic.com/contact</loc></url>
   <url><loc>https://yourclinic.com/blog</loc></url>
+  <url><loc>https://yourclinic.com/privacy</loc></url>
+  <url><loc>https://yourclinic.com/terms</loc></url>
 </urlset>
 ```
-2. Add the reference to `public/robots.txt`:
+2. Open `public/robots.txt` and uncomment the `Sitemap:` line with your live domain:
 ```text
 User-agent: *
 Allow: /
+
 Sitemap: https://yourclinic.com/sitemap.xml
 ```
 

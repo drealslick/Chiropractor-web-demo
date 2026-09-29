@@ -36,7 +36,7 @@ interface RouteMetadata {
   citations?: string[];
 }
 
-const BASE_URL = 'https://vancehealth.co.uk';
+const BASE_URL = (process.env.VITE_APP_URL || 'https://your-clinic.vercel.app').replace(/\/$/, '');
 const CLINIC_NAME = 'Vance Health Practice Architecture';
 const CLINIC_PHONE = '+44 20 7946 0192';
 const CLINIC_EMAIL = 'reception@vancehealth.co.uk';

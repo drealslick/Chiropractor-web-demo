@@ -20,8 +20,20 @@ const getResend = () => {
   return new Resend(apiKey);
 };
 
+// 2. Helper to resolve APP_URL scoped strictly to email dispatchers
+const resolveAppUrl = (): string => {
+  const url = (process.env.APP_URL || (functions.config().app && functions.config().app.url) || '').trim();
+  if (!url) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'APP_URL is not configured. Email links will be broken. Set functions.config().app.url or APP_URL in functions/.env.'
+    );
+  }
+  return url.replace(/\/$/, '');
+};
+
 /**
- * 2. Firebase Auth Trigger: onUserCreated
+ * 3. Firebase Auth Trigger: onUserCreated
  * Automatically initializes a user profile doc with dynamic clinicId and sets default role claims
  */
 export const onUserCreated = functions.auth.user().onCreate(async (user) => {
@@ -611,6 +623,7 @@ export const sendTransactionalEmail = functions.https.onCall(async (data, contex
     throw new functions.https.HttpsError('invalid-argument', 'Missing recipientEmail or type');
   }
 
+  const appBaseUrl = resolveAppUrl();
   let subject = 'Appointment Update - Vance Health';
   let html = `<p>Hello ${patientName}, your appointment has an update.</p>`;
 
@@ -627,7 +640,7 @@ export const sendTransactionalEmail = functions.https.onCall(async (data, contex
           <p style="margin: 4px 0;"><strong>Attending Clinician:</strong> ${doctorName || 'Dr. Sarah Vance'}</p>
           <p style="margin: 4px 0;"><strong>Reference ID:</strong> <code>${appointmentId}</code></p>
         </div>
-        <p>You can access your interactive care plan, home exercises, and calendar download via your Patient Portal.</p>
+        <p>You can access your interactive care plan, home exercises, and calendar download via your <a href="${appBaseUrl}/portal" style="color: #064e3b; font-weight: 600; text-decoration: underline;">Patient Portal</a>.</p>
       </div>
     `;
   } else if (type === 'cancellation') {
@@ -644,7 +657,7 @@ export const sendTransactionalEmail = functions.https.onCall(async (data, contex
  * Server-side SMS & Email dispatcher for Twilio & Resend
  */
 export const sendAutomatedNotification = functions.https.onCall(async (data, context) => {
-  const { channel, recipient, messageText, subject, eventType, clinicName } = data;
+  const { channel, recipient, messageText, subject, clinicName } = data;
 
   if (!recipient || !channel || !messageText) {
     throw new functions.https.HttpsError('invalid-argument', 'channel, recipient, and messageText are required.');
@@ -705,7 +718,7 @@ export const sendAutomatedNotification = functions.https.onCall(async (data, con
   // 2. Channel = Email via Resend
   if (channel === 'email') {
     try {
-      const appUrl = (process.env.APP_URL || (functions.config().app && functions.config().app.url) || '').trim();
+      const appBaseUrl = resolveAppUrl();
       const res = await sendEmailHelper({
         to: recipient,
         subject: subject || `${clinicName || 'Chiropractic Clinic'} Notification`,
@@ -718,7 +731,7 @@ export const sendAutomatedNotification = functions.https.onCall(async (data, con
               ${messageText}
             </div>
             <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e7e5e4; font-size: 11px; color: #78716c; text-align: center;">
-              This notification was generated automatically by your clinic portal.${appUrl ? `<br><a href="${appUrl}" style="color: #059669; text-decoration: underline; margin-top: 6px; display: inline-block;">Access Clinic Portal</a>` : ''}
+              This notification was generated automatically by your clinic portal.<br><a href="${appBaseUrl}" style="color: #059669; text-decoration: underline; margin-top: 6px; display: inline-block;">Access Clinic Portal</a>
             </div>
           </div>
         `,
