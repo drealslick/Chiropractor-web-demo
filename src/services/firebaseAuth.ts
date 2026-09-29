@@ -83,20 +83,22 @@ export async function signUpPatientWithEmail(
     }
 
     // Persist user document in Firestore under users/{uid}
-    await setDoc(
-      doc(db, 'users', user.uid),
-      {
-        uid: user.uid,
-        email: user.email,
-        displayName: fullName.trim(),
-        role: 'patient',
-        clinicId: resolvedClinicId,
-        phone: phone?.trim() || '',
-        emailVerified: user.emailVerified,
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    if (import.meta.env.VITE_DEMO_MODE !== 'true') {
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          uid: user.uid,
+          email: user.email,
+          displayName: fullName.trim(),
+          role: 'patient',
+          clinicId: resolvedClinicId,
+          phone: phone?.trim() || '',
+          emailVerified: user.emailVerified,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
 
     return {
       success: true,

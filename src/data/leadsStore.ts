@@ -5,6 +5,7 @@ import {
   interpolateTemplate,
 } from './gatewayStore';
 import { syncAppointmentToFirestore } from '../services/firebaseSync';
+import { sandbox } from '../lib/sandbox';
 
 export interface PatientLead {
   id: string;
@@ -270,6 +271,10 @@ export function getDefaultReceptionNotifications(): DispatchedNotification[] {
 }
 
 export function getStoredLeads(): PatientLead[] {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    return sandbox.list<PatientLead>('appointments');
+  }
+
   try {
     const raw = localStorage.getItem(LEADS_STORAGE_KEY);
     if (!raw) {
@@ -474,6 +479,9 @@ export function updateLeadStatus(id: string, status: PatientLead['status'], canc
     return lead;
   });
   try {
+    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+      sandbox.update('appointments', id, { status, ...(cancellationReason ? { cancellationReason } : {}) });
+    }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
   } catch {
@@ -587,6 +595,9 @@ export function deleteLead(id: string): PatientLead[] {
   const current = getStoredLeads();
   const updated = current.filter((lead) => lead.id !== id);
   try {
+    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+      sandbox.delete('appointments', id);
+    }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
   } catch {

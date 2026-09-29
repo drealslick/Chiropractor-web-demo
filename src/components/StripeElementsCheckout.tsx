@@ -3,6 +3,7 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../lib/firebase';
+import { notifyDemoAction } from '../lib/data-provider';
 import { Lock, ShieldCheck, RefreshCw, AlertCircle, Sparkles, CreditCard } from 'lucide-react';
 
 interface StripeElementsCheckoutProps {
@@ -182,6 +183,12 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
     const initializeIntent = async () => {
       setIsLoadingIntent(true);
       setInitError(null);
+
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        notifyDemoAction(`✓ Would charge ${currencySymbol || '£'}${(amount / 100).toFixed(2)} (Demo Mode - card not charged)`);
+        onFallbackToDemo('Demo Mode active: Payment is simulated without live card processing.');
+        return;
+      }
 
       try {
         const createIntentFn = httpsCallable(functions, 'createPaymentIntent');

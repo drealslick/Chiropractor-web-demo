@@ -110,6 +110,16 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
   ) => {
     setIsSavingToCloud(true);
     try {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setLastSavedTime(nowStr);
+        setHasPendingChanges(false);
+        setShowAutoSaveToast(true);
+        setTimeout(() => setShowAutoSaveToast(false), 3000);
+        setIsSavingToCloud(false);
+        return;
+      }
+
       // Write sensitive integration settings to clinic_settings/integrations (admin-only rule)
       const settingsRef = doc(db, 'clinic_settings', 'integrations');
       await setDoc(

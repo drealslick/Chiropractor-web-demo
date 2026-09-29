@@ -277,9 +277,15 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
       setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch {
       // ignore
+    }
+
+    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+      setSyncStatus('synced');
+      return;
     }
 
     setSyncStatus('saving');

@@ -21,6 +21,8 @@ import {
 } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
 import { PatientLead, PatientAccount, DispatchedNotification } from '../data/leadsStore';
+import { sandbox } from '../lib/sandbox';
+import { notifyDemoAction } from '../lib/data-provider';
 
 // Collection References
 const APPOINTMENTS_COLLECTION = 'appointments';
@@ -31,6 +33,11 @@ const SETTINGS_COLLECTION = 'clinic_settings';
  * Real-time Firestore sync for Appointments
  */
 export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boolean> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    sandbox.create('appointments', lead.clinicName || 'columbus-chiropractic', lead);
+    return true;
+  }
+
   try {
     const docRef = doc(db, APPOINTMENTS_COLLECTION, lead.id);
     await setDoc(
@@ -52,6 +59,17 @@ export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boo
  * Subscribe to real-time appointments across all devices/branches
  */
 export function subscribeToAppointments(callback: (appointments: PatientLead[]) => void): () => void {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    const emit = () => {
+      const appts = sandbox.list<PatientLead>('appointments');
+      callback(appts);
+    };
+    emit();
+    const handler = () => emit();
+    window.addEventListener('sandbox_updated', handler);
+    return () => window.removeEventListener('sandbox_updated', handler);
+  }
+
   try {
     const q = collection(db, APPOINTMENTS_COLLECTION);
     const unsubscribe = onSnapshot(
@@ -80,6 +98,12 @@ export function subscribeToAppointments(callback: (appointments: PatientLead[]) 
  * Fetch patient appointments by email from Cloud Firestore
  */
 export async function fetchAppointmentsByEmailFromFirestore(email: string): Promise<PatientLead[]> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    const cleanEmail = email.trim().toLowerCase();
+    const all = sandbox.list<PatientLead>('appointments');
+    return all.filter((a) => (a.email || '').toLowerCase() === cleanEmail);
+  }
+
   try {
     const cleanEmail = email.trim().toLowerCase();
     const q = query(collection(db, APPOINTMENTS_COLLECTION), where('email', '==', cleanEmail));
@@ -99,6 +123,10 @@ export async function fetchAppointmentsByEmailFromFirestore(email: string): Prom
  * Fetch single appointment by booking ID from Cloud Firestore
  */
 export async function fetchAppointmentByIdFromFirestore(id: string): Promise<PatientLead | null> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    return sandbox.getById<PatientLead>('appointments', id);
+  }
+
   try {
     const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
     const docSnap = await getDoc(docRef);
@@ -121,6 +149,22 @@ export async function registerPatientWithFirebaseAuth(
   password: string,
   phone?: string
 ): Promise<{ success: boolean; account?: PatientAccount; message: string }> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    const patientProfile: PatientAccount = {
+      id: `pat-demo-${Date.now()}`,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone?.trim() || '',
+      createdAt: new Date().toISOString(),
+    };
+    sandbox.create('patients', 'columbus-chiropractic', patientProfile);
+    notifyDemoAction(`✓ Patient profile registered in demo sandbox (${patientProfile.name})`);
+    return {
+      success: true,
+      account: patientProfile,
+      message: 'Account created in demo sandbox.',
+    };
+  }
   try {
     const cleanEmail = email.trim().toLowerCase();
     // 1. Create user in Firebase Auth
@@ -164,6 +208,32 @@ export async function loginPatientWithFirebaseAuth(
   email: string,
   password: string
 ): Promise<{ success: boolean; account?: PatientAccount; message: string }> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    const cleanEmail = email.trim().toLowerCase();
+    const patients = sandbox.list<any>('patients');
+    const found = patients.find((p) => (p.email || '').toLowerCase() === cleanEmail);
+    const account: PatientAccount = found
+      ? {
+          id: found.id,
+          name: found.name,
+          email: found.email,
+          phone: found.phone,
+          createdAt: found.createdAt,
+        }
+      : {
+          id: 'pat-demo-current',
+          name: cleanEmail.split('@')[0],
+          email: cleanEmail,
+          createdAt: new Date().toISOString(),
+        };
+    notifyDemoAction(`✓ Logged in as demo patient (${account.name})`);
+    return {
+      success: true,
+      account,
+      message: 'Logged in to demo sandbox.',
+    };
+  }
+
   try {
     const cleanEmail = email.trim().toLowerCase();
     const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
@@ -204,6 +274,14 @@ export async function loginPatientWithFirebaseAuth(
 export async function sendRealPasswordReset(
   email: string
 ): Promise<{ success: boolean; message: string }> {
+  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    notifyDemoAction(`✓ Password reset email simulated for ${email}`);
+    return {
+      success: true,
+      message: `[Demo Mode] Simulated password recovery dispatched for ${email}.`,
+    };
+  }
+
   try {
     const cleanEmail = email.trim().toLowerCase();
     const appUrl = (import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')).trim();

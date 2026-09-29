@@ -43,11 +43,12 @@ export function GlobalAgencyController() {
   const [adminPassword, setAdminPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
 
-  // Discreet floating quick-access button (only shown when ?admin=true or logged in)
+  // Discreet floating quick-access button (only shown when in demo mode, ?admin=true, or logged in)
   const [showAdminButton, setShowAdminButton] = useState<boolean>(() => {
     try {
-      if (window.location.search.includes('admin=true') || window.location.search.includes('admin=1')) {
+      if (isDemo || window.location.search.includes('admin=true') || window.location.search.includes('admin=1')) {
         return true;
       }
       return localStorage.getItem('vance_show_admin_button') === 'true';
@@ -361,7 +362,29 @@ export function GlobalAgencyController() {
                 </div>
               </div>
 
-              {isUnclaimedDeployment && !claimMode && (
+              {isDemo && !claimMode && (
+                <div className="p-3 my-2.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-[11px] text-amber-300 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-400">
+                    <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span>Interactive Demo Sandbox</span>
+                  </div>
+                  <p className="text-amber-200/90 leading-relaxed">
+                    You are exploring the live public demo. Click below to enter the admin workspace with full read/write capabilities in your browser sandbox.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAdminOrStaff(true);
+                      setCurrentUser({ email: 'demo-admin@vancehealth.co.uk', uid: 'demo-admin-uid' } as any);
+                    }}
+                    className="mt-1 w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-[11px] transition text-center cursor-pointer shadow active:scale-95"
+                  >
+                    Enter Demo Admin Workspace
+                  </button>
+                </div>
+              )}
+
+              {isUnclaimedDeployment && !claimMode && !isDemo && (
                 <div className="p-3 my-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-[11px] text-emerald-300 flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-emerald-400">
                     <Sparkles className="w-4 h-4 shrink-0 text-emerald-400" />
