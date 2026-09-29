@@ -232,9 +232,6 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 city: data.city || prev.city,
                 state: data.state || prev.state,
                 ownerEmail: data.ownerEmail || prev.ownerEmail || prev.email,
-                planTier: data.planTier || prev.planTier || 'pro',
-                mrr: data.mrr ?? prev.mrr ?? 299,
-                status: data.status || prev.status || 'active',
                 ehrIntegration: data.ehrIntegration || prev.ehrIntegration,
                 notes: data.notes || prev.notes,
               };
@@ -250,7 +247,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             setSyncStatus('synced');
             setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           } else {
-            // First time clinic setup: persist current base clinic to Firestore so operator console sees it
+            // First time clinic setup: initialize clinic document
             setIsConfigLoaded(true);
             setSyncStatus('synced');
           }
@@ -290,7 +287,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     setSyncStatus('saving');
 
-    // Sync to Cloud Firestore 'clinics' collection with merge: true so operator fields are preserved
+    // Sync clinic customization settings to Cloud Firestore
     try {
       const docRef = doc(db, 'clinics', activeId);
       setDoc(
@@ -304,8 +301,6 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           phone: clinic.phone || '(614) 555-0192',
           city: clinic.city || 'Columbus',
           state: clinic.state || 'OH',
-          planTier: clinic.planTier || 'pro',
-          status: clinic.status || 'active',
           lastActive: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },

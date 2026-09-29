@@ -1,400 +1,390 @@
-# Practice OS | Clinic Patient Portal & Management Platform
+# Practice OS | Turnkey Clinic Patient Portal & Management Platform
 
-A complete, production-grade web application and patient booking portal built for private practices, chiropractic clinics, and physical therapy centers.
+A complete, production-grade web application and patient booking portal built for private medical practices, chiropractic clinics, physical therapy centers, and wellness studios.
 
-This guide provides step-by-step instructions for deploying and launching your clinic platform. 
+This repository is a **100% self-contained, standalone clinic operating system**. You own your codebase, database, and customer data outright with zero platform fees, no multi-tenant lock-in, and no external operator dependencies.
 
-> **Audience Note:** Written for clinic owners and practice managers. Where a technical step requires developer tools or a terminal, it is explicitly flagged with **[Developer Required]**.
+---
+
+## ⚡ 10-Minute Launch Fast Track
+
+For experienced developers or fast deployment:
+1. **Firebase**: Create a project, enable **Auth (Email/Password)**, **Firestore**, and **Storage**, and upgrade to **Blaze** (free tier covers typical clinic traffic).
+2. **Backend**: `cd functions && cp .env.example .env && npm install && npm run build && cd .. && firebase deploy`
+3. **Frontend**: Import repo to **Vercel** as a Vite project, add your `VITE_FIREBASE_*` variables from Firebase Console, and click **Deploy**.
+4. **Authorize**: Add your Vercel domain to **Firebase Console > Authentication > Settings > Authorized domains**.
+5. **Claim**: Open your live URL with `?admin=true`, enter your `CLINIC_SETUP_TOKEN`, and establish your primary clinic administrator login.
 
 ---
 
 ## Table of Contents
-1. [Prerequisites](#1-prerequisites)
-2. [Step-by-Step Firebase Setup](#2-step-by-step-firebase-setup)
-3. [Deploying Database Rules, Indexes & Backend [Developer Required]](#3-deploying-database-rules-indexes--backend-developer-required)
-4. [Backend Secrets & Configuration [Developer Required]](#4-backend-secrets--configuration-developer-required)
-5. [Vercel Frontend Deployment](#5-vercel-frontend-deployment)
-6. [First-Run Setup: Claiming Your Clinic](#6-first-run-setup-claiming-your-clinic)
-7. [Stripe Direct Payments: Receiving Patient Funds](#7-stripe-direct-payments-receiving-patient-funds)
-8. [Connecting Your Custom Domain](#8-connecting-your-custom-domain)
-9. [Common Troubleshooting](#9-common-troubleshooting)
+1. [Architecture & Key Features](#1-architecture--key-features)
+2. [Local Development](#2-local-development)
+3. [Prerequisites](#3-prerequisites)
+4. [Step-by-Step Firebase Setup](#4-step-by-step-firebase-setup)
+5. [Deploying Database Rules, Indexes & Backend](#5-deploying-database-rules-indexes--backend)
+6. [Backend Secrets & Configuration](#6-backend-secrets--configuration)
+7. [Vercel Frontend Deployment](#7-vercel-frontend-deployment)
+8. [Interactive Demo Mode (Feature-Flagged Sandbox)](#8-interactive-demo-mode-feature-flagged-sandbox)
+9. [First-Run Setup: Claiming Your Clinic](#9-first-run-setup-claiming-your-clinic)
+10. [Stripe Direct Payments: Receiving Patient Funds](#10-stripe-direct-payments-receiving-patient-funds)
+11. [Connecting Your Custom Domain](#11-connecting-your-custom-domain)
+12. [Post-Launch Verification Checklist](#12-post-launch-verification-checklist)
+13. [Common Troubleshooting](#13-common-troubleshooting)
 
 ---
 
-## 1. Prerequisites
+## 1. Architecture & Key Features
 
-Before starting, create accounts on the following platforms (all have free tiers):
+* **High-Converting Public Website**: Evidence-based condition library, doctor bios, first-visit guides, interactive patient testimonials, and SEO sitemap.
+* **Smart Booking & Triage**: Multi-step booking engine with pain map intake, contraindication screening, doctor-specific scheduling, and instant calendar confirmation.
+* **Practice Admin Hub**:
+  * Real-time appointment management (check-in, reschedule, cancel, notes)
+  * Patient registry and intake history
+  * Visual CMS (modify clinic copy, pricing, doctors, conditions, and color themes in real-time)
+  * Staff access control (Roles: `admin`, `staff`, `practitioner`)
+* **Patient Self-Service Portal**: Secure account access for patients to view bookings, review clinical intake notes, and access receipts.
+* **Zero-Fee Direct Stripe Integration**: Collect deposits, full consultation fees, or no-show card holds directly into your clinic's business checking account.
+* **Automated Notifications**: Transactional email dispatch via **Resend** and instant SMS text reminders via **Twilio**.
+* **Isolated Client-Side Demo Sandbox**: Pitch prospects or test changes locally without touching production Firestore (`VITE_DEMO_MODE=true`).
+
+---
+
+## 2. Local Development
+
+To run the application on your computer:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/practiva-clinic-os.git
+cd practiva-clinic-os
+
+# 2. Install dependencies
+npm install
+
+# 3. Create your local environment file
+cp .env.example .env.local
+
+# 4. Start local development server
+npm run dev
+```
+
+The frontend will start at `http://localhost:3000`.
+
+> **Tip for local testing without Firebase:** Set `VITE_DEMO_MODE=true` in `.env.local` to run in a browser sandbox with pre-seeded demo appointments and patient charts!
+
+---
+
+## 3. Prerequisites
+
+Create free accounts on the following services:
 
 | Service | Purpose | Account Link |
 | :--- | :--- | :--- |
-| **Google Cloud / Firebase** | Database, User Logins & Cloud Storage | [firebase.google.com](https://firebase.google.com/) |
-| **Vercel** | Fast, secure website hosting | [vercel.com](https://vercel.com/) |
+| **Google Cloud / Firebase** | Database, User Authentication & File Storage | [firebase.google.com](https://firebase.google.com/) |
+| **Vercel** | High-performance global website hosting | [vercel.com](https://vercel.com/) |
 | **Stripe** | Direct credit card processing & bank payouts | [stripe.com](https://stripe.com/) |
-| **Resend** | Automated email delivery (receipts, appointment reminders) | [resend.com](https://resend.com/) |
-| **Twilio** *(Optional)* | Automated SMS text message reminders | [twilio.com](https://twilio.com/) |
+| **Resend** | Automated appointment email confirmations & receipts | [resend.com](https://resend.com/) |
+| **Twilio** *(Optional)* | Automated patient SMS reminders | [twilio.com](https://twilio.com/) |
 
-### Tools Required on Your Computer [Developer Required]
-If you are doing the command-line setup yourself:
+### Tools Required on Your Computer
 * **Node.js (v20 or higher)**: [nodejs.org](https://nodejs.org/)
-* **Firebase CLI**: Installed by running `npm install -g firebase-tools`
-* **Git**: Installed by running your operating system package manager or installer
+* **Firebase CLI**: Install globally via `npm install -g firebase-tools`
+* **Git**: Installed via package manager or installer
 
 ---
 
-## 2. Step-by-Step Firebase Setup
+## 4. Step-by-Step Firebase Setup
 
-*(Can be completed entirely in your web browser by a non-technical clinic owner)*
+*(Can be completed in any web browser by non-technical clinic staff)*
 
-### Step 2.1: Create a Firebase Project
-1. Go to [console.firebase.google.com](https://console.firebase.google.com/) and sign in with your clinic's Google account.
+### Step 4.1: Create a Firebase Project
+1. Go to [console.firebase.google.com](https://console.firebase.google.com/) and sign in with your Google account.
 2. Click **Add project** (or **Create a project**).
-3. Enter your clinic name (e.g., `Practiva Health` or `Vance Chiropractic`).
-4. Turn off Google Analytics (optional, saves setup time) and click **Create project**.
-5. Wait 10 seconds for Google to finish provisioning, then click **Continue**.
+3. Enter your practice name (e.g., `Vance Chiropractic`).
+4. Disable Google Analytics (optional, saves setup time) and click **Create project**.
+5. Wait 10 seconds for provisioning, then click **Continue**.
 
-### Step 2.2: Enable Authentication (Patient & Staff Logins)
-1. In the left-hand sidebar, click **Build** > **Authentication**.
+### Step 4.2: Enable Authentication (Patient & Staff Logins)
+1. In the left sidebar, click **Build** > **Authentication**.
 2. Click **Get Started**.
-3. Under the **Sign-in method** tab, click **Email/Password**.
-4. Toggle the first switch **Enable** to ON (leave "Email link (passwordless sign-in)" OFF).
+3. Under **Sign-in method**, click **Email/Password**.
+4. Toggle **Enable** to ON (leave "Email link" OFF).
 5. Click **Save**.
 
-### Step 2.3: Enable Cloud Firestore (Clinic Database)
+### Step 4.3: Enable Cloud Firestore (Clinic Database)
 1. In the left sidebar, click **Build** > **Firestore Database**.
 2. Click **Create database**.
 3. **Database ID**: Leave as `(default)`.
 4. **Location**: Choose the region closest to your clinic (e.g., `nam5 (us-central)` for US or `eur3 (europe-west)` for UK/EU).
-5. **Security rules**: Select **Start in production mode** (we will load your secure rules next).
+5. **Security rules**: Select **Start in production mode** (we deploy hardened security rules in Section 5).
 6. Click **Create**.
 
-### Step 2.4: Enable Cloud Storage (Photos, Logos & Documents)
+### Step 4.4: Enable Cloud Storage (Medical Documents & Photos)
 1. In the left sidebar, click **Build** > **Storage**.
 2. Click **Get Started**.
 3. Select **Start in production mode** and choose the same region as Firestore.
 4. Click **Done**.
 
-### Step 2.5: Upgrade to the Blaze Plan
-*(Cloud Functions and Stripe webhooks require the Google Cloud Blaze "Pay as you go" plan. Google provides a generous free monthly quota—typical small-to-medium clinics pay $0.00/month).*
+### Step 4.5: Upgrade to the Blaze Plan
+*(Cloud Functions, Stripe webhooks, and email dispatch require Google Cloud's pay-as-you-go Blaze plan. Firebase includes generous free monthly quotas—typical private practices pay $0.00/month).*
 
-1. At the bottom of the left sidebar, look for the word **Spark** and click **Upgrade**.
-2. Select the **Blaze** plan.
-3. Link your credit card or Google Cloud Billing account.
-4. Set a monthly budget alert (e.g., $15.00) so Google emails you if usage ever exceeds the free tier.
+1. At the bottom of the left sidebar, click **Upgrade** next to **Spark**.
+2. Select **Blaze** plan and link your billing card or Google Cloud Billing account.
+3. Recommended: Set a budget alert of $15.00 so Google alerts you if traffic ever exceeds free limits.
 
-### Step 2.6: Generate a Service Account Key
-*(Needed for administrative scripts and backend verification)*
-
-1. Click the **Gear icon ⚙️** next to *Project Overview* in the top-left, then click **Project settings**.
-2. Click the **Service accounts** tab.
-3. Click the blue button labeled **Generate new private key**.
-4. Confirm by clicking **Generate key**.
-5. A `.json` file will download to your computer. Store this securely—it grants administrative access to your database. Never commit this file to GitHub!
-
-### Step 2.7: Copy Your Web App Credentials
-1. Still in **Project settings**, scroll down to the section titled **Your apps**.
-2. Click the Web icon **`</>`**.
-3. Enter an App nickname (e.g., `Clinic Website`) and click **Register app**.
-4. Firebase will display a code block with `const firebaseConfig = { ... }`.
-5. Keep this tab open or copy the values (`apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId`). You will paste these into Vercel in Section 5.
+### Step 4.6: Copy Your Web App Credentials
+1. Click the **Gear icon ⚙️** next to *Project Overview* > **Project settings**.
+2. Scroll down to **Your apps** and click the Web icon **`</>`**.
+3. Enter an App nickname (e.g., `Clinic Web App`) and click **Register app**.
+4. Firebase will display `const firebaseConfig = { ... }`.
+5. Copy these values (`apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId`). You will paste them into Vercel in Section 7.
 
 ---
 
-## 3. Deploying Database Rules, Indexes & Backend [Developer Required]
+## 5. Deploying Database Rules, Indexes & Backend
 
-Run these commands in your computer terminal from the root folder of this project.
+Run these commands in your computer terminal from the root folder:
 
-### Step 3.1: Log into Firebase CLI
+### Step 5.1: Log in & Connect Your Project
 ```bash
+# 1. Log into your Google account
 firebase login
-```
-*(Your web browser will open. Sign in with the Google account that owns the Firebase project).*
 
-### Step 3.2: Connect Your Project
-Replace `your-project-id` with your real project ID from Firebase Project Settings:
-```bash
+# 2. Select your Firebase project (replace with your real project ID)
 firebase use your-project-id
 ```
 
-### Step 3.3: Deploy Firestore Security Rules & Indexes
-This deploys multi-tenant data isolation rules and search indexes:
+### Step 5.2: Deploy Security Rules & Indexes
 ```bash
+# Deploy Firestore security rules and composite query indexes
 firebase deploy --only firestore:rules,firestore:indexes
-```
 
-### Step 3.4: Deploy Storage Rules
-This locks down medical intake uploads and patient photos:
-```bash
+# Deploy Cloud Storage security rules (protects patient intake uploads)
 firebase deploy --only storage
 ```
 
-### Step 3.5: Build & Deploy Cloud Functions
+### Step 5.3: Build & Deploy Cloud Functions
 ```bash
-# 1. Install functions dependencies
 cd functions
 npm install
-
-# 2. Compile TypeScript code
 npm run build
-
-# 3. Return to root folder and deploy
 cd ..
 firebase deploy --only functions
 ```
 
 ---
 
-## 4. Backend Secrets & Configuration [Developer Required]
+## 6. Backend Secrets & Configuration
 
-This repository uses **`firebase-functions` v5**. In v5, environment secrets are stored in a `functions/.env` file instead of deprecated CLI commands.
+This platform uses **`firebase-functions` v5** with environment variables declared in `functions/.env`.
 
-### Step 4.1: Create Your `functions/.env` File
-In your terminal, navigate to the `functions` directory and copy the template:
+### Step 6.1: Create Your `functions/.env` File
 ```bash
 cd functions
 cp .env.example .env
 ```
 
-### Step 4.2: Add Your Keys to `functions/.env`
-Open `functions/.env` in any text editor and fill in your values:
+### Step 6.2: Configure Your Keys
+Open `functions/.env` in any text editor and fill in your credentials:
 
 ```env
-# 1. Secret Setup Token (Create a random 32-character string, e.g., my-secret-clinic-key-2026)
-# Save this! You will type this once into your browser in Section 6 to claim admin rights.
-CLINIC_SETUP_TOKEN=PASTE_YOUR_RANDOM_CLINIC_SETUP_TOKEN
+# 1. Secret Setup Token (Create a random 32+ character string)
+# Save this! You will enter this ONCE into your browser to claim primary clinic admin.
+CLINIC_SETUP_TOKEN=my-secret-clinic-setup-key-2026-xyz
 
 # 2. Stripe Direct Keys (from dashboard.stripe.com/apikeys)
 STRIPE_SECRET_KEY=sk_live_YOUR_STRIPE_SECRET_KEY
 STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_STRIPE_PUBLISHABLE_KEY
 
-# 3. Direct Stripe flag (bypasses Connect OAuth so funds go directly into your bank)
+# 3. Direct Stripe flag (bypasses Connect fees so funds go 100% to your account)
 FORCE_DIRECT_STRIPE=true
 
-# 4. Stripe Webhook Secret (from dashboard.stripe.com/webhooks — see Section 7)
+# 4. Stripe Webhook Secret (from dashboard.stripe.com/webhooks — see Section 10)
 STRIPE_WEBHOOK_SECRET=whsec_YOUR_STRIPE_WEBHOOK_SECRET
 
 # 5. Resend Email API Key (from resend.com/api-keys)
 RESEND_API_KEY=re_YOUR_RESEND_API_KEY
 
-# 6. Twilio SMS (Optional - leave blank if not sending SMS reminders)
+# 6. Twilio SMS (Optional - leave blank if not sending SMS text messages)
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
 
-# 7. Live Frontend URL (used in email footers and notification links)
+# 7. Live Canonical URL (used in email footers and notification links)
 APP_URL=https://your-clinic.vercel.app
 ```
 
-### Step 4.3: Deploy the Updated Functions
-From your project root folder:
+Deploy the updated secrets to Firebase:
 ```bash
 cd ..
 firebase deploy --only functions
 ```
-Firebase will automatically package your `.env` variables and upload them securely to your Cloud Functions runtime.
-
-*(Note for legacy setups: If you prefer using CLI commands, `firebase functions:config:set stripe.secret_key="..." clinic.setup_token="..." resend.api_key="..." app.url="https://your-clinic.vercel.app"` is also supported as a fallback in code).*
 
 ---
 
-## 5. Vercel Frontend Deployment
+## 7. Vercel Frontend Deployment
 
-*(Can be completed by a non-technical clinic owner in the Vercel Dashboard)*
+### Step 7.1: Import Your Repository
+1. Log in to [vercel.com](https://vercel.com/) and click **Add New...** > **Project**.
+2. Select your Git repository and click **Import**.
+3. **Framework Preset**: Select **Vite**.
+4. **Root Directory**: Leave as `./`.
 
-### Step 5.1: Import Your Repository
-1. Log in to [vercel.com](https://vercel.com/).
-2. Click **Add New...** > **Project**.
-3. Select your Git repository and click **Import**.
-4. **Framework Preset**: Select **Vite**.
-5. **Root Directory**: Leave as `./`.
-
-### Step 5.2: Configure Environment Variables
-Expand the **Environment Variables** panel in Vercel. Add the following public variables:
+### Step 7.2: Configure Environment Variables
+Add the following variables in the Vercel **Environment Variables** panel:
 
 | Variable Name | Required? | Example Value | Description |
 | :--- | :--- | :--- | :--- |
-| `VITE_APP_URL` | **Recommended** | `https://your-clinic.vercel.app` | Canonical live URL used for password reset redirects and OpenGraph links. |
-| `VITE_CLINIC_ID` | Optional | `columbus-chiropractic` | The URL slug / tenant ID for this clinic. |
-| `VITE_DEFAULT_PRESET` | Optional | `austin` | Visual styling preset (`austin`, `dallas`, `seattle`). |
-| `VITE_FIREBASE_API_KEY` | **Required** | `AIzaSyCMxDCWnOM...` | Copied from Firebase Project Settings (Step 2.7). |
-| `VITE_FIREBASE_AUTH_DOMAIN` | **Required** | `your-project.firebaseapp.com` | Copied from Firebase Project Settings (Step 2.7). |
-| `VITE_FIREBASE_PROJECT_ID` | **Required** | `your-project-id` | Copied from Firebase Project Settings (Step 2.7). |
-| `VITE_FIREBASE_STORAGE_BUCKET`| **Required**| `your-project.firebasestorage.app` | Copied from Firebase Project Settings (Step 2.7). |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID`| **Required** | `864509861788` | Copied from Firebase Project Settings (Step 2.7). |
-| `VITE_FIREBASE_APP_ID` | **Required** | `1:864509861788:web:...` | Copied from Firebase Project Settings (Step 2.7). |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Optional | `pk_live_...` | Your public Stripe key for front-end card inputs. |
+| `VITE_FIREBASE_API_KEY` | **Required** | `AIzaSy...` | From Firebase Project Settings (Step 4.6). |
+| `VITE_FIREBASE_AUTH_DOMAIN` | **Required** | `your-project.firebaseapp.com` | From Firebase Project Settings (Step 4.6). |
+| `VITE_FIREBASE_PROJECT_ID` | **Required** | `your-project` | From Firebase Project Settings (Step 4.6). |
+| `VITE_FIREBASE_STORAGE_BUCKET`| **Required**| `your-project.firebasestorage.app` | From Firebase Project Settings (Step 4.6). |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID`| **Required** | `864509861788` | From Firebase Project Settings (Step 4.6). |
+| `VITE_FIREBASE_APP_ID` | **Required** | `1:864509861788:web:...` | From Firebase Project Settings (Step 4.6). |
+| `VITE_APP_URL` | **Recommended** | `https://your-clinic.vercel.app` | Canonical site URL for auth redirects. |
+| `VITE_CLINIC_ID` | Optional | `vance-chiropractic` | Custom clinic slug (defaults to `columbus-chiropractic`). |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Optional | `pk_live_...` | Public Stripe key for front-end card payments. |
+| `VITE_DEMO_MODE` | Optional | `false` | Set to `false` for production (or `true` for public pitch demos). |
 
-> **Security Note:** You do **not** add `CLINIC_SETUP_TOKEN` or any secret keys (`sk_live_...`) to Vercel. All secret keys remain strictly on the backend in Firebase. The browser never sees them.
+> **Security Guardrail:** Never add `CLINIC_SETUP_TOKEN` or `STRIPE_SECRET_KEY` to Vercel. Secret keys remain strictly on the backend inside Firebase Functions.
 
-### Step 5.3: Deploy Your Site
-1. Click **Deploy**.
-2. Wait 60–90 seconds for the build to finish.
-3. Vercel will give you a live URL (e.g., `https://your-clinic.vercel.app`).
-
-### Step 5.4: Authorize Your Domain in Firebase (Mandatory)
-Firebase Authentication blocks logins and patient signups by default unless your domain is explicitly authorized.
-
-1. Open [Firebase Console](https://console.firebase.google.com/) and select your project.
-2. In the left sidebar, click **Build** > **Authentication**.
-3. Click the **Settings** tab at the top, then select **Authorized domains** in the submenu.
-4. Click **Add domain**.
-5. Add your Vercel URL: `your-clinic.vercel.app` (do not include `https://`).
-6. If you have a custom domain, add that too: `yourclinic.com` and `www.yourclinic.com`.
-7. Click **Done**.
-
-> ⚠️ **Warning:** If you skip this step, patient bookings and staff logins will fail with an `auth/unauthorized-domain` error.
-
-### Step 5.5: Custom Domain Sitemap & SEO (Recommended)
-A pre-formatted sitemap template is included at `public/sitemap.xml`. Before going live:
-1. Open `public/sitemap.xml` in your editor and replace `YOUR-CLINIC.com` with your real domain:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Replace YOUR-CLINIC.com with your real domain before deploying -->
-  <url><loc>https://yourclinic.com/</loc></url>
-  <url><loc>https://yourclinic.com/conditions</loc></url>
-  <url><loc>https://yourclinic.com/first-visit</loc></url>
-  <url><loc>https://yourclinic.com/about</loc></url>
-  <url><loc>https://yourclinic.com/pricing</loc></url>
-  <url><loc>https://yourclinic.com/contact</loc></url>
-  <url><loc>https://yourclinic.com/blog</loc></url>
-  <url><loc>https://yourclinic.com/privacy</loc></url>
-  <url><loc>https://yourclinic.com/terms</loc></url>
-</urlset>
-```
-2. Open `public/robots.txt` and uncomment the `Sitemap:` line with your live domain:
-```text
-User-agent: *
-Allow: /
-
-Sitemap: https://yourclinic.com/sitemap.xml
-```
+### Step 7.3: Deploy & Authorize Domain in Firebase (Mandatory)
+1. Click **Deploy** in Vercel and wait 60–90 seconds for your live URL.
+2. Open [Firebase Console](https://console.firebase.google.com/) > **Authentication** > **Settings** > **Authorized domains**.
+3. Click **Add domain** and enter your Vercel domain (e.g. `your-clinic.vercel.app`).
+4. If you have a custom domain, add that too (e.g. `yourclinic.com` and `www.yourclinic.com`).
 
 ---
 
-## 6. First-Run Setup: Claiming Your Clinic
+## 8. Interactive Demo Mode (Feature-Flagged Sandbox)
 
-*(Completed once by the clinic owner)*
+If you are deploying a public demo preview for prospective buyers or clients, you do not want visitors modifying your live database or incurring API costs.
 
-When your site is first launched, you must claim it to become the **Verified Clinic Administrator**:
+Set the following variable in Vercel:
+```text
+VITE_DEMO_MODE=true
+```
 
-1. Open your live website in a browser (e.g., `https://your-clinic.vercel.app`).
-2. Press `Ctrl + Shift + A` (or `Cmd + Shift + A` on Mac) to open the **Staff Command Drawer**.
-3. Because the deployment is unclaimed, a gold **First-Time Deployment Claim** banner appears.
-4. Enter:
-   * **Clinic ID**: Choose your permanent clinic slug (e.g., `columbus-chiropractic`).
-   * **Clinic Name**: Your practice name (e.g., `Columbus Chiropractic & Wellness`).
+### What happens in Demo Mode:
+* **Zero writes to Firestore**: All booking creations, status updates, and CMS edits are saved to the visitor's local browser `localStorage`.
+* **Believable Demo Data**: Automatically pre-seeds 8 appointments, 12 patient charts, 10 invoices, 6 support tickets, and clinic team profiles.
+* **Side-Effects Simulated**:
+  * Email confirmations display a floating toast: `"✓ Email would be sent to [recipient]"` without calling Resend.
+  * SMS alerts display a simulated toast without calling Twilio.
+  * Stripe card payments simulate success without creating live charges.
+* **Floating Reset Pill**: Visitors see a top-right **Demo Sandbox | Reset Data** button. Clicking it instantly restores the clean seed state in `<100ms`.
+* **Private Playground**: Every visitor gets their own isolated sandbox—no prospect can see or break another visitor's session.
+
+---
+
+## 9. First-Run Setup: Claiming Your Clinic
+
+When you deploy your clinic for the first time, claim ownership to establish your administrator account:
+
+1. Open your live website (e.g. `https://your-clinic.vercel.app`).
+2. Open the Admin Portal using any of the following methods:
+   * Click the **Practice Admin** floating button in the bottom-right corner.
+   * Add `?admin=true` to your browser URL.
+   * Press `Cmd + Shift + A` (Mac) or `Ctrl + Shift + A` (Windows).
+   * Click the lock icon in the website footer.
+3. The **First-Time Deployment Claim** dialog will appear.
+4. Fill in:
+   * **Clinic ID**: Your permanent clinic identifier (e.g., `vance-chiropractic`).
+   * **Clinic Name**: Your practice name (e.g., `Vance Chiropractic & Spine Center`).
    * **Administrator Email**: Your personal work email.
    * **Administrator Password**: A secure password (minimum 8 characters).
-   * **Setup Token**: The `CLINIC_SETUP_TOKEN` you created in Section 4.
+   * **Setup Token**: The `CLINIC_SETUP_TOKEN` you generated in Section 6.
 5. Click **Verify Token & Claim Clinic Administrator**.
-6. The system verifies your token via Cloud Functions, assigns administrative claims to your user profile, and opens your **Clinic Practice Dashboard**.
+6. The system sets your cryptographic `admin` claims and logs you into the **Practice Admin Dashboard**.
 
 ---
 
-## 7. Stripe Direct Payments: Receiving Patient Funds
+## 10. Stripe Direct Payments: Receiving Patient Funds
 
-All patient booking deposits and consultation charges are deposited directly into your clinic’s own Stripe business checking account.
+All patient consultation fees and upfront booking deposits flow straight to your clinic's bank account with 0% platform take rates.
 
-### Step 7.1: Get Your Stripe API Keys
-1. Log into your Stripe Dashboard at [dashboard.stripe.com](https://dashboard.stripe.com/).
-2. In the search bar at the top, type **API keys** (or go to **Developers** > **API keys**).
-3. Copy your **Publishable key** (`pk_live_...` or `pk_test_...`).
-4. Reveal and copy your **Secret key** (`sk_live_...` or `sk_test_...`).
+### Step 10.1: Copy Keys from Stripe
+1. Open [dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys).
+2. Copy your **Publishable key** (`pk_live_...`) and **Secret key** (`sk_live_...`).
 
-### Step 7.2: Create Your Webhook Endpoint
-Webhooks notify your booking system immediately when a card payment succeeds or when an appointment deposit is refunded.
-
-1. In your Stripe Dashboard, go to **Developers** > **Webhooks** ([dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks)).
-2. Click **Add an endpoint**.
-3. In the **Endpoint URL** box, paste your Cloud Function URL:
+### Step 10.2: Configure Stripe Webhook
+1. Go to [dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks) and click **Add an endpoint**.
+2. **Endpoint URL**:
    ```text
    https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/stripeWebhook
    ```
-   *(Replace `YOUR_REGION` with your function region like `us-central1` and `YOUR_PROJECT_ID` with your Firebase project ID).*
-4. Click **Select events to listen to** and select:
+   *(Example: `https://us-central1-vance-chiro.cloudfunctions.net/stripeWebhook`)*
+3. **Events to listen for**:
    * `payment_intent.succeeded`
    * `payment_intent.payment_failed`
    * `charge.refunded`
-5. Click **Add endpoint**.
-6. In the top-right corner of the webhook details page, click **Reveal** under **Signing secret**.
-7. Copy this string (starts with `whsec_...`).
+4. Click **Add endpoint**, then click **Reveal** under **Signing secret** (`whsec_...`).
 
-### Step 7.3: Save Keys in Your Backend
-Add your keys to `functions/.env` as shown in Section 4:
-```env
-STRIPE_SECRET_KEY=sk_live_YOUR_SECRET_KEY
-STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_PUBLISHABLE_KEY
-STRIPE_WEBHOOK_SECRET=whsec_YOUR_SIGNING_SECRET
-FORCE_DIRECT_STRIPE=true
-```
-Run `firebase deploy --only functions` so the backend applies them.
-
-### Step 7.4: Add Publishable Key to Vercel
-In your Vercel Project Settings > **Environment Variables**, set:
-```text
-VITE_STRIPE_PUBLISHABLE_KEY = pk_live_YOUR_PUBLISHABLE_KEY
-```
-Redeploy Vercel (or trigger a new build) to activate online card payments.
-
-### Step 7.5: Select Your Upfront Payment Policy
-1. Open your clinic website and press `Cmd + Shift + C` (or click the lock icon in the footer).
-2. Go to **Settings & Tools** > **Payment Gateway**.
-3. Choose your desired policy:
-   * **Deposit Only**: Patients pay an upfront booking fee (e.g., $25) to secure their slot.
-   * **Full Fee**: Patients pay the entire consultation fee online (e.g., $85).
-   * **Card on File / Hold**: Captures card details with $0 charged, protecting against no-shows.
-   * **Flexible**: Gives the patient the choice to pay online or at the front desk.
-4. Click **Save Policy**.
+### Step 10.3: Save Keys & Choose Payment Policy
+1. Save `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` in `functions/.env` and deploy functions (`firebase deploy --only functions`).
+2. Add `VITE_STRIPE_PUBLISHABLE_KEY` to Vercel environment variables.
+3. In your live clinic website, open **Practice Admin** > **Settings & Tools** > **Payment Gateway**.
+4. Choose your payment model:
+   * **Deposit Only**: Patients pay an upfront confirmation fee (e.g., $25).
+   * **Full Fee**: Patients pay the entire consultation cost online.
+   * **Card on File / Hold**: Captures payment method with $0 charge to protect against no-shows.
+   * **Flexible**: Allows patients to choose between online card checkout or clinic front-desk settlement.
 
 ---
 
-## 8. Connecting Your Custom Domain
+## 11. Connecting Your Custom Domain
 
-*(Can be done by the clinic owner in Vercel and your domain registrar like GoDaddy, Namecheap, or Google Domains)*
-
-1. Log in to [vercel.com](https://vercel.com/) and click on your clinic project.
-2. Click **Settings** (top navigation) > **Domains** (left sidebar).
-3. Type your custom domain (e.g., `www.vancechiropractic.com`) and click **Add**.
-4. Vercel will provide DNS records:
+1. In [vercel.com](https://vercel.com/), select your project > **Settings** > **Domains**.
+2. Enter your custom domain (e.g. `www.vancechiropractic.com`) and click **Add**.
+3. Configure the DNS records at your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.):
    * **A Record**: Name `@`, Value `76.76.21.21`
    * **CNAME Record**: Name `www`, Value `cname.vercel-dns.com`
-5. Log into your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.) and open **DNS Management**.
-6. Add the two records shown by Vercel.
-7. Return to Vercel and click **Refresh**. Within 5–15 minutes, Vercel will automatically provision a free SSL certificate (`https://`).
+4. Vercel will verify the records and automatically issue an SSL certificate within a few minutes.
+5. In `public/sitemap.xml` and `public/robots.txt`, replace placeholder domains with your canonical domain name for Google indexing.
 
 ---
 
-## 9. Common Troubleshooting
+## 12. Post-Launch Verification Checklist
 
-### Issue A: Cloud Functions Fail to Deploy
-* **Symptom**: Terminal error `HTTP Error: 403` or `Billing account not configured`.
-* **Fix**: 
-  1. Open Firebase Console and verify the project shows **Blaze** plan at the bottom left.
-  2. If deploying from a local terminal, ensure you ran `firebase login` with the exact Google email that owns the Firebase project.
-  3. Run `cd functions && npm install && npm run build` to confirm there are no TypeScript or dependency errors.
+Run this 5-minute sanity test to confirm your clinic is 100% operational:
 
-### Issue B: Stripe Webhook Errors / Payments Don't Update Appointments
-* **Symptom**: A patient pays, but the appointment still says "Unpaid" or "Pending".
-* **Fix**:
-  1. Open [dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks).
-  2. Check your webhook endpoint URL. It must be formatted as:
-     `https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/stripeWebhook`
-  3. Verify the signing secret in `functions/.env` (`STRIPE_WEBHOOK_SECRET`) matches the secret shown in Stripe.
-
-### Issue C: Permission Denied on Firestore Database
-* **Symptom**: Error `Missing or insufficient permissions` when viewing appointments.
-* **Fix**:
-  1. Open [Firebase Console > Firestore Database > Rules](https://console.firebase.google.com/).
-  2. Confirm your rules have been published.
-  3. If you just claimed the administrator account, sign out and sign back in once. This refreshes your browser's security token so it picks up your new `admin` custom claim.
-
-### Issue D: Patient Signup / Login Fails
-* **Symptom**: Error `auth/unauthorized-domain` or `auth/operation-not-allowed`.
-* **Fix**:
-  1. Re-read **Step 5.4**. Make sure both `your-clinic.vercel.app` and your custom domain are added to **Firebase Console > Authentication > Settings > Authorized domains**.
-  2. Under **Sign-in method**, confirm **Email/Password** is enabled.
+- [ ] **Public Site**: Open your live URL on desktop and mobile. Confirm phone numbers, practice address, and doctor profiles render accurately.
+- [ ] **Test Appointment**: Book a consultation using the public booking flow. Confirm you reach the confirmation screen with a booking reference code.
+- [ ] **Admin Verification**: Open the **Practice Admin** drawer. Confirm your new test booking appears in the appointment calendar and leads inbox.
+- [ ] **Patient Portal**: Open the Patient Portal from the navigation menu or via booking confirmation link. Confirm appointment details and intake status are visible.
+- [ ] **Email Dispatch**: Check the patient test email inbox for the automated confirmation receipt from Resend.
+- [ ] **Stripe Check**: If card payments are enabled, verify a test transaction appears in your Stripe Dashboard.
 
 ---
 
-## 📞 Support & Maintenance
-For platform bugs or infrastructure updates, contact the developer who deployed your site.
+## 13. Common Troubleshooting
+
+### Issue 1: `auth/unauthorized-domain` Error on Login or Booking
+* **Cause**: Your live Vercel domain or custom domain is not yet on Firebase's allowlist.
+* **Fix**: Open **Firebase Console > Authentication > Settings > Authorized domains** and add both `your-clinic.vercel.app` and your custom domain (without `https://`).
+
+### Issue 2: Permission Denied in Firestore
+* **Cause**: User token has not refreshed with the `admin` custom claim.
+* **Fix**: Sign out of the admin panel and sign back in once. This refreshes the Firebase JWT token with the new role claim.
+
+### Issue 3: Cloud Functions Deploy Fails (`Billing account not configured`)
+* **Cause**: Firebase project is still on the free Spark plan.
+* **Fix**: Upgrade to the **Blaze** plan in Firebase Console. (Cloud Functions requires Blaze, but stays free within standard monthly usage).
+
+### Issue 4: Stripe Payments Don't Update Booking Status
+* **Cause**: Webhook secret mismatch or incorrect endpoint URL.
+* **Fix**: Confirm your webhook in Stripe points to `https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/stripeWebhook` and that `STRIPE_WEBHOOK_SECRET` in `functions/.env` matches Stripe's signing secret.
+
+---
+
+## 🔒 Security & Compliance Architecture
+
+* **Role-Based Access Control**: Cryptographically verified custom JWT claims (`admin`, `staff`, `practitioner`, `patient`). Client-side state cannot forge roles.
+* **Firestore Data Isolation**: Firestore security rules restrict write operations to verified staff and restrict patient access to their own medical documents.
+* **Zero Secret Exposure**: All Stripe secret keys, Resend credentials, Twilio credentials, and setup tokens execute strictly server-side in Cloud Functions.
+
+---
+
+## License
+Commercial license granted to the purchaser for use in their medical practice, clinic chain, or client implementation.
