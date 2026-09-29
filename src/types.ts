@@ -412,7 +412,69 @@ export interface ClinicInfo {
   locations?: ClinicLocation[];
   activeLocationId?: string;
   showLocationSelector?: boolean;
+  // Operator & Subscription Fields (Synchronized with Operator Console)
+  ownerEmail?: string;
+  planTier?: 'starter' | 'pro' | 'agency';
+  mrr?: number;
+  status?: 'active' | 'trial' | 'suspended';
+  createdAt?: string;
+  lastActive?: string;
+  patientCount?: number;
+  ehrIntegration?: string;
+  smsQuotaUsed?: number;
+  smsQuotaTotal?: number;
+  notes?: string;
   [key: string]: any;
+}
+
+export interface OperatorTicketMessage {
+  id: string;
+  senderName: string;
+  senderRole: string; // e.g., 'clinic_owner' | 'operator_support'
+  senderEmail: string;
+  timestamp: string; // ISO DateTime
+  text: string;
+  isInternalNote: boolean;
+}
+
+export interface OperatorTicket {
+  id: string;
+  clinicId: string;
+  clinicName: string;
+  subject: string;
+  category: 'billing' | 'ehr' | 'technical' | string;
+  status: 'open' | 'in_progress' | 'resolved' | string;
+  priority: 'low' | 'medium' | 'high' | 'critical' | string;
+  createdAt: string;
+  updatedAt: string;
+  assignedAgent?: string;
+  senderEmail: string;
+  messages: OperatorTicketMessage[];
+}
+
+export interface OperatorAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  type: 'feature' | 'maintenance' | 'billing' | 'alert';
+  targetAudience: 'all' | 'starter' | 'pro' | 'agency';
+  active: boolean;
+  createdAt: string;
+  readCount?: number;
+  authorName?: string;
+}
+
+export interface OperatorInvoice {
+  id: string;
+  invoiceNumber: string;
+  clinicId: string;
+  clinicName: string;
+  amount: number;
+  status: 'paid' | 'pending' | 'failed' | 'refunded';
+  paymentMethod: string;
+  date: string;
+  dueDate: string;
+  planTier: 'starter' | 'pro' | 'agency';
 }
 
 export interface PatientPortalSettings {

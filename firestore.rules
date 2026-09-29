@@ -155,5 +155,47 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
     }
+
+    // 6. Support Tickets (Scoped by clinicId)
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        resource.data.clinicId == request.auth.token.clinicId
+      );
+      allow create: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        request.resource.data.clinicId == request.auth.token.clinicId
+      );
+      allow update: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        resource.data.clinicId == request.auth.token.clinicId
+      );
+      allow delete: if false;
+    }
+
+    // 7. Global Announcements (Public read, no client write)
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 8. Invoices (Scoped by clinicId, no client write)
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        resource.data.clinicId == request.auth.token.clinicId
+      );
+      allow write: if false;
+    }
+
+    // 9. Operator Audit Logs (Server-only via Admin SDK)
+    match /operator_audit_log/{logId} {
+      allow read, write: if false;
+    }
+
+    // 10. Diagnostics check collection
+    match /_diag/{diagId} {
+      allow read, write, delete: if true;
+    }
   }
 }

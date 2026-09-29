@@ -7,13 +7,15 @@ import firebaseConfig from '../../firebase-applet-config.json';
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
-export const functions = getFunctions(app, 'europe-west2');
+export const functions = getFunctions(app);
 
 // Use custom databaseId specified in firebase-applet-config.json if present
 export const db = initializeFirestore(
   app,
   {},
-  firebaseConfig.firestoreDatabaseId || '(default)'
+  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+    ? firebaseConfig.firestoreDatabaseId
+    : undefined
 );
 
 export default app;

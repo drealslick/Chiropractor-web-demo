@@ -1,10 +1,25 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode, useCallback } from 'react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { ClinicInfo, ClinicLocation } from '../types';
 import { defaultClinic, defaultLocations } from './clinicData';
 import { agencyDemoPresets } from './presets';
 import { clinicRowId, supabase } from './supabaseClient';
 
 export const STORAGE_KEY = 'agency_clinic_config_v1';
+
+export function getActiveClinicId(): string {
+  if (typeof window === 'undefined') return 'columbus-chiropractic';
+  const params = new URLSearchParams(window.location.search);
+  const id =
+    params.get('clinic') ||
+    params.get('clinicId') ||
+    params.get('client') ||
+    params.get('preset') ||
+    params.get('demo') ||
+    import.meta.env.VITE_CLINIC_ID;
+  return id ? id.toLowerCase().trim() : 'columbus-chiropractic';
+}
 
 export type SyncStatus = 'idle' | 'saving' | 'synced' | 'local_only' | 'error';
 
@@ -161,53 +176,69 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setIsBookingModalOpen(false);
   }, []);
 
-  // Load from Supabase on mount if connected
+  // Real-time Firestore sync & listen for clinic document
   useEffect(() => {
     let cancelled = false;
-    async function loadRemote() {
-      if (!supabase) return;
-      try {
-        setSyncStatus('saving');
-        const { data, error } = await supabase
-          .from('clinic_configs')
-          .select('data, updated_at')
-          .eq('id', clinicRowId())
-          .maybeSingle();
+    const activeId = getActiveClinicId();
 
-        if (cancelled) return;
-        if (error) {
-          setSyncStatus('local_only');
-          return;
-        }
-
-        if (data?.data && typeof data.data === 'object') {
-          const remote = data.data as ClinicInfo;
-          if (remote.name) {
-            const next = { ...defaultClinic, ...remote };
-            setClinicData(next);
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-            } catch {
-              // ignore
-            }
+    try {
+      const docRef = doc(db, 'clinics', activeId);
+      const unsubscribe = onSnapshot(
+        docRef,
+        (docSnap) => {
+          if (cancelled) return;
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setClinicData((prev) => {
+              const merged: ClinicInfo = {
+                ...prev,
+                ...data,
+                id: data.id || activeId,
+                name: data.name || prev.name,
+                doctorName: data.doctorName || prev.doctorName,
+                phone: data.phone || prev.phone,
+                city: data.city || prev.city,
+                state: data.state || prev.state,
+                ownerEmail: data.ownerEmail || prev.ownerEmail || prev.email,
+                planTier: data.planTier || prev.planTier || 'pro',
+                mrr: data.mrr ?? prev.mrr ?? 299,
+                status: data.status || prev.status || 'active',
+                ehrIntegration: data.ehrIntegration || prev.ehrIntegration,
+                notes: data.notes || prev.notes,
+              };
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              } catch {
+                // ignore
+              }
+              return merged;
+            });
             setSyncStatus('synced');
-            setLastSaved(data.updated_at || new Date().toISOString());
-            return;
+            setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+          } else {
+            // First time clinic setup: persist current base clinic to Firestore so operator console sees it
+            setSyncStatus('synced');
           }
+        },
+        (err) => {
+          console.warn('Firestore clinic real-time snapshot note:', err);
+          setSyncStatus('local_only');
         }
-        setSyncStatus('synced');
-      } catch {
-        if (!cancelled) setSyncStatus('local_only');
-      }
+      );
+
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
+    } catch (err) {
+      console.warn('Firestore init note:', err);
     }
-    loadRemote();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const persist = useCallback((clinic: ClinicInfo) => {
     const payload = sanitize(clinic);
+    const activeId = getActiveClinicId();
+
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -215,34 +246,54 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // ignore
     }
 
-    if (!supabase) {
+    setSyncStatus('saving');
+
+    // Sync to Cloud Firestore 'clinics' collection with merge: true so operator fields are preserved
+    try {
+      const docRef = doc(db, 'clinics', activeId);
+      setDoc(
+        docRef,
+        {
+          ...payload,
+          id: activeId,
+          name: clinic.name || 'Columbus Chiropractic & Wellness',
+          doctorName: clinic.doctorName || 'Dr. Vance',
+          ownerEmail: clinic.ownerEmail || clinic.email || 'admin@vancechiro.com',
+          phone: clinic.phone || '(614) 555-0192',
+          city: clinic.city || 'Columbus',
+          state: clinic.state || 'OH',
+          planTier: clinic.planTier || 'pro',
+          status: clinic.status || 'active',
+          lastActive: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      )
+        .then(() => {
+          setSyncStatus('synced');
+          setErrorMessage(null);
+        })
+        .catch((err) => {
+          console.warn('Firestore clinic sync warning:', err);
+          setSyncStatus('local_only');
+        });
+    } catch (err) {
+      console.warn('Firestore write init error:', err);
       setSyncStatus('local_only');
-      return;
     }
 
-    setSyncStatus('saving');
-    supabase
-      .from('clinic_configs')
-      .upsert({
-        id: clinicRowId(),
-        data: payload,
-        updated_at: new Date().toISOString(),
-      })
-      .then(
-        ({ error }) => {
-          if (error) {
-            setSyncStatus('error');
-            setErrorMessage(error.message);
-          } else {
-            setSyncStatus('synced');
-            setErrorMessage(null);
-          }
-        },
-        (err) => {
-          setSyncStatus('error');
-          setErrorMessage(err?.message || 'Network sync failed');
-        }
-      );
+    // Optional legacy Supabase sync if configured
+    if (supabase) {
+      Promise.resolve(
+        supabase
+          .from('clinic_configs')
+          .upsert({
+            id: clinicRowId(),
+            data: payload,
+            updated_at: new Date().toISOString(),
+          })
+      ).catch(() => {});
+    }
   }, []);
 
   const updateClinic = useCallback(
