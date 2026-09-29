@@ -19,16 +19,22 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } f
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Read Firebase Config
-const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
-const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+// Read Firebase Config from Environment
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.VITE_FIREBASE_APP_ID || '',
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = initializeFirestore(
   app,
   {},
-  firebaseConfig.firestoreDatabaseId || '(default)'
+  process.env.VITE_FIREBASE_DATABASE_ID || '(default)'
 );
 
 const PRIMARY_CLINIC_ID = 'clinic_apex_columbus';
@@ -61,7 +67,7 @@ async function authenticateAdmin() {
 
 async function migrate() {
   console.log('🚀 Starting Data Migration to Cloud Firestore...');
-  console.log(`Target Firestore DB: ${firebaseConfig.firestoreDatabaseId || '(default)'}`);
+  console.log(`Target Firestore DB: ${process.env.VITE_FIREBASE_DATABASE_ID || '(default)'}`);
 
   await authenticateAdmin();
 

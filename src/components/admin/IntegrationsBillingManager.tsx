@@ -67,19 +67,19 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
     statementDescriptor: 'VANCE HEALTH CLINIC',
     stripeMode: 'test',
     stripeAccountId: 'acct_1NxVanceHealth77',
-    stripePublishableKey: 'pk_test_51MzApexSpineEngine7482937402',
-    stripeConnectedEmail: 'billing@vancehealth.com',
-    stripeConnectedAt: '2026-08-10',
+    stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+    stripeConnectedEmail: '',
+    stripeConnectedAt: '',
     stripePayoutSchedule: 'daily',
     requireCardForOnlineBookings: true,
   };
 
-  // Webhook settings (Item 2: Restricted to Admin)
-  const [webhookSecret, setWebhookSecret] = useState('whsec_apex_clinical_live_9201948301');
+  // Webhook settings (Restricted to Admin)
+  const [webhookSecret, setWebhookSecret] = useState('');
   const [notificationEmail, setNotificationEmail] = useState(
-    clinic.bookingSettings?.notifications?.clinicAlertRecipient || 'reception@vancehealth.co.uk'
+    clinic.bookingSettings?.notifications?.clinicAlertRecipient || ''
   );
-  const [notificationPhone, setNotificationPhone] = useState(clinic.phone || '+44 20 7946 0912');
+  const [notificationPhone, setNotificationPhone] = useState(clinic.phone || '');
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(
     clinic.bookingSettings?.notifications?.clinicEmailAlert ?? true
   );
@@ -89,8 +89,9 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
   const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'your-project-id';
   const cloudFunctionWebhookUrl =
-    'https://europe-west2-brave-trilogy-ft8c4.cloudfunctions.net/stripeWebhook';
+    `https://us-central1-${projectId}.cloudfunctions.net/stripeWebhook`;
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);

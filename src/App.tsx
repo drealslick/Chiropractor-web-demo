@@ -11,6 +11,8 @@ import { Footer } from './components/Footer';
 import { BookingModal } from './components/BookingModal';
 import { PatientPortalModal } from './components/PatientPortalModal';
 import { ScrollToTop } from './components/ScrollToTop';
+import { isFirebaseConfigured } from './lib/firebase';
+import { FirebaseSetupRequired } from './components/FirebaseSetupRequired';
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -94,6 +96,10 @@ function AppShell() {
 }
 
 export default function App() {
+  if (!isFirebaseConfigured) {
+    return <FirebaseSetupRequired />;
+  }
+
   return (
     <ClinicProvider>
       <AppShell />
