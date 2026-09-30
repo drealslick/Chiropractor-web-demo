@@ -5,7 +5,7 @@
  *   npx tsx scripts/migrate-to-firestore.ts
  *
  * Populates:
- *   1. clinics/clinic_apex_columbus
+ *   1. clinics/{PRIMARY_CLINIC_ID} (default: columbus-chiropractic)
  *   2. conditions (clinical rehab tracks & exercises)
  *   3. teamMembers (doctors, credentials)
  *   4. testimonials
@@ -37,7 +37,7 @@ const db = initializeFirestore(
   process.env.VITE_FIREBASE_DATABASE_ID || '(default)'
 );
 
-const PRIMARY_CLINIC_ID = 'clinic_apex_columbus';
+const PRIMARY_CLINIC_ID = process.env.VITE_CLINIC_ID || 'columbus-chiropractic';
 
 async function authenticateAdmin() {
   const email = 'admin@vancehealth.com';

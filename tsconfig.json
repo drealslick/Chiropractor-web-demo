@@ -23,5 +23,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["supabase", "node_modules", "dist", "functions", "tests", "scripts/set-custom-claims.ts"]
+  "exclude": ["node_modules", "dist", "functions", "tests", "scripts/set-custom-claims.ts"]
 }

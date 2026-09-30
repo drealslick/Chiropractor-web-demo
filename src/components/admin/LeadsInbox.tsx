@@ -249,7 +249,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
         </div>
       ) : (
         <div className="space-y-2.5">
-          {filtered.map((lead) => {
+          {filtered.map((lead, idx) => {
             const isNew = lead.status === 'new';
             const isBooked = lead.status === 'booked';
             const isContacted = lead.status === 'contacted';
@@ -283,7 +283,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
 
             return (
               <div
-                key={lead.id}
+                key={`${lead.id}-${idx}`}
                 className={`p-3.5 rounded-lg border transition ${borderClass}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">

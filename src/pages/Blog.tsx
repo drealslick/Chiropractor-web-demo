@@ -149,7 +149,7 @@ export default function Blog() {
           <div className="pt-2">
             <button
               type="button"
-              onClick={openBookingModal}
+              onClick={() => openBookingModal()}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold tracking-wide transition shadow-lg cursor-pointer"
             >
               <span>{clinic.offerCtaText || 'BOOK A CONSULTATION →'}</span>

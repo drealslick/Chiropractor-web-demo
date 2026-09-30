@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# Replace YOUR-CLINIC.com with your real domain:
-# Sitemap: https://YOUR-CLINIC.com/sitemap.xml
+Sitemap: /sitemap.xml

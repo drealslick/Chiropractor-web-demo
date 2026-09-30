@@ -23,7 +23,7 @@ import * as path from 'path';
 let testEnv: RulesTestEnvironment;
 
 const PROJECT_ID = 'brave-trilogy-ft8c4';
-const CLINIC_A = 'clinic_apex_columbus';
+const CLINIC_A = process.env.VITE_CLINIC_ID || 'columbus-chiropractic';
 const CLINIC_B = 'clinic_summit_chicago';
 
 describe('Firestore Security Rules Matrix', () => {

@@ -13,4 +13,4 @@
 11. Mobile pass: Home, First Visit, Contact, one condition.
 12. If they have a domain: point it at Vercel, then replace the host in public/sitemap.xml and public/robots.txt.
 
-Do not collect symptoms or health history on this site. Booking stays on their scheduler.
+Patient intake and triage forms are stored securely in Firestore with strict RBAC rules. If your client prefers external EHR scheduling (Jane/Calendly), set their link in Practice Admin > Clinic Info to enable direct redirect or embed mode.

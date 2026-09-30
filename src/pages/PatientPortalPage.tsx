@@ -948,9 +948,9 @@ export default function PatientPortalPage() {
                   Select Appointment File ({patientAppointments.length} Found):
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {patientAppointments.map((appt) => (
+                  {patientAppointments.map((appt, idx) => (
                     <button
-                      key={appt.id}
+                      key={`${appt.id}-${idx}`}
                       type="button"
                       onClick={() => {
                         setSelectedAppt(appt);
@@ -1209,9 +1209,9 @@ export default function PatientPortalPage() {
                           </div>
 
                           <div className="space-y-3">
-                            {getExercisesForCondition(selectedAppt.condition).map((ex) => (
+                            {getExercisesForCondition(selectedAppt.condition).map((ex, idx) => (
                               <div 
-                                key={ex.id}
+                                key={`${ex.id}-${idx}`}
                                 onClick={() => handleToggleExercise(ex.id)}
                                 className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
                                   exerciseStatus[ex.id] 

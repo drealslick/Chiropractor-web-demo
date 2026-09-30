@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { ClinicInfo, ClinicPaymentPolicy } from '../../types';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db, isFirebaseConfigured } from '../../lib/firebase';
 
 interface IntegrationsBillingManagerProps {
   clinic: ClinicInfo;
@@ -121,11 +121,12 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
       }
 
       // Write sensitive integration settings to clinic_settings/integrations (admin-only rule)
+      const targetClinicId = clinic.id || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
       const settingsRef = doc(db, 'clinic_settings', 'integrations');
       await setDoc(
         settingsRef,
         {
-          clinicId: 'clinic_apex_columbus',
+          clinicId: targetClinicId,
           stripeAccountId: policy.stripeAccountId || '',
           stripePublishableKey: policy.stripePublishableKey || '',
           stripeMode: policy.stripeMode,
@@ -143,7 +144,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
       );
 
       // Also update clinic public entity
-      const clinicRef = doc(db, 'clinics', 'clinic_apex_columbus');
+      const clinicRef = doc(db, 'clinics', targetClinicId);
       await setDoc(
         clinicRef,
         {

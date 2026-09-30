@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Replace YOUR-CLINIC.com with your real domain before deploying -->
-  <url><loc>https://YOUR-CLINIC.com/</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/conditions</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/first-visit</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/about</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/pricing</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/contact</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/blog</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/privacy</loc></url>
-  <url><loc>https://YOUR-CLINIC.com/terms</loc></url>
+  <url><loc>/</loc></url>
+  <url><loc>/conditions</loc></url>
+  <url><loc>/first-visit</loc></url>
+  <url><loc>/about</loc></url>
+  <url><loc>/pricing</loc></url>
+  <url><loc>/contact</loc></url>
+  <url><loc>/blog</loc></url>
+  <url><loc>/privacy</loc></url>
+  <url><loc>/terms</loc></url>
 </urlset>

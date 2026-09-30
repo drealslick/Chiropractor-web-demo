@@ -12,8 +12,7 @@ import { BookingModal } from './components/BookingModal';
 import { PatientPortalModal } from './components/PatientPortalModal';
 import { ScrollToTop } from './components/ScrollToTop';
 import { DemoModeBanner } from './components/DemoModeBanner';
-import { isFirebaseConfigured } from './lib/firebase';
-import { FirebaseSetupRequired } from './components/FirebaseSetupRequired';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import Home from './pages/Home';
 import Conditions from './pages/Conditions';
@@ -98,14 +97,11 @@ function AppShell() {
 }
 
 export default function App() {
-  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
-  if (!isFirebaseConfigured && !isDemo) {
-    return <FirebaseSetupRequired />;
-  }
-
   return (
-    <ClinicProvider>
-      <AppShell />
-    </ClinicProvider>
+    <ErrorBoundary fallbackTitle="Application Encountered a Problem">
+      <ClinicProvider>
+        <AppShell />
+      </ClinicProvider>
+    </ErrorBoundary>
   );
 }

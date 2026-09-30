@@ -27,7 +27,7 @@ async function runStripeE2ETest() {
   // Test 1: Verify Connect Account Detection
   console.log('Test 1: Clinic Stripe Connect Routing Logic');
   const mockSettingsWithoutStripe = { stripeAccountId: null };
-  const mockSettingsWithStripe = { stripeAccountId: 'acct_clinic_apex_london_99' };
+  const mockSettingsWithStripe = { stripeAccountId: 'acct_test_clinic_connect_99' };
 
   const shouldBeDemo = !mockSettingsWithoutStripe.stripeAccountId;
   console.log(`  Unconnected Clinic -> isDemoMode: ${shouldBeDemo} (Expected: true)`);
@@ -45,7 +45,7 @@ async function runStripeE2ETest() {
   }
   console.log(`  Connected Clinic -> on_behalf_of: ${connectParams.on_behalf_of}`);
   console.log(`  Connected Clinic -> transfer_data.destination: ${connectParams.transfer_data.destination}`);
-  if (connectParams.on_behalf_of !== 'acct_clinic_apex_london_99') {
+  if (connectParams.on_behalf_of !== 'acct_test_clinic_connect_99') {
     throw new Error('Failed: on_behalf_of was not set to clinic stripeAccountId');
   }
   console.log('  ✅ Test 1 Passed: Connect params properly bound.\n');
@@ -58,7 +58,7 @@ async function runStripeE2ETest() {
     currency: 'gbp',
     metadata: {
       appointmentId: 'appt_stripe_test_101',
-      clinicId: 'clinic_apex_columbus',
+      clinicId: process.env.VITE_CLINIC_ID || 'columbus-chiropractic',
       serviceTitle: 'Initial Consultation & Examination',
       patientName: 'Emma Watson',
       patientEmail: 'emma.watson@example.com',

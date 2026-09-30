@@ -208,8 +208,8 @@ To run the application on your computer:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/practiva-clinic-os.git
-cd practiva-clinic-os
+git clone https://github.com/your-username/practice-os.git
+cd practice-os
 
 # 2. Install dependencies
 npm install
@@ -394,7 +394,7 @@ Add the following variables in the Vercel **Environment Variables** panel:
 | `VITE_FIREBASE_MESSAGING_SENDER_ID`| **Required** | `864509861788` | From Firebase Project Settings (Step 4.6). |
 | `VITE_FIREBASE_APP_ID` | **Required** | `1:864509861788:web:...` | From Firebase Project Settings (Step 4.6). |
 | `VITE_APP_URL` | **Recommended** | `https://your-clinic.vercel.app` | Canonical site URL for auth redirects. |
-| `VITE_CLINIC_ID` | Optional | `vance-chiropractic` | Custom clinic slug (defaults to `columbus-chiropractic`). |
+| `VITE_CLINIC_ID` | Optional | `columbus-chiropractic` | Custom clinic slug (defaults to `columbus-chiropractic`). |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Optional | `pk_live_...` | Public Stripe key for front-end card payments. |
 | `VITE_DEMO_MODE` | Optional | `false` | Set to `false` for production (or `true` for pitch demos). |
 
@@ -443,8 +443,8 @@ When you deploy your clinic for the first time, claim ownership to establish you
    * Click the lock icon in the website footer.
 3. The **First-Time Deployment Claim** dialog will appear.
 4. Fill in:
-   * **Clinic ID**: Your permanent clinic identifier (e.g., `vance-chiropractic`).
-   * **Clinic Name**: Your practice name (e.g., `Vance Chiropractic & Spine Center`).
+   * **Clinic ID**: Your permanent clinic identifier (e.g., `columbus-chiropractic` or your practice slug).
+   * **Clinic Name**: Your practice name (e.g., `Columbus Chiropractic & Spine Center`).
    * **Administrator Email**: Your personal work email.
    * **Administrator Password**: A secure password (minimum 8 characters).
    * **Setup Token**: The `CLINIC_SETUP_TOKEN` you generated in Section 6.
@@ -467,7 +467,7 @@ All patient consultation fees and upfront booking deposits flow straight to your
    ```text
    https://YOUR_REGION-YOUR_PROJECT_ID.cloudfunctions.net/stripeWebhook
    ```
-   *(Example: `https://us-central1-vance-chiro.cloudfunctions.net/stripeWebhook`)*
+   *(Example: `https://us-central1-your-project-id.cloudfunctions.net/stripeWebhook`)*
 3. **Events to listen for**:
    * `payment_intent.succeeded`
    * `payment_intent.payment_failed`

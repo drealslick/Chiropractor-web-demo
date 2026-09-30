@@ -27,6 +27,7 @@ import {
   MessageSquare,
   HelpCircle,
   Building2,
+  Lock,
   DollarSign,
   Star,
   Type,

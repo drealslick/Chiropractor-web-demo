@@ -947,14 +947,14 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-                  {filteredBookings.map((item) => {
+                  {filteredBookings.map((item, idx) => {
                     const isNew = item.status === 'new';
                     const isConfirmed = item.status === 'confirmed' || item.status === 'booked';
                     const isCancelled = item.status === 'cancelled';
 
                     return (
                       <div
-                        key={item.id}
+                        key={`${item.id}-${idx}`}
                         className={`p-4 rounded-xl border transition-all ${
                           isNew
                             ? 'border-amber-300 bg-amber-50/40'
@@ -2204,9 +2204,9 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
               </div>
             ) : (
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                {notifications.map((n) => (
+                {notifications.map((n, idx) => (
                   <div
-                    key={n.id}
+                    key={`${n.id}-${idx}`}
                     className="p-3 rounded-xl border border-stone-200 bg-stone-50/70 text-xs space-y-1"
                   >
                     <div className="flex items-center justify-between">

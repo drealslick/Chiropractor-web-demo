@@ -158,8 +158,8 @@ export function PatientPortalManager({ clinic, onUpdateClinic }: PatientPortalMa
             ) : (
               <div className="space-y-2">
                 <p className="font-bold text-emerald-400">✓ Record Found ({testResult.length} visit):</p>
-                {testResult.map((lead) => (
-                  <div key={lead.id} className="p-2.5 rounded-lg bg-stone-850 border border-stone-750 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                {testResult.map((lead, idx) => (
+                  <div key={`${lead.id}-${idx}`} className="p-2.5 rounded-lg bg-stone-850 border border-stone-750 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <p className="font-bold text-white">{lead.name} <span className="text-stone-400 font-normal">({lead.email})</span></p>
                       <p className="text-stone-400 text-[11px]">
@@ -381,10 +381,10 @@ export function PatientPortalManager({ clinic, onUpdateClinic }: PatientPortalMa
         </p>
 
         <div className="divide-y divide-stone-800 border border-stone-800 rounded-xl overflow-hidden bg-stone-900">
-          {leadsWithPasskeys.slice(0, 5).map((lead) => {
+          {leadsWithPasskeys.slice(0, 5).map((lead, idx) => {
             const passkey = lead.id;
             return (
-              <div key={lead.id} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-stone-850 transition">
+              <div key={`${lead.id}-${idx}`} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-stone-850 transition">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs shrink-0">
                     {lead.name.charAt(0)}

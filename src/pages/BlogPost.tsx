@@ -359,7 +359,7 @@ export default function BlogPost() {
 
                       <button
                         type="button"
-                        onClick={openBookingModal}
+                        onClick={() => openBookingModal()}
                         className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs tracking-wide transition shrink-0 shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>{block.ctaButtonText || 'Book Your First Visit'}</span>
@@ -460,7 +460,7 @@ export default function BlogPost() {
 
           <button
             type="button"
-            onClick={openBookingModal}
+            onClick={() => openBookingModal()}
             className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold tracking-wide transition shrink-0 shadow-md cursor-pointer"
           >
             <span>{clinic.offerCtaText || 'BOOK CONSULTATION →'}</span>

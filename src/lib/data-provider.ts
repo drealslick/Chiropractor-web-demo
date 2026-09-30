@@ -1,11 +1,11 @@
 import { sandbox } from './sandbox';
 import * as firestoreSync from '../services/firebaseSync';
 import { PatientLead, PatientAccount } from '../data/leadsStore';
-import { functions } from './firebase';
+import { functions, isFirebaseConfigured } from './firebase';
 import { httpsCallable } from 'firebase/functions';
 import { dispatchSafeEvent } from '../utils/customEvents';
 
-export const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
+export const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
 
 /**
  * Dispatch lightweight demo notification toast for simulated side-effects

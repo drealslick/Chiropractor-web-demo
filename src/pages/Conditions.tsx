@@ -61,7 +61,7 @@ export default function Conditions() {
 
             return (
               <Link
-                key={item.id || rawSlug}
+                key={`${item.id || rawSlug}-${i}`}
                 to={`/conditions/${rawSlug}`}
                 className="group relative flex flex-col justify-between p-6 sm:p-7 bg-white border border-stone-200/90 rounded-3xl transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:border-emerald-500 hover:ring-1 hover:ring-emerald-500/20"
               >

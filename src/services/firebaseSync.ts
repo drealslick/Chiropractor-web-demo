@@ -19,7 +19,7 @@ import {
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+import { db, auth, isFirebaseConfigured } from '../lib/firebase';
 import { PatientLead, PatientAccount, DispatchedNotification } from '../data/leadsStore';
 import { sandbox } from '../lib/sandbox';
 import { notifyDemoAction } from '../lib/data-provider';
@@ -33,7 +33,7 @@ const SETTINGS_COLLECTION = 'clinic_settings';
  * Real-time Firestore sync for Appointments
  */
 export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boolean> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) {
     sandbox.create('appointments', lead.clinicName || 'columbus-chiropractic', lead);
     return true;
   }

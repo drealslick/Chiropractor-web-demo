@@ -100,12 +100,12 @@ Located in `/functions`:
 
 ## 6. Data Migration Script
 
-To migrate existing seed data and Supabase records directly into Firestore:
+To seed the initial clinical database directly into Firestore:
 ```bash
 npm run migrate:firestore
 ```
 This script initializes:
-- Primary clinic tenant: `clinic_apex_columbus`
+- Primary clinic tenant: `VITE_CLINIC_ID` (e.g. `columbus-chiropractic` or your custom slug)
 - Clinical condition tracks & home rehab plans
 - Clinician roster (Dr. Sarah Vance, Dr. Marcus Reed)
 - Patient reviews, FAQs, and sample appointments
@@ -132,7 +132,7 @@ This script initializes:
 
 ### Gotcha 5: "Vendor Lock-In"
 * **The Trap**: Complex proprietary NoSQL structures that cannot be extracted.
-* **Our Fix**: Schema defined in `firebase-blueprint.json` mirroring our normalized relational model (`SUPABASE_PRODUCTION_SCHEMA.sql`). Migration scripts provide two-way portability.
+* **Our Fix**: Schema defined in `firebase-blueprint.json` mirroring a normalized relational model. Migration scripts provide clean JSON export and portability.
 
 ### Gotcha 6: "First-Admin Race Condition & Claim Hijacking"
 * **The Trap**: When a buyer deploys the template to Vercel/Cloud Run before claiming it, an unauthorized visitor visiting `?admin=true` could claim the initial admin account.
@@ -165,8 +165,8 @@ Run these verification tests:
 3. **Cross-Patient URL Tampering**: Log in as Patient A. Try accessing Patient B's appointment ID (`VH-5182-M93L`). Verify access is denied.
 
 ### 2. Clinic Staff & Multi-Tenant Tests
-1. Log in as a staff member of `clinic_apex_columbus`.
-2. Verify access to appointments for `clinic_apex_columbus`.
+1. Log in as a staff member of your clinic (`VITE_CLINIC_ID`).
+2. Verify access to appointments for that clinic.
 3. Try to update clinic theme or branding → verify permission denied (only admin can update).
 
 ### 3. Realtime Cross-Device Test

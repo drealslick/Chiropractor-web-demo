@@ -253,7 +253,7 @@ export const WaitlistDrawer: React.FC<WaitlistDrawerProps> = ({
               </button>
             </div>
           ) : (
-            waitlistPatients.map((patient) => {
+            waitlistPatients.map((patient, idx) => {
               const cleanPhone = patient.phone.replace(/[^0-9+]/g, '');
               const emailSubject = encodeURIComponent(`Open Appointment Slot at ${clinicName}`);
               const emailBody = encodeURIComponent(
@@ -262,7 +262,7 @@ export const WaitlistDrawer: React.FC<WaitlistDrawerProps> = ({
 
               return (
                 <div
-                  key={patient.id}
+                  key={`${patient.id}-${idx}`}
                   className="p-4 rounded-xl bg-stone-850 border border-stone-750 space-y-3 relative group"
                 >
                   <div className="flex items-start justify-between gap-2">

@@ -459,7 +459,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                 <div className="min-w-0 pr-2">
                   <div className="font-bold text-xs text-stone-100 truncate">{doc.name}</div>
                   <div className="text-[10px] text-emerald-400 font-medium truncate">
-                    {doc.title || 'Chiropractor'}
+                    {doc.role || 'Chiropractor'}
                   </div>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-850 text-stone-300 border border-stone-750 shrink-0">
@@ -517,7 +517,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                           </span>
                         </div>
                       ) : (
-                        matchingAppointments.map((lead) => {
+                        matchingAppointments.map((lead, idx) => {
                           const isCheckedIn = lead.status === 'checked_in';
                           const isUnconfirmed = lead.status === 'new';
                           const isConfirmed = lead.status === 'confirmed' || lead.status === 'booked';
@@ -549,7 +549,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
 
                           return (
                             <div
-                              key={lead.id}
+                              key={`${lead.id}-${idx}`}
                               draggable
                               onDragStart={(e) => handleDragStart(e, lead)}
                               onClick={() => setSelectedPatient(lead)}

@@ -19,7 +19,7 @@ If you are on a desktop computer with a keyboard:
 
 ## ⚙️ How to Configure a Client Clinic in Under 5 Minutes
 
-1. **Verify via Passcode**: Use the secure passcode (`Slick2026!`) to unlock the editor.
+1. **Authenticate as Practice Admin**: Log in using your verified Firebase administrator email and password. (On initial deployment, claim the clinic using your `CLINIC_SETUP_TOKEN` from `functions/.env`).
 2. **Setup Clinic Info & Scheduling**:
    - In **Clinic & Alerts** tab, fill out the clinic’s details (Phone, Email, Address, Business Hours).
    - Enter their secure JaneApp, Calendly, or other clinical management diary link in the **External Booking URL** field. 

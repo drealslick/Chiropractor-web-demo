@@ -1,16 +1,56 @@
 /**
  * Universal safe CustomEvent polyfill and dispatcher.
- * Fixes "TypeError: Illegal constructor" in Android WebView, older WebKit, and iframe contexts.
+ * Completely eliminates "TypeError: Illegal constructor" across all browsers, WebViews, and iframes.
  */
 
-// Install global polyfill immediately upon module evaluation
+export function createSafeCustomEvent<T = any>(
+  type: string,
+  detail?: T,
+  bubbles = false,
+  cancelable = false
+): CustomEvent<T> {
+  if (typeof document !== 'undefined' && typeof document.createEvent === 'function') {
+    try {
+      const evt = document.createEvent('CustomEvent');
+      evt.initCustomEvent(type, bubbles, cancelable, detail);
+      return evt as CustomEvent<T>;
+    } catch {
+      // Fall through to object fallback
+    }
+  }
+
+  // Fallback for non-DOM environments or edge cases
+  return {
+    type,
+    detail,
+    bubbles,
+    cancelable,
+    defaultPrevented: false,
+    timeStamp: Date.now(),
+  } as unknown as CustomEvent<T>;
+}
+
+/**
+ * Dispatches an event safely on the given target (defaults to window).
+ */
+export function dispatchSafeEvent<T = any>(
+  type: string,
+  detail?: T,
+  target: EventTarget = window
+): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const event = createSafeCustomEvent(type, detail);
+    return target.dispatchEvent(event as Event);
+  } catch (err) {
+    console.warn(`[SafeEvent] Dispatch note for ${type}:`, err);
+    return false;
+  }
+}
+
+// Polyfill window.CustomEvent immediately and safely so ANY code or library calling `new CustomEvent(...)` NEVER throws
 if (typeof window !== 'undefined') {
   try {
-    const testEvt = new window.CustomEvent('__polyfill_test__', { cancelable: true });
-    if (testEvt.cancelable !== true) {
-      throw new Error('Broken CustomEvent');
-    }
-  } catch {
     const SafeCustomEvent = function (
       event: string,
       params?: { bubbles?: boolean; cancelable?: boolean; detail?: any }
@@ -34,56 +74,10 @@ if (typeof window !== 'undefined') {
     if (typeof window.Event !== 'undefined' && window.Event.prototype) {
       SafeCustomEvent.prototype = window.Event.prototype;
     }
-    // Override global CustomEvent with safe constructor
+
+    // Override global CustomEvent with safe document.createEvent factory
     (window as any).CustomEvent = SafeCustomEvent;
-  }
-}
-
-/**
- * Creates a CustomEvent safely without throwing "TypeError: Illegal constructor".
- */
-export function createSafeCustomEvent<T = any>(
-  type: string,
-  detail?: T,
-  bubbles = false,
-  cancelable = false
-): CustomEvent<T> {
-  try {
-    if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
-      return new window.CustomEvent<T>(type, { detail, bubbles, cancelable });
-    }
   } catch {
-    // Fall back to document.createEvent
-  }
-
-  if (typeof document !== 'undefined' && typeof document.createEvent === 'function') {
-    const evt = document.createEvent('CustomEvent');
-    evt.initCustomEvent(type, bubbles, cancelable, detail);
-    return evt as CustomEvent<T>;
-  }
-
-  return {
-    type,
-    detail,
-    bubbles,
-    cancelable,
-  } as unknown as CustomEvent<T>;
-}
-
-/**
- * Dispatches an event safely on the given target (defaults to window).
- */
-export function dispatchSafeEvent<T = any>(
-  type: string,
-  detail?: T,
-  target: EventTarget = window
-): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    const event = createSafeCustomEvent(type, detail);
-    return target.dispatchEvent(event);
-  } catch (err) {
-    console.warn(`[SafeEvent] Dispatch failed for ${type}:`, err);
-    return false;
+    // Ignore polyfill assignment error
   }
 }

@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode, useCallback } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+import { db, auth, isFirebaseConfigured } from '../lib/firebase';
 import { ClinicInfo, ClinicLocation } from '../types';
 import { defaultClinic, defaultLocations } from './clinicData';
 import { agencyDemoPresets } from './presets';
-import { clinicRowId, supabase } from './supabaseClient';
 import { LoadingScreen } from '../components/LoadingScreen';
 
 export const STORAGE_KEY = 'agency_clinic_config_v1';
@@ -35,6 +34,7 @@ interface ClinicContextType {
   syncStatus: SyncStatus;
   lastSaved: string | null;
   errorMessage: string | null;
+  isCloudConnected: boolean;
   hasSupabase: boolean;
   importClinicBlueprint: (blueprint: Partial<ClinicInfo>) => boolean;
   // Multi-Location Practice Switcher
@@ -98,7 +98,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [clinicData, setClinicData] = useState<ClinicInfo>(initial.data);
   const [isConfigLoaded, setIsConfigLoaded] = useState<boolean>(initial.hasCache);
   const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>(supabase ? 'idle' : 'local_only');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(isFirebaseConfigured ? 'idle' : 'local_only');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
@@ -145,7 +145,8 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setIsPatientPortalOpen(false);
   }, []);
 
-  const hasSupabase = Boolean(supabase);
+  const isCloudConnected = Boolean(isFirebaseConfigured);
+  const hasSupabase = isCloudConnected;
 
   const openBookingModal = useCallback((
     initialConditionOrTitle?: string,
@@ -318,19 +319,6 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       console.warn('Firestore write init error:', err);
       setSyncStatus('local_only');
     }
-
-    // Optional legacy Supabase sync if configured
-    if (supabase) {
-      Promise.resolve(
-        supabase
-          .from('clinic_configs')
-          .upsert({
-            id: clinicRowId(),
-            data: payload,
-            updated_at: new Date().toISOString(),
-          })
-      ).catch(() => {});
-    }
   }, []);
 
   const updateClinic = useCallback(
@@ -397,6 +385,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       syncStatus,
       lastSaved,
       errorMessage,
+      isCloudConnected,
       hasSupabase,
       importClinicBlueprint,
       activeLocation,
@@ -425,6 +414,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       syncStatus,
       lastSaved,
       errorMessage,
+      isCloudConnected,
       hasSupabase,
       importClinicBlueprint,
       activeLocation,

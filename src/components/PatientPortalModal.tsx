@@ -283,9 +283,9 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
                 Found {searchResults.length} Matching Appointments:
               </h4>
               <div className="space-y-2">
-                {searchResults.map((appt) => (
+                {searchResults.map((appt, idx) => (
                   <div
-                    key={appt.id}
+                    key={`${appt.id}-${idx}`}
                     onClick={() => {
                       setSelectedAppt(appt);
                       setActiveTab('details');

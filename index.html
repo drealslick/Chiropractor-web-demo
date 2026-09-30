@@ -3,25 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vance Health Practice Architecture | Evidence-Based Chiropractic & Spine Recovery</title>
-    <meta name="description" content="Personalized, root-cause chiropractic care and spinal rehabilitation in London, UK / EU Central. Evidence-based protocols for back pain, sciatica, and neck stiffness." />
+    <title>Columbus Chiropractic Care | Evidence-Based Chiropractic & Spine Recovery</title>
+    <meta name="description" content="Personalized chiropractic care in Columbus, OH for back, neck, sports injuries, and mobility with easy appointment booking." />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="%VITE_APP_URL%/" />
     
     <!-- OpenGraph Social Share Cards -->
-    <meta property="og:site_name" content="Vance Health Practice Architecture" />
+    <meta property="og:site_name" content="Columbus Chiropractic Care" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="%VITE_APP_URL%/" />
-    <meta property="og:title" content="Vance Health Practice Architecture | Evidence-Based Chiropractic Care" />
-    <meta property="og:description" content="Personalized, root-cause chiropractic care in London, UK / EU Central. Restoring natural mobility and spinal health with easy online booking." />
+    <meta property="og:title" content="Columbus Chiropractic Care | Evidence-Based Chiropractic Care" />
+    <meta property="og:description" content="Personalized chiropractic care in Columbus, OH for back, neck, sports injuries, and mobility with easy appointment booking." />
     <meta property="og:image" content="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&h=630&q=80" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     
     <!-- Twitter / X Social Cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Vance Health Practice Architecture | Evidence-Based Chiropractic Care" />
-    <meta name="twitter:description" content="Personalized root-cause chiropractic care in London, UK / EU Central. Relieve back pain, sciatica, and neck stiffness." />
+    <meta name="twitter:title" content="Columbus Chiropractic Care | Evidence-Based Chiropractic Care" />
+    <meta name="twitter:description" content="Personalized chiropractic care in Columbus, OH for back, neck, sports injuries, and mobility with easy appointment booking." />
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&h=630&q=80" />
 
     <!-- Static Schema.org MedicalClinic Structured Data (Wave-1 Search Crawlers & Scrapers) -->
@@ -29,25 +29,25 @@
     {
       "@context": "https://schema.org",
       "@type": "MedicalClinic",
-      "name": "Vance Health Practice Architecture",
-      "alternateName": "Vance Chiropractic",
-      "description": "Evidence-based, root-cause chiropractic care and rehabilitation in London, UK / EU Central.",
-      "url": "https://vancehealth.co.uk/",
-      "telephone": "+44 20 7946 0192",
-      "priceRange": "££",
+      "name": "Columbus Chiropractic Care",
+      "alternateName": "Columbus Chiropractic & Spine Center",
+      "description": "Evidence-based, personalized chiropractic care and spinal rehabilitation in Columbus, OH.",
+      "url": "%VITE_APP_URL%/",
+      "telephone": "(614) 555-0192",
+      "priceRange": "$$",
       "image": "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&h=630&q=80",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "742 Central Practice Ave, Suite 300",
-        "addressLocality": "London",
-        "addressRegion": "Greater London",
-        "postalCode": "W1W 7LT",
-        "addressCountry": "GB"
+        "streetAddress": "1200 N High St, Suite 250",
+        "addressLocality": "Columbus",
+        "addressRegion": "OH",
+        "postalCode": "43201",
+        "addressCountry": "US"
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": 51.5173,
-        "longitude": -0.1415
+        "latitude": 39.9862,
+        "longitude": -83.0065
       },
       "medicalSpecialty": "Physiotherapy",
       "availableService": [
@@ -84,18 +84,18 @@
       (function() {
         if (typeof window === 'undefined') return;
         try {
-          var test = new window.CustomEvent('__t__');
-        } catch (e) {
-          function CustomEvent(event, params) {
+          function SafeCustomEvent(event, params) {
             params = params || { bubbles: false, cancelable: false, detail: null };
             var evt = document.createEvent('CustomEvent');
-            evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+            evt.initCustomEvent(event, params.bubbles || false, params.cancelable || false, params.detail || null);
             return evt;
           }
           if (window.Event && window.Event.prototype) {
-            CustomEvent.prototype = window.Event.prototype;
+            SafeCustomEvent.prototype = window.Event.prototype;
           }
-          window.CustomEvent = CustomEvent;
+          window.CustomEvent = SafeCustomEvent;
+        } catch (e) {
+          // ignore
         }
       })();
     </script>

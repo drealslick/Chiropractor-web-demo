@@ -757,6 +757,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     // Save lead with full payment & multi-service tracking
     const saved = saveLead({
+      id: createdBookingRefId || undefined,
       source: 'booking',
       name: formData.name,
       phone: formData.phone,
@@ -841,6 +842,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
       // Save lead with full payment & multi-service tracking
       const saved = saveLead({
+        id: createdBookingRefId || undefined,
         source: 'booking',
         name: formData.name,
         phone: formData.phone,
@@ -1714,7 +1716,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       {paymentChoice !== 'pay_at_clinic' && checkoutMode === 'elements' ? (
                         <div className="pt-1">
                           <StripeElementsCheckout
-                            clinicId={clinic.id || 'clinic_apex_columbus'}
+                            clinicId={clinic.id || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic'}
                             appointmentId={createdBookingRefId || `appt_${Date.now()}`}
                             amount={paymentChoice === 'full' ? effectiveFullAmt : effectiveDepositAmt}
                             currencySymbol={currency}

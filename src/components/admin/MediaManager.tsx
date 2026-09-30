@@ -552,7 +552,7 @@ export const MediaManager: React.FC<MediaManagerProps> = ({ clinic, onUpdateClin
                     {isAdvancedOpen && (
                       <div className="p-3 border-t border-stone-800 space-y-2 bg-stone-950/40 animate-fade-in">
                         <p className="text-[10px] text-stone-400 leading-relaxed">
-                          For developers or external CDN links (AWS S3, Supabase Storage, Cloudinary, etc.). Uploading a file above will automatically override this.
+                          For developers or external CDN links (Firebase Storage, AWS S3, Cloudinary, etc.). Uploading a file above will automatically override this.
                         </p>
                         <input
                           type="text"

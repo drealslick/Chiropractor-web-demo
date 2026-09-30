@@ -933,8 +933,8 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-800/60 font-sans">
-                  {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-stone-800/40 transition">
+                  {logs.map((log, idx) => (
+                    <tr key={`${log.id}-${idx}`} className="hover:bg-stone-800/40 transition">
                       <td className="py-3 px-3 text-[11px] text-stone-400 font-mono shrink-0">
                         {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>

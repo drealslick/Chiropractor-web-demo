@@ -37,31 +37,31 @@ interface RouteMetadata {
 }
 
 const BASE_URL = (process.env.VITE_APP_URL || 'https://your-clinic.vercel.app').replace(/\/$/, '');
-const CLINIC_NAME = 'Vance Health Practice Architecture';
-const CLINIC_PHONE = '+44 20 7946 0192';
-const CLINIC_EMAIL = 'reception@vancehealth.co.uk';
-const CLINIC_ADDRESS_STREET = '742 Central Practice Ave, Suite 300';
-const CLINIC_LOCALITY = 'London';
-const CLINIC_POSTAL = 'W1W 7LT';
-const CLINIC_COUNTRY = 'GB';
+const CLINIC_NAME = process.env.VITE_CLINIC_NAME || 'Columbus Chiropractic Care';
+const CLINIC_PHONE = process.env.VITE_CLINIC_PHONE || '(614) 555-0192';
+const CLINIC_EMAIL = process.env.VITE_CLINIC_EMAIL || 'care@columbuschiropractic.com';
+const CLINIC_ADDRESS_STREET = process.env.VITE_CLINIC_ADDRESS || '1200 N High St, Suite 250';
+const CLINIC_LOCALITY = process.env.VITE_CLINIC_CITY || 'Columbus';
+const CLINIC_POSTAL = process.env.VITE_CLINIC_ZIP || '43201';
+const CLINIC_COUNTRY = process.env.VITE_CLINIC_COUNTRY || 'US';
 
 const PRIMARY_CLINIC_ID = `${BASE_URL}/#clinic`;
-const DR_VANCE_ID = `${BASE_URL}/#dr-alistair-vance`;
+const DR_VANCE_ID = `${BASE_URL}/#dr-marcus-reed`;
 const DR_ROSTOVA_ID = `${BASE_URL}/#dr-elena-rostova`;
 const DR_STERLING_ID = `${BASE_URL}/#dr-marcus-sterling`;
 
 const DEFAULT_REVIEWER = {
-  name: 'Dr. Alistair Vance, MChiro, DC',
-  role: 'Clinical Director & Doctor of Chiropractic',
-  regNumber: 'GCC 04182',
-  regBody: 'General Chiropractic Council (UK)',
+  name: 'Dr. Marcus Reed, D.C.',
+  role: 'Clinical Director & Lead Chiropractor',
+  regNumber: 'OH-DC-4182',
+  regBody: 'State Chiropractic Board of Ohio',
 };
 
 const ROUTES: RouteMetadata[] = [
   {
     path: '',
-    title: `${CLINIC_NAME} | Evidence-Based Chiropractic & Spinal Care London`,
-    description: 'Specialized chiropractic care, lumbar disc decompression, and cervical rehabilitation in London W1. GCC-registered practitioners with transparent, no-show protected booking.',
+    title: `${CLINIC_NAME} | Evidence-Based Chiropractic & Spinal Care`,
+    description: `Specialized chiropractic care, lumbar disc decompression, and cervical rehabilitation in ${CLINIC_LOCALITY}. Evidence-based protocols with transparent booking.`,
     ogImage: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'home',
     h1: 'Get Back to What Pain Took Away.',

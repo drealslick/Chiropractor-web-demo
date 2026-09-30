@@ -150,7 +150,7 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
                 <p className="text-[11px] text-stone-500">No new incoming alerts or cancellation notices.</p>
               </div>
             ) : (
-              notifications.map((item) => {
+              notifications.map((item, idx) => {
                 const isUnread = !item.read;
                 const lower = (item.subject + ' ' + item.message).toLowerCase();
 
@@ -174,7 +174,7 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
 
                 return (
                   <div
-                    key={item.id}
+                    key={`${item.id}-${idx}`}
                     onClick={() => handleItemClick(item)}
                     className={`p-3 rounded-xl transition cursor-pointer flex items-start gap-2.5 group ${
                       isUnread

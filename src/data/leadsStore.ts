@@ -1,4 +1,3 @@
-import { supabase, clinicRowId } from './supabaseClient';
 import {
   getGatewaySettings,
   sendLiveOrSimulatedSms,
@@ -7,6 +6,11 @@ import {
 import { syncAppointmentToFirestore } from '../services/firebaseSync';
 import { sandbox } from '../lib/sandbox';
 import { dispatchSafeEvent } from '../utils/customEvents';
+import { isFirebaseConfigured } from '../lib/firebase';
+
+export function isDemoMode(): boolean {
+  return import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
+}
 
 export interface PatientLead {
   id: string;
@@ -272,27 +276,32 @@ export function getDefaultReceptionNotifications(): DispatchedNotification[] {
 }
 
 export function getStoredLeads(): PatientLead[] {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
-    return sandbox.list<PatientLead>('appointments');
+  let leads: PatientLead[];
+  if (isDemoMode()) {
+    leads = sandbox.list<PatientLead>('appointments');
+  } else {
+    try {
+      const raw = localStorage.getItem(LEADS_STORAGE_KEY);
+      if (!raw) {
+        const seeds = getDefaultSeedLeads();
+        localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(seeds));
+        return seeds;
+      }
+      const parsed = JSON.parse(raw);
+      leads = Array.isArray(parsed) && parsed.length > 0 ? parsed : getDefaultSeedLeads();
+    } catch {
+      leads = getDefaultSeedLeads();
+    }
   }
 
-  try {
-    const raw = localStorage.getItem(LEADS_STORAGE_KEY);
-    if (!raw) {
-      const seeds = getDefaultSeedLeads();
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(seeds));
-      return seeds;
-    }
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      const seeds = getDefaultSeedLeads();
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(seeds));
-      return seeds;
-    }
-    return parsed;
-  } catch {
-    return getDefaultSeedLeads();
-  }
+  // Deduplicate by ID to guarantee unique React keys across the application
+  const seen = new Set<string>();
+  return leads.filter((l, idx) => {
+    const key = l?.id ? String(l.id) : `lead_${idx}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function getDispatchedNotifications(): DispatchedNotification[] {
@@ -330,7 +339,7 @@ export function logNotification(notif: Omit<DispatchedNotification, 'id' | 'time
   const updated = [entry, ...current].slice(0, 50); // keep last 50
   try {
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updated }));
+    dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
   }
@@ -340,7 +349,7 @@ export function logNotification(notif: Omit<DispatchedNotification, 'id' | 'time
 export function clearDispatchedNotifications(): void {
   try {
     localStorage.removeItem(NOTIFICATIONS_STORAGE_KEY);
-    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: [] }));
+    dispatchSafeEvent('notifications_updated', [] );
   } catch {
     // Ignore
   }
@@ -379,10 +388,30 @@ export function saveLead(
     noShowProtected: leadInput.noShowProtected,
   };
 
-  const updated = [newLead, ...currentLeads];
+  const existingIndex = currentLeads.findIndex((l) => l.id === newLead.id);
+  let updated: PatientLead[];
+  if (existingIndex >= 0) {
+    updated = [...currentLeads];
+    updated[existingIndex] = {
+      ...currentLeads[existingIndex],
+      ...newLead,
+    };
+  } else {
+    updated = [newLead, ...currentLeads];
+  }
+
+  // Deduplicate updated array by ID
+  const seenIds = new Set<string>();
+  updated = updated.filter((l, idx) => {
+    const key = l?.id ? String(l.id) : `lead_${idx}`;
+    if (seenIds.has(key)) return false;
+    seenIds.add(key);
+    return true;
+  });
+
   try {
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
+    dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore storage quota
   }
@@ -443,25 +472,6 @@ export function saveLead(
     // Ignore background network failure
   }
 
-  // Attempt non-blocking Supabase sync if table exists
-  if (supabase) {
-    try {
-      supabase
-        .from('leads')
-        .insert({
-          clinic_id: clinicRowId(),
-          data: newLead,
-          created_at: newLead.createdAt,
-        })
-        .then(
-          () => {},
-          () => {}
-        );
-    } catch {
-      // Ignore background supabase failure
-    }
-  }
-
   return newLead;
 }
 
@@ -480,11 +490,11 @@ export function updateLeadStatus(id: string, status: PatientLead['status'], canc
     return lead;
   });
   try {
-    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    if (isDemoMode()) {
       sandbox.update('appointments', id, { status, ...(cancellationReason ? { cancellationReason } : {}) });
     }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
+    dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
   }
@@ -525,7 +535,7 @@ export function updateLeadDetails(id: string, partial: Partial<PatientLead>): Pa
   });
   try {
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
+    dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
   }
@@ -574,7 +584,7 @@ export function updateLeadPayment(
 
   try {
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
+    dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
   }
@@ -596,11 +606,11 @@ export function deleteLead(id: string): PatientLead[] {
   const current = getStoredLeads();
   const updated = current.filter((lead) => lead.id !== id);
   try {
-    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    if (isDemoMode()) {
       sandbox.delete('appointments', id);
     }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: updated }));
+    dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
   }
@@ -612,7 +622,7 @@ export function markNotificationAsRead(id: string): DispatchedNotification[] {
   const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
   try {
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updated }));
+    dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
   }
@@ -624,7 +634,7 @@ export function markAllNotificationsAsRead(): DispatchedNotification[] {
   const updated = current.map((n) => ({ ...n, read: true }));
   try {
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updated }));
+    dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
   }
@@ -636,7 +646,7 @@ export function dismissNotification(id: string): DispatchedNotification[] {
   const updated = current.filter((n) => n.id !== id);
   try {
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updated }));
+    dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
   }
@@ -646,7 +656,7 @@ export function dismissNotification(id: string): DispatchedNotification[] {
 export function clearAllLeads(): void {
   try {
     localStorage.removeItem(LEADS_STORAGE_KEY);
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: [] }));
+    dispatchSafeEvent('leads_updated', [] );
   } catch {
     // Ignore
   }
@@ -798,7 +808,14 @@ export function findPatientAppointmentsByEmail(email: string): PatientLead[] {
   const clean = email.trim().toLowerCase();
   if (!clean) return [];
   const leads = getStoredLeads();
-  return leads.filter((l) => l.email && l.email.trim().toLowerCase() === clean);
+  const matches = leads.filter((l) => l.email && l.email.trim().toLowerCase() === clean);
+  const seen = new Set<string>();
+  return matches.filter((l, idx) => {
+    const key = l?.id ? String(l.id) : `lead_${idx}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**
@@ -812,11 +829,19 @@ export function findPatientAppointments(searchQuery: string): PatientLead[] {
 
   const leads = getStoredLeads();
 
-  return leads.filter((lead) => {
+  const matches = leads.filter((lead) => {
     const leadIdClean = lead.id.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     const txIdClean = (lead.transactionId || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
 
     return leadIdClean === query || txIdClean === query;
+  });
+
+  const seen = new Set<string>();
+  return matches.filter((l, idx) => {
+    const key = l?.id ? String(l.id) : `lead_${idx}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -849,7 +874,7 @@ export function requestPatientReschedule(
 
   try {
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: leads }));
+    dispatchSafeEvent('leads_updated', leads );
 
     // Dispatch front desk notification
     const newNotif: DispatchedNotification = {
@@ -886,7 +911,7 @@ export function requestPatientReschedule(
     const currentNotifs = getDispatchedNotifications();
     const updatedNotifs = [newNotif, ...currentNotifs];
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
-    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updatedNotifs }));
+    dispatchSafeEvent('notifications_updated', updatedNotifs );
   } catch {
     // Ignore
   }
@@ -917,7 +942,7 @@ export function requestPatientCancellation(
 
   try {
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
-    window.dispatchEvent(new CustomEvent('leads_updated', { detail: leads }));
+    dispatchSafeEvent('leads_updated', leads );
 
     // Dispatch patient SMS cancellation receipt
     if (updatedLead.phone) {
@@ -954,7 +979,7 @@ export function requestPatientCancellation(
     const currentNotifs = getDispatchedNotifications();
     const updatedNotifs = [newNotif, ...currentNotifs];
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
-    window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updatedNotifs }));
+    dispatchSafeEvent('notifications_updated', updatedNotifs );
   } catch {
     // Ignore
   }
@@ -976,7 +1001,7 @@ export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['i
   if (updatedLead) {
     try {
       localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLeads));
-      window.dispatchEvent(new CustomEvent('leads_updated', { detail: updatedLeads }));
+      dispatchSafeEvent('leads_updated', updatedLeads );
 
       // Sync directly to Firestore cloud database
       syncAppointmentToFirestore(updatedLead);
@@ -998,7 +1023,7 @@ export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['i
       const currentNotifs = getDispatchedNotifications();
       const updatedNotifs = [newNotif, ...currentNotifs];
       localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
-      window.dispatchEvent(new CustomEvent('notifications_updated', { detail: updatedNotifs }));
+      dispatchSafeEvent('notifications_updated', updatedNotifs );
     } catch {
       // ignore
     }

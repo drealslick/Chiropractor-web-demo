@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useClinic } from '../data/ClinicContext';
 import { AgencyWorkspace } from './AgencyWorkspace';
+import { ErrorBoundary } from './ErrorBoundary';
 import { resolvePalette, generateCustomShades } from '../data/colorPalettes';
 import { Lock, Sliders, Shield, AlertCircle, RefreshCw, Mail, LogOut, CheckCircle2, Sparkles, Building2, X } from 'lucide-react';
-import { auth, db, functions } from '../lib/firebase';
+import { auth, db, functions, isFirebaseConfigured } from '../lib/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -26,10 +27,13 @@ export function GlobalAgencyController() {
     hasSupabase,
   } = useClinic();
 
+  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
   const [isOpen, setIsOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAdminOrStaff, setIsAdminOrStaff] = useState<boolean>(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    return isDemo ? ({ email: 'demo-admin@columbuschiropractic.com', uid: 'demo-admin-uid' } as any) : null;
+  });
+  const [isAdminOrStaff, setIsAdminOrStaff] = useState<boolean>(() => isDemo);
+  const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(!isDemo);
 
   // Deployment onboarding state
   const [isUnclaimedDeployment, setIsUnclaimedDeployment] = useState<boolean>(false);
@@ -43,7 +47,6 @@ export function GlobalAgencyController() {
   const [adminPassword, setAdminPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
 
   // Discreet floating quick-access button (only shown when in demo mode, ?admin=true, or logged in)
   const [showAdminButton, setShowAdminButton] = useState<boolean>(() => {
@@ -59,6 +62,10 @@ export function GlobalAgencyController() {
 
   // Check if this deployment has already been claimed by a primary administrator
   const checkDeploymentClaimStatus = async () => {
+    if (!isFirebaseConfigured) {
+      setIsUnclaimedDeployment(false);
+      return;
+    }
     try {
       const configSnap = await getDoc(doc(db, 'clinic_config', 'active'));
       if (!configSnap.exists() || !configSnap.data()?.adminClaimed) {
@@ -93,6 +100,10 @@ export function GlobalAgencyController() {
 
   // Listen to Firebase Auth state directly
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      setIsCheckingAuth(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setIsCheckingAuth(true);
       if (user) {
@@ -226,6 +237,15 @@ export function GlobalAgencyController() {
   // Production Firebase Auth Sign-in (Strict custom claims verification)
   const handleFirebaseLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDemo) {
+      setIsAdminOrStaff(true);
+      setCurrentUser({
+        email: adminEmail.trim() || 'demo-admin@columbuschiropractic.com',
+        uid: 'demo-admin-uid',
+      } as any);
+      return;
+    }
+
     if (!adminEmail.trim() || !adminPassword.trim()) {
       setError('Please provide your clinic administrator email and password.');
       return;
@@ -616,17 +636,19 @@ export function GlobalAgencyController() {
           </div>
         ) : (
           /* Authenticated Admin Shell (Zero render until verified) */
-          <AgencyWorkspace
-            isOpen={isOpen}
-            onClose={() => setIsOpen(false)}
-            clinic={clinic}
-            onUpdateClinic={updateClinic}
-            onResetDefault={resetClinic}
-            syncStatus={syncStatus}
-            lastSaved={lastSaved}
-            hasSupabase={hasSupabase}
-            onSignOut={handleSignOut}
-          />
+          <ErrorBoundary fallbackTitle="Admin Workspace Notice" onReset={() => setIsOpen(false)}>
+            <AgencyWorkspace
+              isOpen={isOpen}
+              onClose={() => setIsOpen(false)}
+              clinic={clinic}
+              onUpdateClinic={updateClinic}
+              onResetDefault={resetClinic}
+              syncStatus={syncStatus}
+              lastSaved={lastSaved}
+              hasSupabase={hasSupabase}
+              onSignOut={handleSignOut}
+            />
+          </ErrorBoundary>
         )
       )}
     </>

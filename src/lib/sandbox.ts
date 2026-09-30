@@ -1,5 +1,6 @@
 import seedData from './sandbox-seed.json';
 import { dispatchSafeEvent } from '../utils/customEvents';
+import { isFirebaseConfigured } from './firebase';
 
 const STORAGE_KEY = 'practiva_sandbox_v1';
 
@@ -15,13 +16,30 @@ export type SandboxStore = {
   [key: string]: any[];
 };
 
+function deduplicateCollection(items: any[]): any[] {
+  if (!Array.isArray(items)) return [];
+  const seen = new Set<string>();
+  return items.filter((item, idx) => {
+    const key = item && item.id ? String(item.id) : `idx_${idx}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function loadSandbox(): SandboxStore {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
-        return parsed as SandboxStore;
+        const cleaned: SandboxStore = { ...parsed };
+        for (const key of Object.keys(cleaned)) {
+          if (Array.isArray(cleaned[key])) {
+            cleaned[key] = deduplicateCollection(cleaned[key]);
+          }
+        }
+        return cleaned;
       }
     }
   } catch (err) {
@@ -40,8 +58,14 @@ function loadSandbox(): SandboxStore {
 
 function saveSandbox(data: SandboxStore): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    dispatchSafeEvent('sandbox_updated', data);
+    const clean: SandboxStore = { ...data };
+    for (const key of Object.keys(clean)) {
+      if (Array.isArray(clean[key])) {
+        clean[key] = deduplicateCollection(clean[key]);
+      }
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+    dispatchSafeEvent('sandbox_updated', clean);
   } catch (err) {
     console.warn('Sandbox save error:', err);
   }
@@ -51,14 +75,14 @@ export const sandbox = {
   /**
    * Check if demo mode is active
    */
-  isDemoMode: import.meta.env.VITE_DEMO_MODE === 'true',
+  isDemoMode: import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured,
 
   /**
    * List records in collection, optionally filtered by clinicId
    */
   get: <T = any>(collection: string, clinicId?: string): T[] => {
     const data = loadSandbox();
-    const list = (data[collection] || []) as T[];
+    const list = deduplicateCollection((data[collection] || []) as any[]) as T[];
     if (!clinicId) return list;
     return list.filter((item: any) => !item.clinicId || item.clinicId === clinicId);
   },
@@ -73,21 +97,30 @@ export const sandbox = {
   getById: <T = any>(collection: string, id: string): T | null => {
     const data = loadSandbox();
     const list = (data[collection] || []) as T[];
-    return list.find((item: any) => item.id === id) || null;
+    return list.find((item: any) => item && item.id === id) || null;
   },
 
   /**
-   * Create new record in local sandbox
+   * Create new record in local sandbox (upsert if id already exists)
    */
   create: <T = any>(collection: string, clinicId: string, record: any): T => {
     const data = loadSandbox();
+    const existingList = (data[collection] || []) as any[];
+    const id = record.id || `sandbox-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const newRecord = {
       ...record,
-      id: record.id || `sandbox-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      id,
       clinicId: record.clinicId || clinicId,
       createdAt: record.createdAt || new Date().toISOString(),
     };
-    data[collection] = [newRecord, ...(data[collection] || [])];
+    const existingIndex = existingList.findIndex((item: any) => item && item.id === id);
+    if (existingIndex >= 0) {
+      existingList[existingIndex] = { ...existingList[existingIndex], ...newRecord };
+      data[collection] = existingList;
+    } else {
+      data[collection] = [newRecord, ...existingList];
+    }
+    data[collection] = deduplicateCollection(data[collection]);
     saveSandbox(data);
     return newRecord as T;
   },
