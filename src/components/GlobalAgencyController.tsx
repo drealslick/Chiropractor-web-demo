@@ -511,7 +511,7 @@ export function GlobalAgencyController() {
                       <input
                         type="email"
                         required
-                        placeholder="doctor@vancehealth.com"
+                        placeholder="doctor@columbuschiropractic.com"
                         value={adminEmail}
                         onChange={(e) => setAdminEmail(e.target.value)}
                         className="w-full rounded-xl border border-stone-750 bg-stone-950 pl-9 pr-3 py-2 text-xs text-white placeholder:text-stone-600 focus:border-emerald-500 focus:outline-none"
