@@ -3,6 +3,7 @@ import * as firestoreSync from '../services/firebaseSync';
 import { PatientLead, PatientAccount } from '../data/leadsStore';
 import { functions } from './firebase';
 import { httpsCallable } from 'firebase/functions';
+import { dispatchSafeEvent } from '../utils/customEvents';
 
 export const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -10,13 +11,7 @@ export const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
  * Dispatch lightweight demo notification toast for simulated side-effects
  */
 export function notifyDemoAction(message: string) {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(
-      new CustomEvent('demo_notification_toast', {
-        detail: { message },
-      })
-    );
-  }
+  dispatchSafeEvent('demo_notification_toast', { message });
 }
 
 /**

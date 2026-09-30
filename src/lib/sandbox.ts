@@ -1,4 +1,5 @@
 import seedData from './sandbox-seed.json';
+import { dispatchSafeEvent } from '../utils/customEvents';
 
 const STORAGE_KEY = 'practiva_sandbox_v1';
 
@@ -40,7 +41,7 @@ function loadSandbox(): SandboxStore {
 function saveSandbox(data: SandboxStore): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    window.dispatchEvent(new CustomEvent('sandbox_updated', { detail: data }));
+    dispatchSafeEvent('sandbox_updated', data);
   } catch (err) {
     console.warn('Sandbox save error:', err);
   }
@@ -130,7 +131,7 @@ export const sandbox = {
     const fresh = JSON.parse(JSON.stringify(seedData)) as SandboxStore;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
-      window.dispatchEvent(new CustomEvent('sandbox_updated', { detail: fresh }));
+      dispatchSafeEvent('sandbox_updated', fresh);
     } catch {
       // Ignore
     }

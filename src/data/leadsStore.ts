@@ -6,6 +6,7 @@ import {
 } from './gatewayStore';
 import { syncAppointmentToFirestore } from '../services/firebaseSync';
 import { sandbox } from '../lib/sandbox';
+import { dispatchSafeEvent } from '../utils/customEvents';
 
 export interface PatientLead {
   id: string;

@@ -71,7 +71,7 @@ export function ClientOnboardingWizard({
   };
 
   return (
-    <div className="bg-stone-900 border border-stone-800 rounded-2xl shadow-2xl overflow-hidden text-stone-100 max-w-5xl mx-auto my-4">
+    <div className="bg-stone-900 border border-stone-800 rounded-2xl shadow-2xl overflow-hidden text-stone-100 max-w-5xl mx-auto my-2 sm:my-4">
       {/* Printable CSS override for Client Welcome Pack */}
       <style>{`
         @media print {
@@ -97,17 +97,17 @@ export function ClientOnboardingWizard({
       `}</style>
 
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-emerald-950 via-stone-900 to-amber-950/40 p-6 border-b border-stone-800 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-emerald-950 via-stone-900 to-amber-950/40 p-4 sm:p-6 border-b border-stone-800 relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] uppercase tracking-widest font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
                 <Sparkles className="w-3 h-3" />
                 Practice Onboarding & Launchpad
               </span>
               <span className="text-stone-400 text-xs font-mono">Template ID: CHIRO-PRO-2026</span>
             </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
               <span>Client Handoff & Quickstart</span>
             </h2>
             <p className="text-stone-300 text-xs mt-1 max-w-xl">
@@ -116,8 +116,8 @@ export function ClientOnboardingWizard({
           </div>
 
           {/* Readiness Meter */}
-          <div className="bg-stone-950/80 border border-stone-800 rounded-xl p-3.5 flex items-center gap-4 min-w-[220px]">
-            <div className="relative w-12 h-12 flex items-center justify-center">
+          <div className="bg-stone-950/80 border border-stone-800 rounded-xl p-3 sm:p-3.5 flex items-center gap-4 w-full sm:w-auto sm:min-w-[220px]">
+            <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
               <svg className="w-12 h-12 transform -rotate-90">
                 <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" className="text-stone-800" fill="transparent" />
                 <circle
@@ -150,8 +150,8 @@ export function ClientOnboardingWizard({
           </div>
         </div>
 
-        {/* Step Indicator Bar */}
-        <div className="grid grid-cols-5 gap-2 mt-6 pt-4 border-t border-stone-800/80">
+        {/* Step Indicator Bar - Horizontally scrollable on mobile */}
+        <div className="flex overflow-x-auto sm:grid sm:grid-cols-5 gap-2 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-stone-800/80 pb-1 sm:pb-0 scrollbar-none">
           {[
             { step: 1, label: 'Identity & Hours', icon: Building2 },
             { step: 2, label: 'Doctor & Bio', icon: User },
@@ -167,7 +167,7 @@ export function ClientOnboardingWizard({
                 key={s.step}
                 type="button"
                 onClick={() => setCurrentStep(s.step)}
-                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all shrink-0 min-w-[130px] sm:min-w-0 ${
                   isActive
                     ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-lg shadow-emerald-950/40'
                     : isCompleted
@@ -186,7 +186,7 @@ export function ClientOnboardingWizard({
                 >
                   {isCompleted ? <Check className="w-4 h-4" /> : s.step}
                 </div>
-                <div className="hidden sm:block overflow-hidden">
+                <div className="block overflow-hidden">
                   <div className="text-[10px] uppercase font-bold text-stone-400 tracking-wider">Step {s.step}</div>
                   <div className="text-xs font-semibold truncate">{s.label}</div>
                 </div>
@@ -197,7 +197,7 @@ export function ClientOnboardingWizard({
       </div>
 
       {/* Step Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* STEP 1: IDENTITY & HOURS */}
         {currentStep === 1 && (
           <div className="space-y-6">
@@ -702,33 +702,35 @@ export function ClientOnboardingWizard({
         )}
 
         {/* Footer Navigation Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t border-stone-800 mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 sm:pt-6 border-t border-stone-800 mt-6">
           <button
             type="button"
             disabled={currentStep === 1}
             onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
-            className="bg-stone-800 hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed text-stone-200 text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all"
+            className="bg-stone-800 hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed text-stone-200 text-xs font-bold px-3.5 sm:px-4 py-2.5 min-h-[40px] rounded-xl flex items-center gap-1.5 transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Previous Step</span>
+            <span>Previous</span>
           </button>
 
-          <div className="text-xs text-stone-400 font-mono">Step {currentStep} of 5</div>
+          <div className="text-xs text-stone-400 font-mono order-first sm:order-none w-full sm:w-auto text-center">
+            Step {currentStep} of 5
+          </div>
 
           {currentStep < 5 ? (
             <button
               type="button"
               onClick={() => setCurrentStep((prev) => Math.min(5, prev + 1))}
-              className="bg-emerald-500 hover:bg-emerald-400 text-stone-950 text-xs font-bold px-5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 transition-all"
+              className="bg-emerald-500 hover:bg-emerald-400 text-stone-950 text-xs font-bold px-4 sm:px-5 py-2.5 min-h-[40px] rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 transition-all ml-auto sm:ml-0"
             >
-              <span>Next Step</span>
+              <span>Next</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
             <button
               type="button"
               onClick={onClose}
-              className="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold px-4 py-2.5 rounded-xl"
+              className="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold px-4 sm:px-5 py-2.5 min-h-[40px] rounded-xl ml-auto sm:ml-0"
             >
               Done & Close
             </button>

@@ -9,16 +9,34 @@ This repository is a **100% self-contained, standalone clinic operating system**
 ## ⚡ 10-Minute Launch Fast Track
 
 For experienced developers or fast deployment:
-1. **Firebase**: Create a project, enable **Auth (Email/Password)**, **Firestore**, and **Storage**, and upgrade to **Blaze** (free tier covers typical clinic traffic).
-2. **Backend**: `cd functions && cp .env.example .env && npm install && npm run build && cd .. && firebase deploy`
-3. **Frontend**: Import repo to **Vercel** as a Vite project, add your `VITE_FIREBASE_*` variables from Firebase Console, and click **Deploy**.
-4. **Authorize**: Add your Vercel domain to **Firebase Console > Authentication > Settings > Authorized domains**.
-5. **Claim**: Open your live URL with `?admin=true`, enter your `CLINIC_SETUP_TOKEN`, and establish your primary clinic administrator login.
+
+### 1. Firebase (Web Console)
+Create a project, enable **Auth (Email/Password)**, **Firestore**, and **Storage**, then upgrade to the **Blaze** plan (free tier covers standard clinic traffic).
+
+### 2. Backend (Terminal)
+```bash
+cd functions
+cp .env.example .env
+npm install
+npm run build
+cd ..
+firebase deploy
+```
+
+### 3. Frontend (Vercel)
+Import the repository to **Vercel** as a Vite project, add your `VITE_FIREBASE_*` variables from Firebase Console, and click **Deploy**.
+
+### 4. Authorize Domain (Firebase Console)
+Add your Vercel URL to **Firebase Console > Authentication > Settings > Authorized domains**.
+
+### 5. Claim Admin Rights (Browser)
+Open your live URL with `?admin=true` (or tap the **Practice Admin** button), enter your `CLINIC_SETUP_TOKEN`, and set your administrator email and password.
 
 ---
 
 ## Table of Contents
 0. [What You'll Need (The Plain-English Map)](#0-what-youll-need-the-plain-english-map)
+0.5. [Mobile-Only Deployment (No PC Required)](#05-mobile-only-deployment-no-pc-required)
 1. [Architecture & Key Features](#1-architecture--key-features)
 2. [Local Development](#2-local-development)
 3. [Prerequisites](#3-prerequisites)
@@ -45,10 +63,17 @@ Before touching any code or console, here is the exact breakdown of where every 
 
 These look like complex system codes, but you simply invent them:
 
-| Setting | Who Creates It? | What Exactly Is It? | Examples | Where You Put It |
-| :--- | :--- | :--- | :--- | :--- |
-| **`clinicId`** (or `VITE_CLINIC_ID`) | **You invent it** | A simple URL-friendly name (slug) for your practice. It names your database document. | `columbus-chiropractic`<br>`vance-wellness`<br>`apex-spine-center` | Optional in Vercel (`VITE_CLINIC_ID`), or typed when you first claim the clinic. (Defaults to `columbus-chiropractic`). |
-| **`CLINIC_SETUP_TOKEN`** | **You invent it** | A one-time secret setup passphrase. Think of it like a master physical padlock key. | `chiro-launch-secret-2026-xyz`<br>`my-practice-secure-key-99` | Put it in `functions/.env`. Then type this same secret once in your browser to claim admin rights. |
+#### 1. `clinicId` (or `VITE_CLINIC_ID`)
+* **Who creates it?** You invent it.
+* **What is it?** A simple URL-friendly name (slug) for your practice that names your database document.
+* **Examples:** `columbus-chiropractic`, `vance-wellness`, `apex-spine-center`
+* **Where you put it:** Optional in Vercel (`VITE_CLINIC_ID`), or typed when claiming the clinic. (Defaults to `columbus-chiropractic`).
+
+#### 2. `CLINIC_SETUP_TOKEN`
+* **Who creates it?** You invent it.
+* **What is it?** A one-time secret setup passphrase. Think of it like a master physical padlock key.
+* **Examples:** `chiro-launch-secret-2026-xyz`, `my-practice-secure-key-99`
+* **Where you put it:** Put it in `functions/.env`. Then type this same secret once in your browser to claim admin rights.
 
 > **Padlock Analogy:** If `CLINIC_SETUP_TOKEN` is a padlock, you choose the combination in `functions/.env`, and you type that same combination when claiming the site in your browser. Nobody else gives it to you.
 
@@ -96,27 +121,68 @@ These are created automatically when you click buttons on the respective platfor
 When ready to launch, you only need two configurations filled out:
 
 ```text
-📁 functions/.env  (Private backend secrets - never seen by visitors)
-├── CLINIC_SETUP_TOKEN     <-- You invent this (e.g. my-secret-passphrase-2026)
-├── STRIPE_SECRET_KEY      <-- Copied from Stripe Dashboard (Secret Key)
-├── STRIPE_WEBHOOK_SECRET  <-- Copied from Stripe Webhooks (Signing Secret)
-├── RESEND_API_KEY         <-- Copied from Resend Dashboard
-└── APP_URL                <-- Same as VITE_APP_URL (see note below)
+📁 functions/.env (Private backend)
+├── CLINIC_SETUP_TOKEN    <- You invent this
+├── STRIPE_SECRET_KEY     <- Stripe Secret Key
+├── STRIPE_WEBHOOK_SECRET <- Stripe Webhook Secret
+├── RESEND_API_KEY        <- Resend API Key
+└── APP_URL               <- Your live site URL
 
-📁 Vercel Environment Variables  (Public browser variables)
-├── VITE_FIREBASE_API_KEY             <-- Copied from Firebase Project Settings
-├── VITE_FIREBASE_AUTH_DOMAIN         <-- Copied from Firebase Project Settings
-├── VITE_FIREBASE_PROJECT_ID          <-- Copied from Firebase Project Settings
-├── VITE_FIREBASE_STORAGE_BUCKET      <-- Copied from Firebase Project Settings
-├── VITE_FIREBASE_MESSAGING_SENDER_ID <-- Copied from Firebase Project Settings
-├── VITE_FIREBASE_APP_ID              <-- Copied from Firebase Project Settings
-├── VITE_STRIPE_PUBLISHABLE_KEY       <-- Copied from Stripe Dashboard (Publishable Key)
-├── VITE_APP_URL                      <-- Your live site URL
-├── VITE_CLINIC_ID                    <-- You invent this (e.g. my-clinic-slug)
-└── VITE_DEMO_MODE                    <-- "false" for real clinic, or "true" for pitch demo
+📁 Vercel Environment Variables (Browser)
+├── VITE_FIREBASE_API_KEY
+├── VITE_FIREBASE_AUTH_DOMAIN
+├── VITE_FIREBASE_PROJECT_ID
+├── VITE_FIREBASE_STORAGE_BUCKET
+├── VITE_FIREBASE_MESSAGING_SENDER_ID
+├── VITE_FIREBASE_APP_ID
+├── VITE_STRIPE_PUBLISHABLE_KEY
+├── VITE_APP_URL          <- Same as APP_URL
+├── VITE_CLINIC_ID        <- You invent this (slug)
+└── VITE_DEMO_MODE        <- false (or true for demo)
 ```
 
 > **Note:** `APP_URL` (in `functions/.env`) and `VITE_APP_URL` (in Vercel) must be identical. Both are your live site URL. The only reason it is set twice is that Firebase Cloud Functions cannot read Vercel environment variables directly.
+
+---
+
+## 0.5. Mobile-Only Deployment (No PC Required)
+
+If you do **not** have a computer/PC and are setting up everything directly from a smartphone or tablet, you have three simple paths:
+
+### Path A: The 3-Minute Instant Demo (100% In-Browser, Zero Terminal)
+Want to show the live clinic to a prospect or test everything on your phone right now?
+1. Open [vercel.com](https://vercel.com/) in your phone's browser (Safari or Chrome).
+2. Tap **Add New...** > **Project** and import your GitHub repository.
+3. In **Environment Variables**, add just one setting:
+   * Key: `VITE_DEMO_MODE`
+   * Value: `true`
+4. Tap **Deploy**.
+5. In 60 seconds, your site is live! You can book appointments, explore the patient portal, and test the full **Practice Admin** workspace in an isolated mobile sandbox without touching a terminal.
+
+### Path B: Free In-Browser Terminal via Google Cloud Shell (0 Installs on Phone)
+If you need to deploy real Firebase Cloud Functions and rules from a phone, you do **not** need a computer or to install Node/Firebase on your phone:
+1. Open your phone's browser and go to **[shell.cloud.google.com](https://shell.cloud.google.com)** (Google's official free web terminal).
+2. Log in with your clinic's Google account. A full Linux terminal will open right inside your mobile browser.
+3. Paste these commands into the mobile terminal window:
+   ```bash
+   git clone https://github.com/your-username/your-repo.git
+   cd your-repo/functions
+   cp .env.example .env
+   # Edit your keys using nano:
+   nano .env
+   npm install && npm run build
+   cd ..
+   firebase login --no-localhost
+   firebase deploy
+   ```
+4. Done! Your Cloud Functions, security rules, and database indexes are deployed to Google Cloud straight from your phone.
+
+### Path C: Zero-Terminal Firebase Rules in Mobile Browser
+If you prefer not to touch any terminal at all:
+1. Open [console.firebase.google.com](https://console.firebase.google.com/) in your phone's browser.
+2. **Firestore Rules**: Tap **Firestore Database** > **Rules** tab. Delete the default text, paste the entire contents of `firestore.rules` from this repository, and tap **Publish**.
+3. **Storage Rules**: Tap **Storage** > **Rules** tab. Delete the default text, paste the contents of `storage.rules`, and tap **Publish**.
+4. **Cloud Functions**: Cloud Functions will automatically build and deploy whenever you push to GitHub using the included workflow at `.github/workflows/deploy-firebase.yml` (just add your `FIREBASE_TOKEN` to your GitHub repo secrets).
 
 ---
 

@@ -1,3 +1,5 @@
+import { dispatchSafeEvent } from '../utils/customEvents';
+
 export interface GatewaySettings {
   smsProvider: 'simulator' | 'twilio' | 'custom_webhook';
   twilioAccountSid: string;
@@ -132,7 +134,7 @@ export function getGatewaySettings(): GatewaySettings {
 export function saveGatewaySettings(settings: GatewaySettings): void {
   try {
     localStorage.setItem(GATEWAY_SETTINGS_KEY, JSON.stringify(settings));
-    window.dispatchEvent(new CustomEvent('gateway_settings_updated', { detail: settings }));
+    dispatchSafeEvent('gateway_settings_updated', settings);
   } catch {
     // Ignore
   }
@@ -162,7 +164,7 @@ export function logGatewayEvent(entry: Omit<GatewayLogEntry, 'id' | 'timestamp'>
   const updated = [newEntry, ...current].slice(0, 100);
   try {
     localStorage.setItem(GATEWAY_LOGS_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent('gateway_logs_updated', { detail: updated }));
+    dispatchSafeEvent('gateway_logs_updated', updated);
   } catch {
     // Ignore
   }
@@ -172,7 +174,7 @@ export function logGatewayEvent(entry: Omit<GatewayLogEntry, 'id' | 'timestamp'>
 export function clearGatewayLogs(): void {
   try {
     localStorage.setItem(GATEWAY_LOGS_KEY, JSON.stringify([]));
-    window.dispatchEvent(new CustomEvent('gateway_logs_updated', { detail: [] }));
+    dispatchSafeEvent('gateway_logs_updated', []);
   } catch {
     // Ignore
   }

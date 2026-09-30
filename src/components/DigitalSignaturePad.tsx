@@ -40,7 +40,7 @@ export const DigitalSignaturePad: React.FC<DigitalSignaturePadProps> = ({
 
     // Load initial signature if provided
     if (initialSignature) {
-      const img = new Image();
+      const img = document.createElement('img');
       img.onload = () => {
         ctx.drawImage(img, 0, 0, rect.width, rect.height);
       };

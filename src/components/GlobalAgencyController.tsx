@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useClinic } from '../data/ClinicContext';
 import { AgencyWorkspace } from './AgencyWorkspace';
 import { resolvePalette, generateCustomShades } from '../data/colorPalettes';
-import { Lock, Sliders, Shield, AlertCircle, RefreshCw, Mail, LogOut, CheckCircle2, Sparkles, Building2 } from 'lucide-react';
+import { Lock, Sliders, Shield, AlertCircle, RefreshCw, Mail, LogOut, CheckCircle2, Sparkles, Building2, X } from 'lucide-react';
 import { auth, db, functions } from '../lib/firebase';
 import {
   signInWithEmailAndPassword,
@@ -346,20 +346,33 @@ export function GlobalAgencyController() {
       {/* Admin Gating: Never render admin shell unless authenticated with admin or staff role */}
       {isOpen && (
         !isAdminOrStaff ? (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-            <div className="w-full max-w-sm rounded-2xl border border-stone-800 bg-stone-900 p-6 text-stone-100 shadow-2xl">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                  <Shield className="w-5 h-5" />
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md">
+            <div className="w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-2xl border border-stone-800 bg-stone-900 p-4 sm:p-6 text-stone-100 shadow-2xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">
+                      {claimMode ? 'Claim Clinic Deployment' : 'Practice Admin Portal'}
+                    </h3>
+                    <p className="text-[11px] text-stone-400">
+                      {claimMode ? 'First-Run Primary Admin Setup' : 'Role-Based Access Control'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">
-                    {claimMode ? 'Claim Clinic Deployment' : 'Practice Admin Portal'}
-                  </h3>
-                  <p className="text-[11px] text-stone-400">
-                    {claimMode ? 'First-Run Primary Admin Setup' : 'Role-Based Access Control'}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setClaimMode(false);
+                  }}
+                  className="w-8 h-8 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white flex items-center justify-center transition shrink-0"
+                  title="Close modal"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               {isDemo && !claimMode && (
