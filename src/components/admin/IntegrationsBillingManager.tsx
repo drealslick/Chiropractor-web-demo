@@ -110,7 +110,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
   ) => {
     setIsSavingToCloud(true);
     try {
-      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+      if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) {
         const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastSavedTime(nowStr);
         setHasPendingChanges(false);

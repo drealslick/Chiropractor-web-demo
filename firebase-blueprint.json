@@ -1,8 +1,8 @@
 {
   "entities": {
     "clinics": {
-      "title": "Clinic Organizations (Multi-Tenant)",
-      "description": "Multi-tenant clinic entity with branding, address, and operational configurations",
+      "title": "Practice Entity & Clinic Configuration",
+      "description": "Clinic profile entity with branding, address, and operational configurations",
       "type": "object",
       "properties": {
         "id": { "type": "string" },

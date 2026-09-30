@@ -1,10 +1,10 @@
-# Agency Template Guide — Onboarding and Deploying New Clients
+# Agency Deployment Guide — Multi-Client Management (Optional Add-On)
 
-This template is built for high-performance multi-client agency operations. You can configure, preview, and deploy high-converting pages for any chiropractic client without code.
+> 💡 **License Note**: Practice OS is natively built for single-clinic standalone deployments with zero platform fees. If you hold an agency license and deploy Practice OS for multiple clients across separate domains, use this guide to manage blueprints and client configurations.
 
 ---
 
-## 🚀 Accessing the Agency Workspace Suite
+## 🚀 Accessing Practice Admin & Client Configuration Suite
 
 ### The Recommended Access Path: URL Parameter (Mobile & Desktop Friendly)
 To open the secure Agency Workspace Suite on any device, simply append `?admin=true` to the URL.

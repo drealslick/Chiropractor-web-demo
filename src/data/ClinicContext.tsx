@@ -111,6 +111,10 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // 1. Gate on Firebase Auth initialization (prevent Sign In / My Account flash)
   useEffect(() => {
     let unsubAuth: (() => void) | undefined;
+    if (!isFirebaseConfigured) {
+      setIsAuthReady(true);
+      return;
+    }
     try {
       unsubAuth = onAuthStateChanged(auth, () => {
         setIsAuthReady(true);
@@ -214,6 +218,12 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     let cancelled = false;
     const activeId = getActiveClinicId();
 
+    if (!isFirebaseConfigured) {
+      setIsConfigLoaded(true);
+      setSyncStatus('local_only');
+      return;
+    }
+
     try {
       const docRef = doc(db, 'clinics', activeId);
       const unsubscribe = onSnapshot(
@@ -281,7 +291,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // ignore
     }
 
-    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+    if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) {
       setSyncStatus('synced');
       return;
     }

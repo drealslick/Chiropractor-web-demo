@@ -24,7 +24,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { auth, db, functions } from '../lib/firebase';
+import { auth, db, functions, isFirebaseConfigured } from '../lib/firebase';
 
 export type UserRole = 'admin' | 'staff' | 'patient';
 
@@ -44,6 +44,10 @@ export interface UserProfile {
  * Checks clinic_config/active, then clinics collection, or returns 'unassigned'
  */
 export async function resolveActiveClinicId(): Promise<string> {
+  const fallbackClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+  if (!isFirebaseConfigured || import.meta.env.VITE_DEMO_MODE === 'true') {
+    return fallbackClinicId;
+  }
   try {
     const configSnap = await getDoc(doc(db, 'clinic_config', 'active'));
     if (configSnap.exists() && configSnap.data()?.primaryClinicId) {
@@ -52,7 +56,7 @@ export async function resolveActiveClinicId(): Promise<string> {
   } catch (err) {
     console.warn('Note checking clinic config:', err);
   }
-  return 'unassigned';
+  return fallbackClinicId;
 }
 
 /**

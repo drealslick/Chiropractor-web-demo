@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Replace https://your-clinic-domain.com with your custom production domain upon deployment -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>/</loc></url>
-  <url><loc>/conditions</loc></url>
-  <url><loc>/first-visit</loc></url>
-  <url><loc>/about</loc></url>
-  <url><loc>/pricing</loc></url>
-  <url><loc>/contact</loc></url>
-  <url><loc>/blog</loc></url>
-  <url><loc>/privacy</loc></url>
-  <url><loc>/terms</loc></url>
+  <url><loc>https://your-clinic-domain.com/</loc></url>
+  <url><loc>https://your-clinic-domain.com/conditions</loc></url>
+  <url><loc>https://your-clinic-domain.com/first-visit</loc></url>
+  <url><loc>https://your-clinic-domain.com/about</loc></url>
+  <url><loc>https://your-clinic-domain.com/pricing</loc></url>
+  <url><loc>https://your-clinic-domain.com/contact</loc></url>
+  <url><loc>https://your-clinic-domain.com/blog</loc></url>
+  <url><loc>https://your-clinic-domain.com/privacy</loc></url>
+  <url><loc>https://your-clinic-domain.com/terms</loc></url>
 </urlset>

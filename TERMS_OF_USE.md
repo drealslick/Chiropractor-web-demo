@@ -27,7 +27,6 @@ The purchasing organization, clinic, or developer ("Licensee") acknowledges and 
 
 1. **Business Associate Agreements (BAAs)**:
    * **Google Cloud / Firebase**: Licensee must execute a HIPAA Business Associate Agreement directly with Google Cloud Platform and enable Cloud KMS encryption and audit logging prior to transmitting Protected Health Information (PHI).
-   * **Supabase / Relational Databases**: If Supabase or PostgreSQL is utilized for patient records, Licensee must subscribe to a HIPAA-eligible tier and execute an enterprise BAA with the database vendor.
    * **Transactional Email & SMS (Resend / Twilio)**: Licensee must ensure messaging gateways used to transmit appointment reminders or intake links comply with HIPAA, TCPA, and GDPR guidelines, including patient consent for SMS/email notifications and appropriate encryption.
    * **Payment Processing (Stripe)**: Licensee must maintain PCI-DSS compliance and ensure no protected health information (such as diagnostic ICD-10 codes or clinical notes) is passed to Stripe payment metadata fields.
 

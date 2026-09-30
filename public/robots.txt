@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: /sitemap.xml
+# Replace with your production domain upon connecting a custom domain
+Sitemap: https://your-clinic-domain.com/sitemap.xml

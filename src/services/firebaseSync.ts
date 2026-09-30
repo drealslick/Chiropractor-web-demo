@@ -29,11 +29,13 @@ const APPOINTMENTS_COLLECTION = 'appointments';
 const PATIENTS_COLLECTION = 'patients';
 const SETTINGS_COLLECTION = 'clinic_settings';
 
+const isSandboxMode = () => import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
+
 /**
  * Real-time Firestore sync for Appointments
  */
 export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boolean> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) {
+  if (isSandboxMode()) {
     sandbox.create('appointments', lead.clinicName || 'columbus-chiropractic', lead);
     return true;
   }
@@ -59,7 +61,7 @@ export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boo
  * Subscribe to real-time appointments across all devices/branches
  */
 export function subscribeToAppointments(callback: (appointments: PatientLead[]) => void): () => void {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isSandboxMode()) {
     const emit = () => {
       const appts = sandbox.list<PatientLead>('appointments');
       callback(appts);
@@ -98,7 +100,7 @@ export function subscribeToAppointments(callback: (appointments: PatientLead[]) 
  * Fetch patient appointments by email from Cloud Firestore
  */
 export async function fetchAppointmentsByEmailFromFirestore(email: string): Promise<PatientLead[]> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isSandboxMode()) {
     const cleanEmail = email.trim().toLowerCase();
     const all = sandbox.list<PatientLead>('appointments');
     return all.filter((a) => (a.email || '').toLowerCase() === cleanEmail);
@@ -123,7 +125,7 @@ export async function fetchAppointmentsByEmailFromFirestore(email: string): Prom
  * Fetch single appointment by booking ID from Cloud Firestore
  */
 export async function fetchAppointmentByIdFromFirestore(id: string): Promise<PatientLead | null> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isSandboxMode()) {
     return sandbox.getById<PatientLead>('appointments', id);
   }
 
@@ -149,7 +151,7 @@ export async function registerPatientWithFirebaseAuth(
   password: string,
   phone?: string
 ): Promise<{ success: boolean; account?: PatientAccount; message: string }> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isSandboxMode()) {
     const patientProfile: PatientAccount = {
       id: `pat-demo-${Date.now()}`,
       name: name.trim(),
@@ -208,7 +210,7 @@ export async function loginPatientWithFirebaseAuth(
   email: string,
   password: string
 ): Promise<{ success: boolean; account?: PatientAccount; message: string }> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isSandboxMode()) {
     const cleanEmail = email.trim().toLowerCase();
     const patients = sandbox.list<any>('patients');
     const found = patients.find((p) => (p.email || '').toLowerCase() === cleanEmail);
@@ -274,7 +276,7 @@ export async function loginPatientWithFirebaseAuth(
 export async function sendRealPasswordReset(
   email: string
 ): Promise<{ success: boolean; message: string }> {
-  if (import.meta.env.VITE_DEMO_MODE === 'true') {
+  if (isSandboxMode()) {
     notifyDemoAction(`✓ Password reset email simulated for ${email}`);
     return {
       success: true,
@@ -318,6 +320,9 @@ export async function logoutPatientFromFirebase(): Promise<void> {
  * Seed initial sample appointments to Firestore so cross-device tests immediately have data
  */
 export async function seedInitialFirestoreData(leads: PatientLead[]): Promise<void> {
+  if (isSandboxMode()) {
+    return;
+  }
   try {
     for (const lead of leads) {
       const docRef = doc(db, APPOINTMENTS_COLLECTION, lead.id);

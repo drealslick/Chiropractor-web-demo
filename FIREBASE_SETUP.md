@@ -1,6 +1,6 @@
 # 🛡️ Firebase Production Setup & Architecture Guide
 
-This document details the production-ready Firebase backend architecture implemented for **Vance Health / Apex Spine Engine**, fulfilling the complete multi-tenant clinical specification.
+This document details the production-ready Firebase backend architecture implemented for **Practice OS — Standalone Chiropractic Operating System**.
 
 ---
 
@@ -9,24 +9,24 @@ This document details the production-ready Firebase backend architecture impleme
 | Module | Status | Deliverables / Files | Description |
 | :--- | :---: | :--- | :--- |
 | **1. Firebase Auth** | ✅ | `src/services/firebaseAuth.ts`, `src/services/firebaseSync.ts` | Email/password auth, email verification, password reset, role claims, and immediate token refresh. |
-| **2. Firestore Data Model** | ✅ | `firebase-blueprint.json`, `firestore.indexes.json` | 9 multi-tenant collections, composite indexes for high-speed clinician queries, denormalized records. |
-| **3. Security Rules** | ✅ | `firestore.rules`, `tests/firestore.rules.test.ts` | Multi-tenant isolation by `clinicId`, strict patient record isolation, staff theme restriction, test suite. |
+| **2. Firestore Data Model** | ✅ | `firebase-blueprint.json`, `firestore.indexes.json` | 9 core collections, composite indexes for high-speed clinician queries, denormalized appointment records. |
+| **3. Security Rules** | ✅ | `firestore.rules`, `tests/firestore.rules.test.ts` | Single-clinic tenancy isolation, strict patient record privacy, staff restriction, rules test suite. |
 | **4. Firebase Storage** | ✅ | `storage.rules`, `src/utils/imageCompression.ts` | Isolated bucket paths `/clinics/{clinicId}/*`, 5MB upload ceiling, MIME type verification, client compression. |
-| **5. Cloud Functions** | ✅ | `functions/package.json`, `functions/src/index.ts` | Stripe webhook listener (`payment_intent.succeeded`), Resend email dispatcher, Auth onCreate trigger, cleanup cron. |
+| **5. Cloud Functions** | ✅ | `functions/package.json`, `functions/src/index.ts` | Direct Stripe webhook listener (`payment_intent.succeeded`), Resend email dispatcher, Auth onCreate trigger, cleanup cron. |
 | **6. Data Migration** | ✅ | `scripts/migrate-to-firestore.ts` | One-touch migration populating clinic config, conditions, team members, testimonials, FAQs, and appointments. |
 | **7. Documentation** | ✅ | `FIREBASE_SETUP.md`, `.env.example` | Architecture runbook, emulator guide, gotchas avoidance, acceptance test plan, and handoff checklist. |
 
 ---
 
-## 1. Firebase Authentication & Multi-Tenant Roles
+## 1. Firebase Authentication & Practice Roles
 
 ### User Roles & Custom Claims
 Every user belongs to a specific `clinicId` and holds one of three roles:
 - **`patient`**: Can view and manage their own appointments, care plan, intake forms, and personal profile.
-- **`staff`**: Receptionists and associates who manage appointments, patient check-ins, and inquiries for their assigned `clinicId`. Cannot alter theme, financial accounts, or clinic settings.
-- **`admin`**: Clinic Directors and Practice Owners who possess full administrative privileges, including clinic settings, Stripe Connect, doctor rosters, and financial reports.
+- **`staff`**: Receptionists and associates who manage appointments, patient check-ins, and inquiries for the practice. Cannot alter theme, financial accounts, or clinic settings.
+- **`admin`**: Clinic Directors and Practice Owners who possess full administrative privileges, including clinic settings, direct Stripe keys, doctor rosters, and financial reports.
 
-### Token Refresh Architecture (Resolving Gotcha #3)
+### Token Refresh Architecture
 Custom claims are stored inside the user's signed JWT token. Normally, Firebase Auth only refreshes tokens once every 60 minutes.
 In `src/services/firebaseAuth.ts`, the `forceRefreshToken()` function calls `getIdToken(user, true)` on promotion or login, forcing an immediate server handshake so promoted users gain immediate access without having to wait.
 
@@ -40,7 +40,7 @@ In `src/services/firebaseAuth.ts`, the `forceRefreshToken()` function calls `get
 3. `appointments/{appointmentId}`: Booked consultations, clinical condition, doctor info, payment status.
 4. `inquiries/{inquiryId}`: Website inquiries, intake leads, triage notes.
 5. `conditions/{conditionId}`: Treatable conditions, clinical rehab milestones, prescribed frequency, exercises.
-6. `teamMembers/{memberId}`: Doctors, qualifications, GCC credentials, specialties, headshot URLs.
+6. `teamMembers/{memberId}`: Doctors, qualifications, credentials, specialties, headshot URLs.
 7. `blogPosts/{postId}`: Clinical articles, patient recovery guides, SEO metadata.
 8. `testimonials/{testimonialId}`: Verified patient reviews, star ratings, condition outcomes.
 9. `faqs/{faqId}`: Practice FAQs categorized by Billing, First Visit, Insurance, and Clinical Care.
@@ -63,9 +63,9 @@ The following composite indexes are configured for multi-field queries:
 
 ## 3. Firestore Security Rules & Testing
 
-The security rules in `firestore.rules` enforce multi-tenant isolation:
+The security rules in `firestore.rules` enforce tenant isolation:
 * **Patient Isolation**: Patients are authenticated and can ONLY access documents where `resource.data.patientId == request.auth.uid`. Cross-patient snooping is blocked.
-* **Clinic Tenancy**: Staff can only access records where `resource.data.clinicId == request.auth.token.clinicId`.
+* **Clinic Tenancy**: Staff can only access records matching the practice's `clinicId`.
 * **Theme & Settings Lockdown**: Only users with the `admin` role can write to `clinics/{clinicId}`. Staff attempts to mutate theme or Stripe keys will be rejected by Firestore.
 
 ### Security Rules Test Suite
@@ -90,7 +90,7 @@ Storage is partitioned with:
 ## 5. Cloud Functions (Node.js)
 
 Located in `/functions`:
-1. `createPaymentIntent`: Callable function that creates a Stripe PaymentIntent for clinic bookings. If the practice has connected their Stripe account (`clinic_settings/{clinicId}.stripeAccountId`), the charge is routed directly to them via Stripe Connect using `on_behalf_of` and `transfer_data`. If unconnected, gracefully signals demo mode for frontend simulation.
+1. `createPaymentIntent`: Callable function that creates a Stripe PaymentIntent for clinic bookings. Routes directly to the practice's configured Stripe keys.
 2. `stripeWebhook`: Listens for `payment_intent.succeeded` and `charge.refunded`. Automatically updates Firestore appointment payment status (`paid_full` or `deposit_paid`), records Stripe transaction IDs, and triggers formatted patient payment receipts via Resend.
 3. `sendTransactionalEmail`: Authenticated callable function utilizing **Resend** for booking confirmations, cancellations, and clinic alerts.
 4. `onUserCreated`: Firebase Auth trigger that automatically creates the user's Firestore record in `users/{uid}` and assigns their default role.
@@ -107,23 +107,23 @@ npm run migrate:firestore
 This script initializes:
 - Primary clinic tenant: `VITE_CLINIC_ID` (e.g. `columbus-chiropractic` or your custom slug)
 - Clinical condition tracks & home rehab plans
-- Clinician roster (Dr. Sarah Vance, Dr. Marcus Reed)
+- Clinician roster (Dr. Vance, Dr. Marcus Sterling, Dr. Elena Rostova)
 - Patient reviews, FAQs, and sample appointments
 
 ---
 
-## 🚨 The 5 Firebase Gotchas & How We Solved Them
+## 🚨 The 6 Firebase Gotchas & How We Solved Them
 
 ### Gotcha 1: "Security Rules That Look Right But Aren't"
-* **The Trap**: Writing `allow read, write: if request.auth != null;` which permits any logged-in patient to read other clinics' medical appointments.
-* **Our Fix**: Granular rules in `firestore.rules` verifying `resource.data.patientId == request.auth.uid` for patient collections, and verifying `request.auth.token.clinicId == clinicId` for staff. Backed by `tests/firestore.rules.test.ts`.
+* **The Trap**: Writing `allow read, write: if request.auth != null;` which permits any logged-in patient to read other patients' medical appointments.
+* **Our Fix**: Granular rules in `firestore.rules` verifying `resource.data.patientId == request.auth.uid` for patient collections. Backed by `tests/firestore.rules.test.ts`.
 
 ### Gotcha 2: "Firestore Query Limits & Missing Composite Indexes"
 * **The Trap**: Querying appointments by doctor and date range fails in production if composite indexes are missing.
 * **Our Fix**: Defined and created `firestore.indexes.json` with multi-field indexes deployed to the project.
 
 ### Gotcha 3: "Custom Claims Require Token Refresh"
-* **The Trap**: Promoting a receptionist to admin doesn't take effect for 1 hour because cached JWT tokens don't refresh automatically.
+* **The Trap**: Promoting a staff member to admin doesn't take effect for 1 hour because cached JWT tokens don't refresh automatically.
 * **Our Fix**: Implemented `forceRefreshToken()` in `src/services/firebaseAuth.ts` which calls `getIdToken(user, true)` on promotion to refresh claims immediately.
 
 ### Gotcha 4: "Read/Write Cost Runaway"
@@ -132,23 +132,23 @@ This script initializes:
 
 ### Gotcha 5: "Vendor Lock-In"
 * **The Trap**: Complex proprietary NoSQL structures that cannot be extracted.
-* **Our Fix**: Schema defined in `firebase-blueprint.json` mirroring a normalized relational model. Migration scripts provide clean JSON export and portability.
+* **Our Fix**: Schema defined in `firebase-blueprint.json` mirroring a clean relational model. Migration scripts provide JSON export and portability.
 
 ### Gotcha 6: "First-Admin Race Condition & Claim Hijacking"
 * **The Trap**: When a buyer deploys the template to Vercel/Cloud Run before claiming it, an unauthorized visitor visiting `?admin=true` could claim the initial admin account.
-* **Our Fix**: Gated `claimInitialClinicAdmin` with a deploy-time secret (`CLINIC_SETUP_TOKEN`). The buyer generates this token (e.g. `openssl rand -hex 16`) and sets it in their Vercel environment variables. The claim Cloud Function checks the token, establishes the primary admin, and isolates sensitive config in `clinic_config_private/active`.
+* **Our Fix**: Gated `claimInitialClinicAdmin` with a deploy-time secret (`CLINIC_SETUP_TOKEN`). The buyer generates this token (e.g. `openssl rand -hex 16`) and sets it in `functions/.env`. The claim Cloud Function checks the token, establishes the primary admin, and isolates sensitive config in `clinic_config_private/active`.
 
 ---
 
 ## 🚀 First-Run Buyer Onboarding Runbook
 
 When deploying a fresh instance of this template:
-1. **Set Environment Variable**: Add `CLINIC_SETUP_TOKEN=<your-secret-32-char-key>` to your deployment environment (Vercel, Cloud Run, or `.env`).
+1. **Set Environment Variable**: Add `CLINIC_SETUP_TOKEN=<your-secret-32-char-key>` to your `functions/.env` and deployment environment (Vercel/Cloud Run).
 2. **Access Admin Portal**: Open your deployed site with `?admin=true` (or click the floating "Practice Admin" button).
 3. **Claim Practice**: The system will detect an unclaimed deployment. Click **"Claim This Practice as First Admin"**.
 4. **Enter Credentials**:
-   * **Clinic ID**: Your unique clinic slug (e.g. `clinic_london_01`).
-   * **Clinic Name**: Practice display name (e.g. `Vance Health London`).
+   * **Clinic ID**: Your unique clinic slug (e.g. `columbus-chiropractic`).
+   * **Clinic Name**: Practice display name (e.g. `Columbus Chiropractic Care`).
    * **Deployment Setup Secret**: The value of your `CLINIC_SETUP_TOKEN`.
    * **Admin Email & Password**: The primary practice director credentials.
 5. **Locked Down**: Once claimed, `clinic_config/active` is bound permanently, `primaryClinicId` is immutable, and all subsequent patient signups automatically route into your practice tenant.
@@ -162,9 +162,9 @@ Run these verification tests:
 ### 1. Auth & Patient Isolation Tests
 1. **Patient Sign-Up**: Register a new patient account (`testpatient@example.com`) in the Patient Portal.
 2. **Password Reset**: Click "Forgot Password?" and verify that Firebase sends a reset link to the email.
-3. **Cross-Patient URL Tampering**: Log in as Patient A. Try accessing Patient B's appointment ID (`VH-5182-M93L`). Verify access is denied.
+3. **Cross-Patient URL Tampering**: Log in as Patient A. Try accessing Patient B's appointment ID (`COL-5182-M93L`). Verify access is denied.
 
-### 2. Clinic Staff & Multi-Tenant Tests
+### 2. Practice Staff & Admin Tests
 1. Log in as a staff member of your clinic (`VITE_CLINIC_ID`).
 2. Verify access to appointments for that clinic.
 3. Try to update clinic theme or branding → verify permission denied (only admin can update).
@@ -178,10 +178,10 @@ Run these verification tests:
 
 ## 📋 Handoff Deliverables Checklist
 
-- [x] Firebase Project Configured: `brave-trilogy-ft8c4`
-- [x] Firestore Database: `ai-studio-columbuschiropra-e1a46cd1-f2d1-4a04-8ca2-8be7b23c1054`
+- [x] Firebase Project Configured: `your-firebase-project-id`
+- [x] Firestore Database: `(default)` or `your-database-id`
 - [x] Firestore Blueprint Schema: `firebase-blueprint.json` (9 Collections)
-- [x] Firestore Security Rules: `firestore.rules` (Multi-tenant + Patient Isolation)
+- [x] Firestore Security Rules: `firestore.rules` (Single-clinic + Patient Isolation)
 - [x] Rules Test Suite: `tests/firestore.rules.test.ts`
 - [x] Storage Security Rules: `storage.rules` (5MB Limit, Image MIME validation)
 - [x] Composite Indexes: `firestore.indexes.json`
