@@ -149,7 +149,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Vance Health//Patient Portal//EN',
+      'PRODID:-//Columbus Chiropractic Care//Patient Portal//EN',
       'BEGIN:VEVENT',
       `SUMMARY:${title}`,
       `DESCRIPTION:${desc}`,

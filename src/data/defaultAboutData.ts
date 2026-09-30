@@ -89,11 +89,11 @@ export const defaultAboutAssociations: AboutAssociation[] = [
 
 export const defaultAboutJourney = {
   subtitle: 'Our Founding Story',
-  title: 'The Journey Behind Vance Health',
+  title: 'The Journey Behind Columbus Chiropractic Care',
   paragraph1:
     'When I completed my clinical doctorate in chiropractic and biomechanics over twelve years ago, I entered a private healthcare environment that felt increasingly industrialized. Patients were being ushered through crowded waiting rooms, given hurried three-minute adjustments, and pressured into rigid 40-visit prepaid schemes before anyone had even listened to their full story.',
   paragraph2:
-    'I believed that private musculoskeletal medicine could—and should—be practiced with the calm precision of an architectural design studio. In 2018, I established Vance Health Practice Architecture to prove that high-performance, evidence-based care thrives when clinicians take the time to look at the entire kinetic chain rather than chasing isolated symptoms.',
+    'I believed that private musculoskeletal medicine could—and should—be practiced with the calm precision of an architectural design studio. In 2018, I established Columbus Chiropractic Care to prove that high-performance, evidence-based care thrives when clinicians take the time to look at the entire kinetic chain rather than chasing isolated symptoms.',
   paragraph3:
     'Today, our practice remains unapologetically boutique, private, and independent. We strictly limit our daily patient caseload so we can listen without a ticking timer, explain diagnostic imaging with crystal clarity, and treat each person who walks through our doors with the dignity and undivided attention they deserve.',
   quote:

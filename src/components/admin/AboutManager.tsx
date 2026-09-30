@@ -615,7 +615,7 @@ export const AboutManager: React.FC<AboutManagerProps> = ({ clinic, onUpdateClin
             <input
               type="text"
               value={clinic.aboutJourneyTitle || defaultAboutJourney.title}
-              placeholder="The Journey Behind Vance Health"
+              placeholder="The Journey Behind Columbus Chiropractic Care"
               onChange={(e) => onUpdateClinic({ ...clinic, aboutJourneyTitle: e.target.value })}
               className="w-full px-3.5 py-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:outline-none focus:border-emerald-500"
             />

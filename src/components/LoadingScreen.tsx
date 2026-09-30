@@ -6,7 +6,7 @@ interface LoadingScreenProps {
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ clinic }) => {
-  const clinicName = clinic?.name || 'Vance Health Practice Architecture';
+  const clinicName = clinic?.name || 'Columbus Chiropractic Care';
   const logoUrl = clinic?.logoUrl || clinic?.logoImage || (clinic as any)?.logo;
   const initial = (clinic?.logoText || clinicName || 'V').charAt(0).toUpperCase();
 

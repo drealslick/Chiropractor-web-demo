@@ -41,7 +41,7 @@ export const LegalPolicyManager: React.FC<LegalPolicyManagerProps> = ({ clinic, 
   const marketRegion: MarketRegion = clinic.marketRegion || 'UK';
   const compliance = getMarketCompliance(marketRegion);
 
-  const clinicName = clinic.name || 'Vance Health Practice Architecture';
+  const clinicName = clinic.name || 'Columbus Chiropractic Care';
   const clinicPhone = clinic.phone || '+44 20 7946 0192';
   const clinicEmail = clinic.email || 'reception@vancehealth.co.uk';
 

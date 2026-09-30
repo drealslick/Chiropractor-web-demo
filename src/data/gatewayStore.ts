@@ -94,7 +94,7 @@ export const DEFAULT_INITIAL_GATEWAY_LOGS: GatewayLogEntry[] = [
     recipient: '+44 7911 123456 (John Doe)',
     eventType: 'booking_confirmation',
     status: 'delivered',
-    payloadPreview: 'Vance Health: Hello John Doe! Your appointment with Dr. Alistair Vance is confirmed for tomorrow at 12:00 PM. Ref: VH-9428-K82X.',
+    payloadPreview: 'Columbus Chiropractic Care: Hello John Doe! Your appointment with Dr. Alistair Vance is confirmed for tomorrow at 12:00 PM. Ref: COL-9428-K82X.',
   },
   {
     id: 'gw-log-2',
@@ -104,7 +104,7 @@ export const DEFAULT_INITIAL_GATEWAY_LOGS: GatewayLogEntry[] = [
     recipient: 'johndoe@example.com',
     eventType: 'booking_confirmation',
     status: 'delivered',
-    payloadPreview: 'Subject: Appointment Confirmed: Vance Health - Tomorrow at 12:00 PM. Itemized invoice attached.',
+    payloadPreview: 'Subject: Appointment Confirmed: Columbus Chiropractic Care - Tomorrow at 12:00 PM. Itemized invoice attached.',
   },
   {
     id: 'gw-log-3',
@@ -114,7 +114,7 @@ export const DEFAULT_INITIAL_GATEWAY_LOGS: GatewayLogEntry[] = [
     recipient: '+44 7822 449102 (Sarah Jenkins)',
     eventType: 'reminder_24h',
     status: 'delivered',
-    payloadPreview: 'Vance Health Reminder: Your appointment is today at 3:00 PM. Please arrive 10m early. Address: 44 Wicklow St, London.',
+    payloadPreview: 'Columbus Chiropractic Care Reminder: Your appointment is today at 3:00 PM. Please arrive 10m early. Address: 44 Wicklow St, London.',
   },
 ];
 

@@ -752,7 +752,7 @@ export default function ConditionDetail() {
             <span>Clinical Evidence, Guidelines & Regulatory Oversight ({compliance.regionLabel})</span>
           </div>
           <p className="text-stone-600 leading-relaxed">
-            All clinical content, assessment methods, and treatment plans at {clinic.name || 'Vance Health'} adhere strictly to evidence-based clinical standards and statutory regulations under the <strong>{compliance.statuteReference}</strong>.
+            All clinical content, assessment methods, and treatment plans at {clinic.name || 'Columbus Chiropractic Care'} adhere strictly to evidence-based clinical standards and statutory regulations under the <strong>{compliance.statuteReference}</strong>.
           </p>
           <div className="space-y-2 pt-1 text-stone-600 font-sans">
             {compliance.evidenceGuidelines.map((eg, idx) => (

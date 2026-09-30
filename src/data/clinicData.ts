@@ -118,7 +118,7 @@ export const defaultSchedulingRules: ClinicSchedulingRules = {
     clinicEmailAlert: true,
     clinicAlertRecipient: 'reception@vancehealth.co.uk',
     patientAutoResponder: true,
-    autoResponderSubject: "We've received your appointment request - Vance Health",
+    autoResponderSubject: "We've received your appointment request - Columbus Chiropractic Care",
     autoResponderMessage: `Hello {patient_name},
 
 Thank you for requesting an appointment with {clinic_name}! We received your request for {date} at {time} with {practitioner_name}.

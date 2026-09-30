@@ -103,7 +103,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
 
   return [
     {
-      id: 'VH-9428-K82X',
+      id: 'COL-9428-K82X',
       source: 'booking',
       name: 'John Doe',
       email: 'johndoe@example.com',
@@ -113,12 +113,12 @@ export function getDefaultSeedLeads(): PatientLead[] {
       date: tomorrow,
       time: '12:00 PM',
       durationMinutes: 45,
-      notes: 'Initial Consultation (£49). Has sharp lumbar pain radiating to left leg for 3 weeks.',
+      notes: 'Initial Consultation ($49). Has sharp lumbar pain radiating to left leg for 3 weeks.',
       createdAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
       status: 'new',
-      clinicName: 'Vance Health Practice Architecture',
+      clinicName: 'Columbus Chiropractic Care',
       paymentStatus: 'deposit_paid',
-      paymentAmount: '£25.00',
+      paymentAmount: '$25.00',
       paymentMethod: 'card',
       cardLast4: '4242',
       cardBrand: 'Visa',
@@ -126,7 +126,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       noShowProtected: true,
     },
     {
-      id: 'VH-7183-M91B',
+      id: 'COL-7183-M91B',
       source: 'booking',
       name: 'John Dow',
       email: 'johndow@example.com',
@@ -136,12 +136,12 @@ export function getDefaultSeedLeads(): PatientLead[] {
       date: inThreeDays,
       time: '1:45 PM',
       durationMinutes: 45,
-      notes: 'Requested: Initial Consultation (£49). Chronic tension headaches by 3 PM daily.',
+      notes: 'Requested: Initial Consultation ($49). Chronic tension headaches by 3 PM daily.',
       createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
       status: 'new',
-      clinicName: 'Vance Health Practice Architecture',
+      clinicName: 'Columbus Chiropractic Care',
       paymentStatus: 'card_hold',
-      paymentAmount: '£0.00 (Hold)',
+      paymentAmount: '$0.00 (Hold)',
       paymentMethod: 'apple_pay',
       cardLast4: '1984',
       cardBrand: 'Mastercard',
@@ -149,7 +149,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       noShowProtected: true,
     },
     {
-      id: 'VH-3850-P24A',
+      id: 'COL-3850-P24A',
       source: 'booking',
       name: 'Sarah Jenkins',
       email: 'sjenkins@example.com',
@@ -162,9 +162,9 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Requested Initial Exam. Swimmer with overhead pain.',
       createdAt: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
       status: 'new',
-      clinicName: 'Vance Health Practice Architecture',
+      clinicName: 'Columbus Chiropractic Care',
       paymentStatus: 'paid_full',
-      paymentAmount: '£49.00',
+      paymentAmount: '$49.00',
       paymentMethod: 'card',
       cardLast4: '8821',
       cardBrand: 'Visa',
@@ -172,7 +172,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       noShowProtected: true,
     },
     {
-      id: 'VH-5519-R76Q',
+      id: 'COL-5519-R76Q',
       source: 'booking',
       name: 'Michael Chang',
       email: 'm.chang@example.com',
@@ -185,10 +185,10 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Regular check-in. Reports 80% improvement after last adjustment.',
       createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
       status: 'checked_in',
-      clinicName: 'Vance Health Practice Architecture',
+      clinicName: 'Columbus Chiropractic Care',
     },
     {
-      id: 'VH-6294-T18K',
+      id: 'COL-6294-T18K',
       source: 'booking',
       name: 'David Chen',
       email: 'david.chen@example.com',
@@ -201,10 +201,10 @@ export function getDefaultSeedLeads(): PatientLead[] {
       notes: 'Initial Exam. MRI scan brought on USB drive.',
       createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
       status: 'checked_in',
-      clinicName: 'Vance Health Practice Architecture',
+      clinicName: 'Columbus Chiropractic Care',
     },
     {
-      id: 'VH-4402-Z33W',
+      id: 'COL-4402-Z33W',
       source: 'booking',
       name: 'Emily Watson',
       email: 'emily.w@example.com',
@@ -214,10 +214,10 @@ export function getDefaultSeedLeads(): PatientLead[] {
       date: today,
       time: '1:30 PM',
       durationMinutes: 45,
-      notes: 'Initial Exam (£49). Returning after marathon training.',
+      notes: 'Initial Exam ($49). Returning after marathon training.',
       createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
       status: 'confirmed',
-      clinicName: 'Vance Health Practice Architecture',
+      clinicName: 'Columbus Chiropractic Care',
     },
   ];
 }
@@ -230,7 +230,7 @@ export function getDefaultReceptionNotifications(): DispatchedNotification[] {
       recipient: 'Front Desk',
       channel: 'email',
       subject: 'New online request from John Doe',
-      message: 'New online request from John Doe. Initial Consultation (£49) for Lower Back & Sciatica.',
+      message: 'New online request from John Doe. Initial Consultation ($49) for Lower Back & Sciatica.',
       timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(), // 10m ago
       status: 'delivered',
       read: false,
@@ -444,7 +444,7 @@ export function saveLead(
       if (gwSettings.autoSendBookingConfirmation !== false) {
         const templateVars = {
           patient_name: newLead.name,
-          clinic_name: newLead.clinicName || 'Vance Health',
+          clinic_name: newLead.clinicName || 'Columbus Chiropractic Care',
           doctor_name: newLead.practitionerName || 'Doctor of Chiropractic',
           date: newLead.date || 'Upcoming',
           time: newLead.time || 'Scheduled Time',
@@ -896,7 +896,7 @@ export function requestPatientReschedule(
       if (gwSettings.autoSendRescheduleAlert !== false) {
         const templateVars = {
           patient_name: updatedLead.name,
-          clinic_name: updatedLead.clinicName || 'Vance Health',
+          clinic_name: updatedLead.clinicName || 'Columbus Chiropractic Care',
           doctor_name: updatedLead.practitionerName || 'Doctor of Chiropractic',
           date: newDate,
           time: newTime,
@@ -950,7 +950,7 @@ export function requestPatientCancellation(
       if (gwSettings.autoSendCancellationAlert !== false) {
         const templateVars = {
           patient_name: updatedLead.name,
-          clinic_name: updatedLead.clinicName || 'Vance Health',
+          clinic_name: updatedLead.clinicName || 'Columbus Chiropractic Care',
           doctor_name: updatedLead.practitionerName || 'Doctor of Chiropractic',
           date: existing.date || 'Scheduled Date',
           time: existing.time || 'Scheduled Time',

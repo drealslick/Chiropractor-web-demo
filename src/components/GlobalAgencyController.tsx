@@ -476,7 +476,7 @@ export function GlobalAgencyController() {
                     <label className="text-[11px] font-medium text-stone-300 block mb-1">Clinic Name</label>
                     <input
                       type="text"
-                      placeholder="Vance Health London"
+                      placeholder="Columbus Chiropractic Care London"
                       value={newClinicName}
                       onChange={(e) => setNewClinicName(e.target.value)}
                       className="w-full rounded-xl border border-stone-750 bg-stone-950 px-3 py-2 text-xs text-white placeholder:text-stone-600 focus:border-emerald-500 focus:outline-none"

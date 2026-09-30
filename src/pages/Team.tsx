@@ -22,7 +22,7 @@ export default function Team() {
   const { clinicData: clinic, openBookingModal } = useClinic();
 
   usePageMeta(
-    `Our Clinical Team & Specialists | ${clinic.name || 'Vance Health'}`,
+    `Our Clinical Team & Specialists | ${clinic.name || 'Columbus Chiropractic Care'}`,
     clinic.teamPageHeroText ||
       'Meet our experienced team of registered chiropractors, biomechanists, and patient care coordinators dedicated to unhurried, root-cause care.'
   );

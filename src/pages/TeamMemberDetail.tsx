@@ -49,7 +49,7 @@ export default function TeamMemberDetail() {
 
   usePageMeta(
     member
-      ? `${member.name}, ${member.credentials || member.role} | ${clinic.name || 'Vance Health'}`
+      ? `${member.name}, ${member.credentials || member.role} | ${clinic.name || 'Columbus Chiropractic Care'}`
       : 'Clinician Profile',
     member?.shortSummary ||
       'Meet our chiropractic specialists and discover our unhurried approach to evidence-based musculoskeletal health.'

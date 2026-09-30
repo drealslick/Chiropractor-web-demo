@@ -187,7 +187,7 @@ export async function registerPatientWithFirebaseAuth(
     return {
       success: true,
       account: patientProfile,
-      message: 'Account created and verified on Vance Health Cloud.',
+      message: 'Account created and verified on Columbus Chiropractic Care Cloud.',
     };
   } catch (error: any) {
     console.error('Firebase Auth Registration error:', error);

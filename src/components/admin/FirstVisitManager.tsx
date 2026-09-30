@@ -217,7 +217,7 @@ export const FirstVisitManager: React.FC<FirstVisitManagerProps> = ({
             <textarea
               rows={2}
               value={clinic.firstVisitDuration || ''}
-              placeholder="Plan about 45–60 minutes at Vance Health Practice Architecture. You’ll leave with a clear plan, not a sales pitch."
+              placeholder="Plan about 45–60 minutes at Columbus Chiropractic Care. You’ll leave with a clear plan, not a sales pitch."
               onChange={(e) => onUpdateClinic({ ...clinic, firstVisitDuration: e.target.value })}
               className="w-full px-3.5 py-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:outline-none focus:border-emerald-500"
             />
