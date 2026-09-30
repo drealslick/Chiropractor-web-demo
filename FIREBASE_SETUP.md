@@ -61,9 +61,9 @@ Security rules in `firestore.rules` enforce strict patient privacy:
 
 ## 📋 Quick Setup Checklist
 
-- [x] Firebase Project Registered
-- [x] Firestore Database Enabled
-- [x] Security Rules Applied (`firestore.rules`)
-- [x] Storage Security Rules Applied (`storage.rules`)
-- [x] Cloud Functions Deployed (`/functions`)
-- [x] Data Seeded (`npm run migrate:firestore`)
+- [ ] Firebase Project Registered
+- [ ] Firestore Database Enabled
+- [ ] Security Rules Applied (`firestore.rules`)
+- [ ] Storage Security Rules Applied (`storage.rules`)
+- [ ] Cloud Functions Deployed (`/functions`)
+- [ ] Data Seeded (`npm run migrate:firestore`)

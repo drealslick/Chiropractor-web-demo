@@ -35,7 +35,7 @@ interface ClinicContextType {
   lastSaved: string | null;
   errorMessage: string | null;
   isCloudConnected: boolean;
-  hasSupabase: boolean;
+  isCloudSynced: boolean;
   importClinicBlueprint: (blueprint: Partial<ClinicInfo>) => boolean;
   // Multi-Location Practice Switcher
   activeLocation: ClinicLocation;
@@ -150,7 +150,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   const isCloudConnected = Boolean(isFirebaseConfigured);
-  const hasSupabase = isCloudConnected;
+  const isCloudSynced = isCloudConnected;
 
   const openBookingModal = useCallback((
     initialConditionOrTitle?: string,
@@ -396,7 +396,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       lastSaved,
       errorMessage,
       isCloudConnected,
-      hasSupabase,
+      isCloudSynced,
       importClinicBlueprint,
       activeLocation,
       setActiveLocationId,
@@ -425,7 +425,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       lastSaved,
       errorMessage,
       isCloudConnected,
-      hasSupabase,
+      isCloudSynced,
       importClinicBlueprint,
       activeLocation,
       setActiveLocationId,

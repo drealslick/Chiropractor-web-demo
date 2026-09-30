@@ -24,7 +24,7 @@ export function GlobalAgencyController() {
     resetClinic,
     syncStatus,
     lastSaved,
-    hasSupabase,
+    isCloudSynced,
   } = useClinic();
 
   const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
@@ -645,7 +645,7 @@ export function GlobalAgencyController() {
               onResetDefault={resetClinic}
               syncStatus={syncStatus}
               lastSaved={lastSaved}
-              hasSupabase={hasSupabase}
+              isCloudSynced={isCloudSynced}
               onSignOut={handleSignOut}
             />
           </ErrorBoundary>

@@ -14,6 +14,7 @@ export function isDemoMode(): boolean {
 
 export interface PatientLead {
   id: string;
+  patientId?: string;
   source: 'booking' | 'contact';
   name: string;
   email: string;

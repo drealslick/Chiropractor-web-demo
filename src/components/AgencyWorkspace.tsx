@@ -93,7 +93,7 @@ interface AgencyWorkspaceProps {
   onResetDefault: () => void;
   syncStatus?: string;
   lastSaved?: string | null;
-  hasSupabase?: boolean;
+  isCloudSynced?: boolean;
   onSignOut?: () => void;
 }
 
@@ -151,7 +151,7 @@ export function AgencyWorkspace({
   onResetDefault,
   syncStatus = 'idle',
   lastSaved = null,
-  hasSupabase = false,
+  isCloudSynced = false,
   onSignOut,
 }: AgencyWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
@@ -369,7 +369,7 @@ export function AgencyWorkspace({
               </div>
               <div className="flex items-center gap-2 text-[11px] text-stone-400 mt-0.5">
                 <span className="text-emerald-400 font-medium">
-                  {hasSupabase ? (syncStatus === 'synced' ? '🟢 Cloud Synced' : '🔄 Syncing...') : '💾 Local Storage'}
+                  {isCloudSynced ? (syncStatus === 'synced' ? '🟢 Cloud Synced' : '🔄 Syncing...') : '💾 Local Storage'}
                 </span>
                 {lastSaved && (
                   <>
@@ -597,7 +597,7 @@ export function AgencyWorkspace({
                     else setActiveTab('clinic_info');
                   }
                 }}
-                hasSupabase={hasSupabase}
+                isCloudSynced={isCloudSynced}
                 syncStatus={syncStatus}
                 role={activeRolePreview}
               />
@@ -638,7 +638,7 @@ export function AgencyWorkspace({
                     else setActiveTab('overview');
                   }}
                 />
-                <PracticeAudit clinic={clinic} hasSupabase={hasSupabase} syncStatus={syncStatus} />
+                <PracticeAudit clinic={clinic} isCloudSynced={isCloudSynced} syncStatus={syncStatus} />
               </div>
             )}
 

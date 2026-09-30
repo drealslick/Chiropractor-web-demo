@@ -7,10 +7,9 @@ service firebase.storage {
     }
 
     function isClinicStaff(clinicId) {
-      return isAuthenticated() && (
-        request.auth.token.admin == true ||
-        request.auth.token.clinicId == clinicId
-      );
+      return isAuthenticated() &&
+        request.auth.token.clinicId == clinicId &&
+        (request.auth.token.role in ['staff', 'admin'] || request.auth.token.admin == true);
     }
 
     function isValidImage() {
@@ -24,12 +23,17 @@ service firebase.storage {
       allow write: if isClinicStaff(clinicId) && isValidImage();
     }
 
-    // Patient records / intake uploads (strictly private to patient and staff)
-    match /patients/{patientId}/{allPaths=**} {
+    // Patient records / intake uploads (strictly private to patient and staff of same clinic)
+    match /patients/{clinicId}/{patientId}/{allPaths=**} {
       allow read, write: if isAuthenticated() && (
         request.auth.uid == patientId ||
-        request.auth.token.role in ['admin', 'staff']
+        isClinicStaff(clinicId)
       );
+    }
+
+    // General patient uploads fallback
+    match /patients/{patientId}/{allPaths=**} {
+      allow read, write: if isAuthenticated() && request.auth.uid == patientId;
     }
   }
 }

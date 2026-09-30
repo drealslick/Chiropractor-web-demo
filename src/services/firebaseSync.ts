@@ -60,10 +60,17 @@ export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boo
 /**
  * Subscribe to real-time appointments across all devices/branches
  */
-export function subscribeToAppointments(callback: (appointments: PatientLead[]) => void): () => void {
+export function subscribeToAppointments(
+  callback: (appointments: PatientLead[]) => void,
+  clinicIdFilter?: string,
+  patientIdFilter?: string
+): () => void {
   if (isSandboxMode()) {
     const emit = () => {
-      const appts = sandbox.list<PatientLead>('appointments');
+      let appts = sandbox.list<PatientLead>('appointments');
+      if (patientIdFilter) {
+        appts = appts.filter(a => a.patientId === patientIdFilter);
+      }
       callback(appts);
     };
     emit();
@@ -73,7 +80,11 @@ export function subscribeToAppointments(callback: (appointments: PatientLead[]) 
   }
 
   try {
-    const q = collection(db, APPOINTMENTS_COLLECTION);
+    const activeClinicId = clinicIdFilter || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    let q = query(collection(db, APPOINTMENTS_COLLECTION), where('clinicId', '==', activeClinicId));
+    if (patientIdFilter) {
+      q = query(collection(db, APPOINTMENTS_COLLECTION), where('patientId', '==', patientIdFilter));
+    }
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -81,9 +92,7 @@ export function subscribeToAppointments(callback: (appointments: PatientLead[]) 
         snapshot.forEach((docSnap) => {
           appts.push(docSnap.data() as PatientLead);
         });
-        if (appts.length > 0) {
-          callback(appts);
-        }
+        callback(appts);
       },
       (error) => {
         console.error('Firestore appointments subscription error:', error);

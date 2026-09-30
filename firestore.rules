@@ -108,16 +108,24 @@ service cloud.firestore {
     // 3. Appointments Collection
     // Strict isolation: Patients can only access their own appointments
     // Staff/Doctors can access appointments for their clinic
+    // Public booking creation allowed for unauthenticated patient web intake
     match /appointments/{appointmentId} {
       allow read: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
                      (isAuthenticated() && isClinicStaff(resource.data.clinicId));
       
-      allow create: if (isAuthenticated() && request.resource.data.patientId == request.auth.uid) ||
-                      (isAuthenticated() && isClinicStaff(request.resource.data.clinicId));
+      allow create: if true;
 
       allow update: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
                       (isAuthenticated() && isClinicStaff(resource.data.clinicId));
 
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
+    }
+
+    // Patients Collection Alias (maps to Users for backward compatibility)
+    match /patients/{patientId} {
+      allow read: if isOwner(patientId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+      allow create: if isOwner(patientId) || !isAuthenticated();
+      allow update: if isOwner(patientId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
       allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 

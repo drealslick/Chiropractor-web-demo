@@ -209,81 +209,31 @@ export async function sendLiveOrSimulatedSms(
     };
   }
 
-  // 1. LIVE TWILIO GATEWAY DISPATCH
-  if (settings.smsProvider === 'twilio' && settings.twilioAccountSid && settings.twilioAuthToken) {
-    try {
-      const url = `https://api.twilio.com/2010-04-01/Accounts/${settings.twilioAccountSid}/Messages.json`;
-      const formData = new URLSearchParams();
-      formData.append('To', cleanPhone);
-      formData.append('From', settings.twilioPhoneNumber || '');
-      formData.append('Body', messageText);
-
-      const authHeader = 'Basic ' + btoa(`${settings.twilioAccountSid}:${settings.twilioAuthToken}`);
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: authHeader,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && (data.status === 'queued' || data.status === 'sent' || data.sid)) {
-        const log = logGatewayEvent({
-          channel: 'sms',
-          provider: `Twilio Live (${data.sid || 'SID'})`,
-          recipient: cleanPhone,
-          eventType,
-          status: 'delivered',
-          payloadPreview: messageText,
-        });
-
-        return {
-          success: true,
-          message: `Live SMS dispatched via Twilio (Message SID: ${data.sid})`,
-          logId: log.id,
-          status: 'delivered',
-        };
-      } else {
-        const errorMsg = data.message || `Twilio Error Code: ${data.code || 'Unknown'}`;
-        logGatewayEvent({
-          channel: 'sms',
-          provider: 'Twilio Live',
-          recipient: cleanPhone,
-          eventType,
-          status: 'failed',
-          payloadPreview: messageText,
-          errorMessage: errorMsg,
-        });
-
-        return {
-          success: false,
-          message: `Twilio Dispatch Error: ${errorMsg}`,
-          logId: '',
-          status: 'failed',
-        };
-      }
-    } catch (err: any) {
-      logGatewayEvent({
+  // 1. ROUTE DISPATCH VIA CLOUD FUNCTION (SERVER-SIDE DISPATCH)
+  try {
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('../lib/firebase');
+    const sendFn = httpsCallable(functions, 'sendAutomatedNotification');
+    const result: any = await sendFn({
+      channel: 'sms',
+      recipient: cleanPhone,
+      messageText,
+      subject: 'SMS Notification',
+      clinicName: 'Columbus Chiropractic Care',
+    });
+    if (result.data?.success) {
+      const log = logGatewayEvent({
         channel: 'sms',
-        provider: 'Twilio Live',
+        provider: 'Twilio Cloud Function',
         recipient: cleanPhone,
         eventType,
-        status: 'failed',
+        status: 'delivered',
         payloadPreview: messageText,
-        errorMessage: err?.message || 'Network / CORS Error communicating with Twilio REST API',
       });
-
-      return {
-        success: false,
-        message: `Twilio Connection Error: ${err?.message || 'Request failed'}. Note: Twilio CORS may require backend proxy or valid Account SID.`,
-        logId: '',
-        status: 'failed',
-      };
+      return { success: true, message: 'SMS dispatched via Cloud Function.', logId: log.id, status: 'delivered' };
     }
+  } catch (err: any) {
+    console.warn('Cloud Function SMS dispatch fallback:', err?.message);
   }
 
   // 2. CUSTOM WEBHOOK DISPATCH

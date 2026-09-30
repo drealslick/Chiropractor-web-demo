@@ -9,7 +9,7 @@ import { ClinicInfo } from '../../types';
 
 interface PracticeAuditProps {
   clinic: ClinicInfo;
-  hasSupabase: boolean;
+  isCloudSynced: boolean;
   syncStatus: string;
 }
 
@@ -22,7 +22,7 @@ interface AuditItem {
   recommendation?: string;
 }
 
-export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAuditProps) {
+export function PracticeAudit({ clinic, isCloudSynced, syncStatus }: PracticeAuditProps) {
   const auditItems: AuditItem[] = [];
 
   // 1. Local SEO & Schema Audit
@@ -115,8 +115,8 @@ export function PracticeAudit({ clinic, hasSupabase, syncStatus }: PracticeAudit
     id: 'sync',
     category: 'technical',
     title: 'Storage & Sync',
-    status: hasSupabase ? 'pass' : 'warning',
-    detail: hasSupabase
+    status: isCloudSynced ? 'pass' : 'warning',
+    detail: isCloudSynced
       ? `Cloud sync active (${syncStatus})`
       : 'Saved locally in browser.',
   });

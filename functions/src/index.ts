@@ -345,12 +345,12 @@ export const setClinicUserRole = functions.https.onCall(async (data, context) =>
 
   const targetCurrentClinicId = targetDoc.data()?.clinicId || 'unassigned';
 
-  // Caller must be SuperAdmin OR admin of the target user's CURRENT clinic
-  const isAuthorized = isSuperAdmin || (callerClaims.role === 'admin' && callerClaims.clinicId === targetCurrentClinicId);
+  // Caller must be SuperAdmin OR admin of both target user's CURRENT clinic AND requested destination clinic
+  const isAuthorized = isSuperAdmin || (callerClaims.role === 'admin' && callerClaims.clinicId === targetCurrentClinicId && callerClaims.clinicId === clinicId);
   if (!isAuthorized) {
     throw new functions.https.HttpsError(
       'permission-denied',
-      'Cannot modify users outside your authorized clinic tenant.'
+      'Cannot modify users outside your authorized clinic tenant or grant roles in another clinic.'
     );
   }
 
@@ -489,15 +489,23 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || functions.config().stripe?.webhook_secret;
 
+  if (!webhookSecret) {
+    functions.logger.error('Stripe webhook error: STRIPE_WEBHOOK_SECRET is not configured on server.');
+    res.status(500).send('Webhook Secret Not Configured');
+    return;
+  }
+
+  if (!sig) {
+    functions.logger.error('Stripe webhook error: Missing stripe-signature header.');
+    res.status(400).send('Missing stripe-signature Header');
+    return;
+  }
+
   let event: Stripe.Event;
   const stripe = getStripe();
 
   try {
-    if (webhookSecret && sig) {
-      event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-    } else {
-      event = req.body as Stripe.Event;
-    }
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
   } catch (err: any) {
     functions.logger.error('Stripe webhook signature verification failed:', err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);
@@ -623,6 +631,21 @@ export const sendTransactionalEmail = functions.https.onCall(async (data, contex
     throw new functions.https.HttpsError('invalid-argument', 'Missing recipientEmail or type');
   }
 
+  // Authorization check: Require context.auth or valid appointment lookup
+  if (context.auth) {
+    const role = context.auth.token?.role;
+    if (!role) {
+      throw new functions.https.HttpsError('permission-denied', 'Unauthorized caller role.');
+    }
+  } else if (appointmentId) {
+    const apptDoc = await db.collection('appointments').doc(appointmentId).get();
+    if (!apptDoc.exists) {
+      throw new functions.https.HttpsError('permission-denied', 'Invalid appointment reference.');
+    }
+  } else {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated or supply a valid appointment reference.');
+  }
+
   const appBaseUrl = resolveAppUrl();
   let subject = 'Appointment Update - Vance Health';
   let html = `<p>Hello ${patientName}, your appointment has an update.</p>`;
@@ -657,6 +680,15 @@ export const sendTransactionalEmail = functions.https.onCall(async (data, contex
  * Server-side SMS & Email dispatcher for Twilio & Resend
  */
 export const sendAutomatedNotification = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to dispatch notifications.');
+  }
+
+  const role = context.auth.token?.role;
+  if (role !== 'staff' && role !== 'admin') {
+    throw new functions.https.HttpsError('permission-denied', 'Only clinic staff or admin can dispatch notifications.');
+  }
+
   const { channel, recipient, messageText, subject, clinicName } = data;
 
   if (!recipient || !channel || !messageText) {

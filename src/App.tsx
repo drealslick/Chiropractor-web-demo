@@ -15,20 +15,21 @@ import { DemoModeBanner } from './components/DemoModeBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import Home from './pages/Home';
-import Conditions from './pages/Conditions';
-import ConditionDetail from './pages/ConditionDetail';
-import FirstVisit from './pages/FirstVisit';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import Pricing from './pages/Pricing';
-import Blog from './pages/Blog';
-import BlogPost from './pages/BlogPost';
-import Team from './pages/Team';
-import TeamMemberDetail from './pages/TeamMemberDetail';
-import PatientPortalPage from './pages/PatientPortalPage';
-import NotFound from './pages/NotFound';
+
+const Conditions = React.lazy(() => import('./pages/Conditions'));
+const ConditionDetail = React.lazy(() => import('./pages/ConditionDetail'));
+const FirstVisit = React.lazy(() => import('./pages/FirstVisit'));
+const About = React.lazy(() => import('./pages/About'));
+const Contact = React.lazy(() => import('./pages/Contact'));
+const Privacy = React.lazy(() => import('./pages/Privacy'));
+const Terms = React.lazy(() => import('./pages/Terms'));
+const Pricing = React.lazy(() => import('./pages/Pricing'));
+const Blog = React.lazy(() => import('./pages/Blog'));
+const BlogPost = React.lazy(() => import('./pages/BlogPost'));
+const Team = React.lazy(() => import('./pages/Team'));
+const TeamMemberDetail = React.lazy(() => import('./pages/TeamMemberDetail'));
+const PatientPortalPage = React.lazy(() => import('./pages/PatientPortalPage'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 function AppShell() {
   const [, setMobileMenuOpen] = useState(false);
@@ -61,24 +62,26 @@ function AppShell() {
         <Navbar onBookClick={() => setMobileMenuOpen(false)} />
 
         <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/conditions" element={<Conditions />} />
-            <Route path="/conditions/:conditionId" element={<ConditionDetail />} />
-            <Route path="/first-visit" element={<FirstVisit />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/team/:memberSlug" element={<TeamMemberDetail />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/portal" element={<PatientPortalPage />} />
-            <Route path="/patient-portal" element={<PatientPortalPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <React.Suspense fallback={<div className="p-8 text-center text-stone-500">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/conditions" element={<Conditions />} />
+              <Route path="/conditions/:conditionId" element={<ConditionDetail />} />
+              <Route path="/first-visit" element={<FirstVisit />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/team/:memberSlug" element={<TeamMemberDetail />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/portal" element={<PatientPortalPage />} />
+              <Route path="/patient-portal" element={<PatientPortalPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </React.Suspense>
         </main>
 
         <Footer clinic={clinic} />

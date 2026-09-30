@@ -30,7 +30,7 @@ interface ExecutiveDashboardProps {
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
   onNavigateTab: (tab: 'leads' | 'booking' | 'site' | 'setup' | 'onboarding', subTab?: string) => void;
-  hasSupabase: boolean;
+  isCloudSynced: boolean;
   syncStatus: string;
   role?: UserRole;
   onOpenNewBookingModal?: () => void;
@@ -40,7 +40,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   clinic,
   onUpdateClinic,
   onNavigateTab,
-  hasSupabase,
+  isCloudSynced,
   syncStatus,
   role = 'admin',
   onOpenNewBookingModal,
@@ -577,7 +577,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </div>
               <div className="text-[10px] text-stone-500 font-mono">
-                {hasSupabase ? (syncStatus === 'synced' ? 'Cloud Synced' : 'Syncing...') : 'Local Database'}
+                {isCloudSynced ? (syncStatus === 'synced' ? 'Cloud Synced' : 'Syncing...') : 'Local Database'}
               </div>
             </button>
           </div>

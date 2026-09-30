@@ -1671,7 +1671,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       </div>
 
                       {/* PAYMENT GATEWAY SELECTION & MODE */}
-                      {paymentChoice !== 'pay_at_clinic' && (
+                      {paymentChoice !== 'pay_at_clinic' && import.meta.env.VITE_DEMO_MODE === 'true' && (
                         <div className="space-y-3 pt-1">
                           <div className="flex items-center justify-between p-1 bg-stone-100 rounded-xl border border-stone-200 text-xs">
                             <button
