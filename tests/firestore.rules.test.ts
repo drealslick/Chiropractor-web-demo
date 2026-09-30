@@ -22,7 +22,7 @@ import * as path from 'path';
 
 let testEnv: RulesTestEnvironment;
 
-const PROJECT_ID = 'brave-trilogy-ft8c4';
+const PROJECT_ID = 'practice-os-test-env';
 const CLINIC_A = process.env.VITE_CLINIC_ID || 'columbus-chiropractic';
 const CLINIC_B = 'clinic_summit_chicago';
 
@@ -65,7 +65,7 @@ describe('Firestore Security Rules Matrix', () => {
           id: 'appt_101',
           clinicId: CLINIC_A,
           patientId: patientId,
-          doctorName: 'Dr. Sarah Vance',
+          doctorName: 'Dr. Alistair Vance',
           date: '2026-10-15',
         });
       });
@@ -88,7 +88,7 @@ describe('Firestore Security Rules Matrix', () => {
           id: 'appt_101',
           clinicId: CLINIC_A,
           patientId: patientA,
-          doctorName: 'Dr. Sarah Vance',
+          doctorName: 'Dr. Alistair Vance',
         });
       });
 

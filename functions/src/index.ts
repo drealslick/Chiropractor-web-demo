@@ -530,7 +530,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
           const apptData = apptDoc.data();
           const patientEmail = apptData?.patientEmail || paymentIntent.receipt_email || paymentIntent.metadata?.patientEmail;
           const patientName = apptData?.patientName || paymentIntent.metadata?.patientName || 'Patient';
-          const doctorName = apptData?.doctorName || 'Sarah Vance';
+          const doctorName = apptData?.doctorName || 'Dr. Alistair Vance';
           const serviceTitle = apptData?.serviceTitle || paymentIntent.metadata?.serviceTitle || 'Consultation & Examination';
           const apptDate = apptData?.date || 'Confirmed Date';
           const apptTime = apptData?.time || 'Confirmed Time';
@@ -633,11 +633,11 @@ export const sendTransactionalEmail = functions.https.onCall(async (data, contex
       <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e7e5e4; border-radius: 16px;">
         <h2 style="color: #064e3b; margin-top: 0;">Appointment Confirmed</h2>
         <p>Hi <strong>${patientName}</strong>,</p>
-        <p>Your clinical consultation has been confirmed at Vance Health.</p>
+        <p>Your clinical consultation has been confirmed at Columbus Chiropractic Care.</p>
         <div style="background-color: #f5f5f4; padding: 16px; border-radius: 8px; margin: 20px 0;">
           <p style="margin: 4px 0;"><strong>Date:</strong> ${date}</p>
           <p style="margin: 4px 0;"><strong>Time:</strong> ${time}</p>
-          <p style="margin: 4px 0;"><strong>Attending Clinician:</strong> ${doctorName || 'Dr. Sarah Vance'}</p>
+          <p style="margin: 4px 0;"><strong>Attending Clinician:</strong> ${doctorName || 'Dr. Alistair Vance'}</p>
           <p style="margin: 4px 0;"><strong>Reference ID:</strong> <code>${appointmentId}</code></p>
         </div>
         <p>You can access your interactive care plan, home exercises, and calendar download via your <a href="${appBaseUrl}/portal" style="color: #064e3b; font-weight: 600; text-decoration: underline;">Patient Portal</a>.</p>

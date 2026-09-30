@@ -51,7 +51,7 @@ const DR_ROSTOVA_ID = `${BASE_URL}/#dr-elena-rostova`;
 const DR_STERLING_ID = `${BASE_URL}/#dr-marcus-sterling`;
 
 const DEFAULT_REVIEWER = {
-  name: 'Dr. Marcus Reed, D.C.',
+  name: 'Dr. Alistair Vance, D.C.',
   role: 'Clinical Director & Lead Chiropractor',
   regNumber: 'OH-DC-4182',
   regBody: 'State Chiropractic Board of Ohio',
