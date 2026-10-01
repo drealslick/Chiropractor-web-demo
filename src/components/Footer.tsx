@@ -16,9 +16,9 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
   return (
     <footer className="bg-stone-950 text-stone-300 py-16 sm:py-20 border-t border-stone-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-stone-800">
-          
+
           {/* Logo & NAP */}
           <div className="md:col-span-6 space-y-4">
             <div className="flex items-center gap-3">
@@ -218,7 +218,7 @@ export const Footer: React.FC<FooterProps> = ({ clinic, onOpenManager }) => {
             <span className="text-stone-700">·</span>
             <Link to="/terms" className="hover:text-stone-300 transition-colors py-1">Terms of Service</Link>
             <span className="text-stone-700">·</span>
-            <Link to="/privacy" className="hover:text-stone-300 transition-colors py-1">HIPAA Compliance</Link>
+            <Link to="/privacy" className="hover:text-stone-300 transition-colors py-1">Privacy & Data</Link>
           </div>
         </div>
 

@@ -28,12 +28,12 @@ export default function Team() {
   );
 
   const teamMembers: PublicTeamMember[] =
-    clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
+    clinic.publicTeamMembers !== undefined
       ? clinic.publicTeamMembers.filter((m) => m.showOnWebsite !== false)
       : defaultPublicTeamMembers;
 
   const supportStaff: SupportStaffMember[] =
-    clinic.supportStaff && clinic.supportStaff.length > 0
+    clinic.supportStaff !== undefined
       ? clinic.supportStaff
       : defaultSupportStaff;
 

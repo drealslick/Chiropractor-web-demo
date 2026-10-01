@@ -24,10 +24,10 @@ import {
 import { ClinicInfo } from '../../types';
 import { compressImage } from '../../utils/imageCompressor';
 import { ImageCropperModal, AspectRatioType } from './ImageCropperModal';
-import heroImg from '../../assets/images/clinic_hero_care_1789573961612.jpg';
-import doctorImg from '../../assets/images/doctor_portrait_1789573972470.jpg';
-import clinicRoomImg from '../../assets/images/clinic_interior_room_1789573983752.jpg';
-import michaelImg from '../../assets/images/patient_michael_tennis_1789573994707.jpg';
+import heroImg from '../../assets/images/clinic_hero_care_1789573961612.webp';
+import doctorImg from '../../assets/images/doctor_portrait_1789573972470.webp';
+import clinicRoomImg from '../../assets/images/clinic_interior_room_1789573983752.webp';
+import michaelImg from '../../assets/images/patient_michael_tennis_1789573994707.webp';
 
 interface MediaManagerProps {
   clinic: ClinicInfo;

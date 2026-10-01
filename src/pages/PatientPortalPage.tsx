@@ -1,3 +1,8 @@
+import { usePageMeta } from '../data/usePageMeta';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { isDemoMode } from '../lib/data-provider';
+import { appointmentCalendar, paidLabel, paidAmount } from '../utils/patientDocuments';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
@@ -53,6 +58,7 @@ import {
 const PATIENT_SESSION_KEY = 'vance_patient_portal_session_v2';
 
 export default function PatientPortalPage() {
+  usePageMeta('Patient Portal');
   const { clinicData: clinic, openBookingModal } = useClinic();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -110,7 +116,7 @@ export default function PatientPortalPage() {
 
   // Exercises state tracking
   const [exerciseStatus, setExerciseStatus] = useState<Record<string, boolean>>({});
-  const [exerciseStreak, setExerciseStreak] = useState<number>(3); // start at a motivated 3-day streak!
+  const [exerciseStreak, setExerciseStreak] = useState<number>(0);
 
   const handleToggleExercise = (exerciseId: string) => {
     setExerciseStatus(prev => {
@@ -125,67 +131,28 @@ export default function PatientPortalPage() {
     });
   };
 
-  const getExercisesForCondition = (cond: string) => {
-    const lower = (cond || '').toLowerCase();
-    if (lower.includes('neck') || lower.includes('headache') || lower.includes('cervical') || lower.includes('posture')) {
-      return [
-        { id: 'ex-1', title: 'Cervical Chin Tucks', instructions: 'Sit upright, slide your chin straight back as if making a double chin. Hold 5s. Repeat 10 times.', frequency: '3x daily', benefit: 'Strengthens deep neck flexors & corrects head alignment' },
-        { id: 'ex-2', title: 'Suboccipital Soft Tissue Release', instructions: 'Place a firm foam ball under the base of your skull while lying flat. Gently tilt your chin up and down for 5 mins.', frequency: 'Nightly', benefit: 'Releases chronic upper neck nerve tension' },
-        { id: 'ex-3', title: 'Scapular Squeezes', instructions: 'Pull shoulders down and back, squeezing your shoulder blades together. Hold 3s. Repeat 15 times.', frequency: '2x daily', benefit: 'Stabilizes thoracic spine & supports posture' }
-      ];
-    }
-    if (lower.includes('back') || lower.includes('lumbar') || lower.includes('disc') || lower.includes('sciatica')) {
-      return [
-        { id: 'ex-1', title: 'Prone McKenzie Press-Ups', instructions: 'Lie flat on your stomach, push up with your hands keeping your hips down. Hold 2s, slowly lower down. Repeat 10 times.', frequency: '3x daily', benefit: 'Centers disc material & relieves sciatic pressure' },
-        { id: 'ex-2', title: 'Pelvic Tilts & Core Activation', instructions: 'Lie on your back, knees bent. Flatten your lower back into the floor by contracting your abs. Hold 5s. Repeat 15 times.', frequency: 'Daily', benefit: 'Stabilizes hyper-mobile lower spinal segments' },
-        { id: 'ex-3', title: 'Decompression Bench Hang', instructions: 'Hold a stable bar or table edge, bend knees slightly, letting your hips hang down to traction the lower spine. Hold 45s.', frequency: 'Twice daily', benefit: 'Gently tractions & rehydrates compressed discs' }
-      ];
-    }
-    // General Spine Care
-    return [
-      { id: 'ex-1', title: 'Cat-Cow Spinal Mobilization', instructions: 'On all fours, slowly arch your spine upward like a cat, then drop your belly toward the floor looking up. Perform 15 slow reps.', frequency: 'Daily', benefit: 'Improves segment-by-segment spinal column mobility' },
-      { id: 'ex-2', title: 'Thoracic Windmills', instructions: 'Lie on your side, knees tucked 90 degrees. Sweep your top arm open to the opposite side, rotating your upper chest. Repeat 10 times each side.', frequency: 'Daily', benefit: 'Restores chest expansion & thoracic rib movement' },
-      { id: 'ex-3', title: 'Deep Diaphragmatic Breathing', instructions: 'Inhale into your lower ribs for 4s, hold 2s, exhale 6s. Focus on expanding the ribcage outwards. Perform for 5 minutes.', frequency: 'Twice daily', benefit: 'Regulates autonomous nervous system and calms musculature' }
-    ];
-  };
-
-  const getTreatmentPlanForCondition = (cond: string) => {
-    const lower = (cond || '').toLowerCase();
-    if (lower.includes('neck') || lower.includes('headache') || lower.includes('cervical') || lower.includes('posture')) {
-      return {
-        phase: 'Phase 2: Corrective Spine Care & Structural Stabilization',
-        milestone: 'Suboccipital nerve pathways are 70% calm. Next up: Scapular tracking evaluation in 2 visits.',
-        progress: 70,
-        frequency: '1 visit every 2 weeks',
-        doctorNote: 'Maintain chin-tuck exercises at your desk. Avoid looking down at your mobile screen; lift the screen to eye level.'
-      };
-    }
-    if (lower.includes('back') || lower.includes('lumbar') || lower.includes('disc') || lower.includes('sciatica')) {
-      return {
-        phase: 'Phase 1: Acute Decompression & Pain Management',
-        milestone: 'Sciatic pain has centralized. Focus is on rehydrating the L4/L5 disc spaces. Re-evaluation in 3 visits.',
-        progress: 45,
-        frequency: '2 visits per week for 2 more weeks',
-        doctorNote: 'Strictly avoid heavy forward-bending or single-sided loaded carries. Continue McKenzie extension press-ups.'
-      };
-    }
-    return {
-      phase: 'Phase 3: Prevention, Maintenance & Spinal Resilience',
-      milestone: 'All major mechanical alignment blocks have resolved. Focus is on maintaining segment health and postural posture.',
-      progress: 90,
-      frequency: '1 wellness visit per month',
-      doctorNote: 'Maintain good core stability exercises. Schedule your monthly check-in whenever your mobility feels restricted.'
-    };
+  const getExercisesForCondition = (_condition: string) => selectedAppt?.clinicalPlan?.exercises || [];
+  const getTreatmentPlanForCondition = (_condition: string) => selectedAppt?.clinicalPlan || {
+    phase: 'No care plan recorded', milestone: 'Your clinician has not recorded a treatment plan for this appointment.',
+    progress: 0, frequency: 'To be discussed with your clinician', doctorNote: 'No clinician note recorded.'
   };
 
   // Check existing session or URL query params on mount
   useEffect(() => {
     const urlRef = searchParams.get('ref') || searchParams.get('query');
-    if (urlRef) {
-      setAuthMode('quickRef');
-      handleDirectRefLookup(urlRef);
-      return;
+    if (!isDemoMode) {
+      let active = true;
+      const stop = onAuthStateChanged(auth, async user => {
+        if (!user) { setActivePatient(null); setPatientAppointments([]); setSelectedAppt(null); return; }
+        const appts = await fetchAppointmentsByEmailFromFirestore(user.email || '');
+        if (!active || auth.currentUser?.uid !== user.uid) return;
+        const chosen = appts.find(a => a.id === urlRef) || appts[0] || null;
+        setActivePatient({name:user.displayName || chosen?.name || 'Patient',email:user.email || '',isAccount:!user.isAnonymous});
+        setPatientAppointments(appts); setSelectedAppt(chosen);
+      });
+      return () => {active=false;stop();};
     }
+    if (urlRef) { setAuthMode('quickRef'); handleDirectRefLookup(urlRef); return; }
 
     try {
       const savedSession = sessionStorage.getItem(PATIENT_SESSION_KEY);
@@ -213,7 +180,7 @@ export default function PatientPortalPage() {
       return;
     }
 
-    let matches = findPatientAppointments(cleanId);
+    let matches = isDemoMode ? findPatientAppointments(cleanId) : [];
     if (matches.length === 0) {
       // Query Cloud Firestore directly
       const firestoreAppt = await fetchAppointmentByIdFromFirestore(cleanId);
@@ -303,9 +270,9 @@ export default function PatientPortalPage() {
       try {
         // 1. Register with Firebase Auth & Cloud Firestore
         const firebaseRes = await registerPatientWithFirebaseAuth(nameInput, emailInput, passwordInput, phoneInput);
-        
+
         // Also register in local registry as cache fallback
-        registerPatientAccount(nameInput, emailInput, passwordInput, phoneInput);
+        if (isDemoMode) registerPatientAccount(nameInput, emailInput, passwordInput, phoneInput);
 
         setIsLoading(false);
         if (firebaseRes.success && firebaseRes.account) {
@@ -345,7 +312,7 @@ export default function PatientPortalPage() {
       try {
         // Try Firebase Auth first
         const authRes = await loginPatientWithFirebaseAuth(emailInput, passwordInput);
-        
+
         setIsLoading(false);
         if (authRes.success && authRes.account) {
           // Fetch live appointments from Cloud Firestore
@@ -368,7 +335,7 @@ export default function PatientPortalPage() {
           }
         } else {
           // Fallback check against local seed accounts
-          const localRes = authenticatePatientAccount(emailInput, passwordInput);
+          const localRes = isDemoMode ? authenticatePatientAccount(emailInput, passwordInput) : {success:false, account:undefined, message:authRes.message};
           if (localRes.success && localRes.account) {
             const appts = findPatientAppointmentsByEmail(localRes.account.email);
             setActivePatient({ name: localRes.account.name, email: localRes.account.email, isAccount: true });
@@ -395,7 +362,7 @@ export default function PatientPortalPage() {
   };
 
   const handleLogout = () => {
-    logoutPatientFromFirebase();
+    void logoutPatientFromFirebase();
     sessionStorage.removeItem(PATIENT_SESSION_KEY);
     setActivePatient(null);
     setSelectedAppt(null);
@@ -409,11 +376,14 @@ export default function PatientPortalPage() {
     setLoginError('');
   };
 
-  const handleResubmitReschedule = (e: React.FormEvent) => {
+  const handleResubmitReschedule = async (e: React.FormEvent) => {
+try {
+
     e.preventDefault();
     if (!selectedAppt || !newDate) return;
 
-    const res = requestPatientReschedule(selectedAppt.id, newDate, newTime, rescheduleNote);
+    const res = await requestPatientReschedule(selectedAppt.id, newDate, newTime, rescheduleNote);
+    if (!res.success) { alert(res.message); return; }
     if (res.success && res.updatedLead) {
       setSelectedAppt(res.updatedLead);
       setRescheduleSuccess(true);
@@ -422,11 +392,16 @@ export default function PatientPortalPage() {
         setActiveTab('itinerary');
       }, 2000);
     }
-  };
 
-  const handleConfirmCancellation = () => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleConfirmCancellation = async () => {
+try {
+
     if (!selectedAppt) return;
-    const res = requestPatientCancellation(selectedAppt.id, cancelReason);
+    const res = await requestPatientCancellation(selectedAppt.id, cancelReason);
+    if (!res.success) { alert(res.message); return; }
     if (res.success && res.updatedLead) {
       setSelectedAppt(res.updatedLead);
       setCancelSuccess(true);
@@ -435,7 +410,9 @@ export default function PatientPortalPage() {
         setActiveTab('itinerary');
       }, 2000);
     }
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   const handleDownloadCalendarFile = () => {
     if (!selectedAppt || !selectedAppt.date) return;
@@ -443,20 +420,7 @@ export default function PatientPortalPage() {
     const desc = `${selectedAppt.serviceTitle || selectedAppt.condition || 'Consultation'} with ${selectedAppt.practitionerName || clinic.leadPractitionerName || 'Chiropractor'}`;
     const location = `${clinic.address}, ${clinic.cityState || clinic.city || ''}`;
 
-    const icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Columbus Chiropractic Care//Patient Portal//EN',
-      'BEGIN:VEVENT',
-      `SUMMARY:${title}`,
-      `DESCRIPTION:${desc}`,
-      `LOCATION:${location}`,
-      `DTSTART:${selectedAppt.date.replace(/-/g, '')}T090000Z`,
-      `DTEND:${selectedAppt.date.replace(/-/g, '')}T100000Z`,
-      'STATUS:CONFIRMED',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\n');
+    const icsContent = appointmentCalendar(selectedAppt, clinic);
 
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -466,6 +430,7 @@ export default function PatientPortalPage() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const fullAddress = [clinic.address, clinic.cityState || clinic.city, clinic.zip]
@@ -478,7 +443,7 @@ export default function PatientPortalPage() {
   return (
     <div className="min-h-screen bg-stone-100/70 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        
+
         {/* TOP BREADCRUMB & BRAND BAR */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
           <div>
@@ -532,10 +497,10 @@ export default function PatientPortalPage() {
         {/* ----------------- STATE 1: PATIENT LOGIN CARD (If Not Signed In) ----------------- */}
         {!activePatient && (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-            
+
             {/* Left Column: Login / Account Card */}
             <div className="md:col-span-7 bg-white rounded-3xl border border-stone-200 shadow-md p-6 sm:p-8 space-y-6">
-              
+
               {/* Access Method Tabs */}
               <div className="flex bg-stone-100 p-1 rounded-2xl gap-1">
                 <button
@@ -590,8 +555,8 @@ export default function PatientPortalPage() {
                   <div className="flex items-center justify-between border-b border-stone-100 pb-3">
                     <div>
                       <h2 className="text-lg sm:text-xl font-serif font-bold text-stone-950">
-                        {accountTab === 'login' 
-                          ? 'Patient Sign In' 
+                        {accountTab === 'login'
+                          ? 'Patient Sign In'
                           : accountTab === 'forgot'
                           ? 'Forgot Password'
                           : 'Create Patient Account'}
@@ -940,7 +905,7 @@ export default function PatientPortalPage() {
         {/* ----------------- STATE 2B: AUTHENTICATED DASHBOARD (With Appointments) ----------------- */}
         {activePatient && selectedAppt && (
           <div className="space-y-6 animate-fade-in">
-            
+
             {/* Multi-appointment selector if patient has multiple bookings */}
             {patientAppointments.length > 1 && (
               <div className="p-4 bg-white border border-stone-200 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
@@ -971,7 +936,7 @@ export default function PatientPortalPage() {
 
             {/* Dashboard Main Container */}
             <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
-              
+
               {/* Tab Header Navigation */}
               <div className="p-4 sm:p-5 bg-stone-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800">
                 <div>
@@ -1058,7 +1023,7 @@ export default function PatientPortalPage() {
               {/* TAB 1: RECOVERY DASHBOARD VIEW */}
               {activeTab === 'itinerary' && (
                 <div className="p-6 sm:p-8 space-y-6 animate-fade-in">
-                  
+
                   {/* Appointment Highlights Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
@@ -1083,7 +1048,7 @@ export default function PatientPortalPage() {
                         {selectedAppt.practitionerName || clinic.leadPractitionerName || 'Doctor of Chiropractic'}
                       </p>
                       <p className="text-xs text-emerald-800 font-medium">
-                        GCC Registered Practitioner
+                        Your selected practitioner
                       </p>
                     </div>
 
@@ -1093,11 +1058,11 @@ export default function PatientPortalPage() {
                         <span>Payment / Protection</span>
                       </span>
                       <p className="text-base font-bold text-stone-900">
-                        {selectedAppt.paymentAmount || '£49.00 Consultation'}
+                        {paidLabel(selectedAppt, clinic.currencySymbol)}
                       </p>
                       <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>{selectedAppt.paymentStatus === 'paid_full' ? 'Paid in Full' : selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit Paid (£25)' : 'No-Show Card Protected'}</span>
+                        <span>{selectedAppt.paymentStatus === 'paid_full' ? 'Paid in Full' : selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit paid' : selectedAppt.paymentStatus === 'refunded' ? 'Refunded' : 'Unpaid'}</span>
                       </p>
                     </div>
                   </div>
@@ -1142,7 +1107,7 @@ export default function PatientPortalPage() {
                     <>
                       {/* HEALTH DASHBOARD INTERACTIVE SECTIONS */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                        
+
                         {/* CARE PLAN PHASE & MILESTONES */}
                         {(() => {
                           const plan = getTreatmentPlanForCondition(selectedAppt.condition);
@@ -1170,8 +1135,8 @@ export default function PatientPortalPage() {
                                   <span>{plan.progress}%</span>
                                 </div>
                                 <div className="w-full bg-stone-200 rounded-full h-2.5 overflow-hidden">
-                                  <div 
-                                    className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" 
+                                  <div
+                                    className="bg-emerald-600 h-2.5 rounded-full transition-all duration-500"
                                     style={{ width: `${plan.progress}%` }}
                                   />
                                 </div>
@@ -1210,12 +1175,12 @@ export default function PatientPortalPage() {
 
                           <div className="space-y-3">
                             {getExercisesForCondition(selectedAppt.condition).map((ex, idx) => (
-                              <div 
+                              <div
                                 key={`${ex.id}-${idx}`}
                                 onClick={() => handleToggleExercise(ex.id)}
                                 className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
-                                  exerciseStatus[ex.id] 
-                                    ? 'bg-emerald-50/40 border-emerald-500/30 shadow-2xs' 
+                                  exerciseStatus[ex.id]
+                                    ? 'bg-emerald-50/40 border-emerald-500/30 shadow-2xs'
                                     : 'bg-white border-stone-250 hover:border-stone-350'
                                 }`}
                               >
@@ -1303,8 +1268,8 @@ export default function PatientPortalPage() {
                 <div className="p-6 sm:p-8 space-y-6">
                   <div className="flex items-center justify-between border-b border-stone-200 pb-4">
                     <div>
-                      <h3 className="font-serif font-bold text-lg text-stone-950">Official Health Insurance Receipt</h3>
-                      <p className="text-xs text-stone-500">Itemized with GCC provider credentials for Bupa, AXA, Aviva & HSA reimbursement.</p>
+                      <h3 className="font-serif font-bold text-lg text-stone-950">{paidAmount(selectedAppt) > 0 ? 'Payment Receipt' : 'Appointment Statement'}</h3>
+                      <p className="text-xs text-stone-500">Shows payments recorded for this appointment. Contact the clinic for insurance documentation.</p>
                     </div>
                     <button
                       type="button"
@@ -1323,10 +1288,10 @@ export default function PatientPortalPage() {
                         <div className="font-serif font-bold text-xl text-stone-950">{clinic.name}</div>
                         <p className="text-xs text-stone-500 mt-0.5">{clinic.address}, {clinic.cityState || clinic.city} {clinic.zip}</p>
                         <p className="text-xs text-stone-500">Phone: {clinic.phone} • Email: {clinic.email}</p>
-                        <p className="text-xs font-mono text-emerald-800 mt-1 font-semibold">GCC Registration: 04182 • Statutory Regulated Healthcare Provider</p>
+
                       </div>
                       <div className="text-left sm:text-right">
-                        <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">RECEIPT / INVOICE</span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">{paidAmount(selectedAppt)>0?'PAYMENT RECEIPT':'APPOINTMENT STATEMENT'}</span>
                         <span className="font-mono font-bold text-sm text-stone-900">INV-{selectedAppt.id}</span>
                         <p className="text-xs text-stone-500 mt-1">Date: {selectedAppt.date || new Date().toISOString().split('T')[0]}</p>
                       </div>
@@ -1342,7 +1307,7 @@ export default function PatientPortalPage() {
                       <div>
                         <span className="font-bold text-stone-400 uppercase tracking-wider block text-[10px]">ATTENDING CLINICIAN</span>
                         <strong className="text-stone-900 text-sm block mt-0.5">{selectedAppt.practitionerName || clinic.leadPractitionerName || 'Chiropractic Specialist'}</strong>
-                        <span className="text-stone-500">Doctor of Chiropractic (DC, MChiro)</span>
+
                       </div>
                     </div>
 
@@ -1359,20 +1324,20 @@ export default function PatientPortalPage() {
                           <td className="py-3 font-medium text-stone-900">
                             {selectedAppt.serviceTitle || selectedAppt.condition || 'Initial Diagnostic Consultation & Assessment'}
                           </td>
-                          <td className="py-3 text-stone-500">VAT Exempt (Healthcare)</td>
-                          <td className="py-3 text-right font-mono font-bold text-stone-900">{selectedAppt.paymentAmount || '£49.00'}</td>
+                          <td className="py-3 text-stone-500">Recorded payment</td>
+                          <td className="py-3 text-right font-mono font-bold text-stone-900">{paidLabel(selectedAppt, clinic.currencySymbol)}</td>
                         </tr>
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-stone-900 font-bold text-stone-950">
                           <td colSpan={2} className="py-3 text-right">Total Paid:</td>
-                          <td className="py-3 text-right font-mono text-sm">{selectedAppt.paymentAmount || '£49.00'}</td>
+                          <td className="py-3 text-right font-mono text-sm">{paidLabel(selectedAppt, clinic.currencySymbol)}</td>
                         </tr>
                       </tfoot>
                     </table>
 
                     <div className="p-3 bg-stone-50 rounded-xl text-[11px] text-stone-500 space-y-1">
-                      <p><strong>Note for Insurance Providers:</strong> Chiropractic care provided at this clinic is delivered by a statutory registered practitioner regulated under the Chiropractors Act 1994. Invoices are exempt from VAT under VATA 1994, Sch 9, Group 7.</p>
+                      <p>Payment status: {selectedAppt.paymentStatus || "unpaid"}. Insurance eligibility and provider details must be confirmed by the clinic.</p>
                     </div>
                   </div>
                 </div>
@@ -1471,7 +1436,7 @@ export default function PatientPortalPage() {
                       <Ban className="w-5 h-5 text-rose-700 shrink-0" />
                       <div>
                         <strong className="block font-bold">Appointment Cancelled</strong>
-                        <span>Your booking has been cancelled and the time slot opened for waitlist patients.</span>
+                        <span>Your cancellation has been saved.</span>
                       </div>
                     </div>
                   ) : (

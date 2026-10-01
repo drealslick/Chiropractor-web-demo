@@ -1,3 +1,4 @@
+import { usePageMeta } from '../data/usePageMeta';
 import React, { useState } from 'react';
 import { useClinic } from '../data/ClinicContext';
 import { saveLead } from '../data/leadsStore';
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function Contact() {
+  usePageMeta('Contact');
   const { clinicData: clinic } = useClinic();
   const extra = clinic as typeof clinic & { email?: string };
   const fullAddressString = [clinic.address, clinic.cityState || clinic.city, clinic.zip]
@@ -182,7 +184,9 @@ export default function Contact() {
 
       <form
         className="bg-white p-6 border border-stone-200 rounded-2xl space-y-4 max-w-xl mx-auto"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
+try {
+
           e.preventDefault();
           const data = new FormData(e.currentTarget);
           const name = String(data.get('name') || '');
@@ -190,7 +194,7 @@ export default function Contact() {
           const email = String(data.get('email') || '');
           const message = String(data.get('message') || '');
 
-          saveLead({
+          await saveLead({
             source: 'contact',
             name: name || 'Website Visitor',
             phone,
@@ -206,7 +210,9 @@ export default function Contact() {
           const to = extra.email || '';
           if (to) window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
           setSent(true);
-        }}
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+}}
       >
         <h2 className="text-xl font-bold text-stone-900">Send a message</h2>
         <p className="text-xs text-stone-500">No health details. Name and how to reach you is enough.</p>

@@ -50,11 +50,26 @@
 }
 
 /* Custom smooth scrollbar & focus rings */
-*:focus-visible {
-  @keyframes trustStar {
+@keyframes trustStar {
   from { transform: scale(0.6); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+*:focus-visible {
   outline: 2px solid var(--theme-primary-600);
   outline-offset: 2px;
 }
+
+/* Muted text follows its nearest surface, including nested admin preview cards. */
+:root { --readable-muted: #57534e; --readable-accent: #166534; }
+:is(.bg-black, .bg-stone-900, .bg-stone-950, .bg-emerald-900, .bg-emerald-950, [class~="from-stone-900"], [class~="from-stone-950"]) {
+  --readable-muted: #d6d3d1; --readable-accent: #d1fae5;
+}
+:is(.bg-white, .bg-stone-50, .bg-stone-100, .bg-emerald-50, [class~="bg-stone-50/50"], [class~="bg-stone-50/80"]) {
+  --readable-muted: #57534e; --readable-accent: #166534;
+}
+.text-stone-300, .text-stone-400, .text-stone-500 { color: var(--readable-muted); }
+.text-emerald-300, .text-emerald-400 { color: var(--readable-accent); }
+
+/* Small notification badges need explicit contrast on saturated surfaces. */
+.bg-emerald-500.text-stone-950 { color: #fff; }
+.bg-rose-600.text-white { color: #fff; opacity: 1; }

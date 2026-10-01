@@ -33,7 +33,7 @@ export const HomepageConditionsEditor: React.FC<HomepageConditionsEditorProps> =
   onNavigateToMiniPageBuilder,
 }) => {
   const condList: ProblemCondition[] =
-    clinic.customConditions && clinic.customConditions.length > 0
+    clinic.customConditions !== undefined
       ? clinic.customConditions
       : conditionsData;
 

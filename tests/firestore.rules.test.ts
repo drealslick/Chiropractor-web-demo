@@ -48,6 +48,7 @@ describe('Firestore Security Rules Matrix', () => {
   beforeEach(async () => {
     if (testEnv) {
       await testEnv.clearFirestore();
+      await testEnv.withSecurityRulesDisabled(c => c.firestore().doc(`clinics/${CLINIC_A}`).set({ name: 'Test clinic' }));
     }
   });
 
@@ -220,7 +221,7 @@ describe('Firestore Security Rules Matrix', () => {
 
       const docRef = staffContext.firestore().doc('appointments/appt_102');
       await assertSucceeds(docRef.get());
-      await assertSucceeds(docRef.update({ status: 'completed' }));
+      await assertFails(docRef.update({ status: 'completed' })); // mutations use the reservation callable
     });
   });
 

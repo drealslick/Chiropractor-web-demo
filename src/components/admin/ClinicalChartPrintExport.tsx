@@ -38,8 +38,8 @@ interface ProcedureItem {
 }
 
 const DEFAULT_ICD10: DiagnosisItem[] = [
-  { code: 'M99.03', description: 'Segmental and somatic dysfunction of lumbar region', selected: true },
-  { code: 'M54.50', description: 'Low back pain, unspecified', selected: true },
+  { code: 'M99.03', description: 'Segmental and somatic dysfunction of lumbar region', selected: false },
+  { code: 'M54.50', description: 'Low back pain, unspecified', selected: false },
   { code: 'M99.01', description: 'Segmental and somatic dysfunction of cervical region', selected: false },
   { code: 'M54.2', description: 'Cervicalgia (Neck pain)', selected: false },
   { code: 'M99.02', description: 'Segmental and somatic dysfunction of thoracic region', selected: false },
@@ -49,11 +49,11 @@ const DEFAULT_ICD10: DiagnosisItem[] = [
 ];
 
 const DEFAULT_CPT: ProcedureItem[] = [
-  { cpt: '99203', description: 'Office/Outpatient New Patient Evaluation & Management (30 min)', fee: 85, selected: true },
-  { cpt: '98941', description: 'Chiropractic Manipulative Treatment (CMT); Spinal, 3-4 Regions', fee: 65, selected: true },
-  { cpt: '98940', description: 'Chiropractic Manipulative Treatment (CMT); Spinal, 1-2 Regions', fee: 50, selected: false },
-  { cpt: '97140', description: 'Manual Therapy Techniques (Joint Mobilization, Myofascial Release, 15 min)', fee: 40, selected: true },
-  { cpt: '97110', description: 'Therapeutic Exercises (Postural Rehabilitation & Core Stability, 15 min)', fee: 35, selected: false },
+  { cpt: '99203', description: 'Office/Outpatient New Patient Evaluation & Management (30 min)', fee: 0, selected: false },
+  { cpt: '98941', description: 'Chiropractic Manipulative Treatment (CMT); Spinal, 3-4 Regions', fee: 0, selected: false },
+  { cpt: '98940', description: 'Chiropractic Manipulative Treatment (CMT); Spinal, 1-2 Regions', fee: 0, selected: false },
+  { cpt: '97140', description: 'Manual Therapy Techniques (Joint Mobilization, Myofascial Release, 15 min)', fee: 0, selected: false },
+  { cpt: '97110', description: 'Therapeutic Exercises (Postural Rehabilitation & Core Stability, 15 min)', fee: 0, selected: false },
 ];
 
 export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> = ({ lead, onClose }) => {
@@ -61,9 +61,7 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
   const [icdList, setIcdList] = useState<DiagnosisItem[]>(DEFAULT_ICD10);
   const [cptList, setCptList] = useState<ProcedureItem[]>(DEFAULT_CPT);
   const [showBillingEditor, setShowBillingEditor] = useState<boolean>(false);
-  const [doctorNotes, setDoctorNotes] = useState<string>(
-    'Patient presented for comprehensive chiropractic examination and spinal assessment. Palpation revealed subluxation complexes and paravertebral hypertonicity in designated spinal segments. High-velocity low-amplitude (HVLA) adjustments administered with good patient tolerance. Prescribed ergonomic modifications and home cryotherapy. Recommended follow-up within 48–72 hours.'
-  );
+  const [doctorNotes, setDoctorNotes] = useState<string>('');
 
   const intake = lead.intakeForm;
 
@@ -84,6 +82,7 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
   const totalBilling = selectedCpt.reduce((sum, item) => sum + item.fee, 0);
 
   const handlePrint = () => {
+    if (!doctorNotes.trim() || !selectedIcd.length || !selectedCpt.length || selectedCpt.some(c=>!Number.isFinite(c.fee) || c.fee <= 0)) { alert('Record the actual encounter notes, diagnoses and performed procedures and actual procedure fees before printing.'); return; }
     window.print();
   };
 
@@ -223,7 +222,9 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
                         <span className="font-mono font-bold text-white">{item.cpt}</span>
                         <span className="text-stone-300 truncate max-w-[180px]">{item.description}</span>
                       </div>
-                      <span className="font-mono text-emerald-400">£{item.fee}</span>
+                      <input type="number" min="0" step="0.01" aria-label={`Actual fee for ${item.cpt}`} value={item.fee || ''}
+                        onChange={e=>setCptList(prev=>prev.map(c=>c.cpt===item.cpt?{...c,fee:Number(e.target.value)}:c))}
+                        className="w-20 bg-stone-900 text-white border border-stone-700 rounded p-1" placeholder="Fee" />
                     </label>
                   ))}
                 </div>
@@ -265,13 +266,13 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
                   <span>•</span>
                   <span>Email: {clinic.email || 'info@columbuschiropractic.co.uk'}</span>
                   <span>•</span>
-                  <span>NPI / GCC Reg: #CC-849204</span>
+
                 </div>
               </div>
 
               <div className="text-right sm:border-l sm:border-stone-300 sm:pl-4 shrink-0">
                 <span className="inline-block bg-stone-900 text-white font-mono uppercase font-bold text-[9px] px-2 py-0.5 rounded tracking-wider mb-1">
-                  OFFICIAL CLINICAL RECORD
+                  CLINICAL SUMMARY
                 </span>
                 <p className="font-mono text-xs font-bold text-stone-900">CHART REF: {lead.id}</p>
                 <p className="text-[11px] text-stone-500 font-mono">DOS: {lead.date} {lead.time}</p>
@@ -300,12 +301,12 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
               </div>
               <div>
                 <span className="text-[9px] uppercase font-bold text-stone-500 block">Attending Clinician</span>
-                <span className="font-semibold text-stone-900">{lead.practitionerName || 'Dr. Marcus Vance, D.C.'}</span>
+                <span className="font-semibold text-stone-900">{lead.practitionerName || 'Not recorded'}</span>
               </div>
               <div>
                 <span className="text-[9px] uppercase font-bold text-stone-500 block">Account Status</span>
                 <span className="font-semibold text-emerald-800">
-                  {lead.status === 'confirmed' ? 'Confirmed & Checked' : 'Clinical Encounter'}
+                  {lead.status || 'Not recorded'}
                 </span>
               </div>
             </div>
@@ -326,17 +327,17 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
                   <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-stone-600 font-medium">Chief Complaint / Area:</span>
-                      <strong className="text-stone-900">{intake?.painArea || lead.condition || 'Spinal subluxation'}</strong>
+                      <strong className="text-stone-900">{intake?.painArea || lead.condition || 'Not recorded'}</strong>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-stone-600 font-medium">Pain Intensity (VAS):</span>
                       <strong className="text-emerald-900 font-mono text-sm">
-                        {intake?.painLevel || 6} / 10 ({intake?.painType || 'Sharp / Deep Aching'})
+                        {intake?.painLevel ?? 'Not recorded'} / 10 ({intake?.painType || 'Not recorded'})
                       </strong>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-stone-600 font-medium">Onset / Chronicity:</span>
-                      <span className="text-stone-800">{intake?.painDuration || '2 to 4 weeks'}</span>
+                      <span className="text-stone-800">{intake?.painDuration || 'Not recorded'}</span>
                     </div>
                   </div>
 
@@ -345,23 +346,23 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
                     <div className="p-2.5 bg-stone-50 rounded-lg border border-stone-200">
                       <span className="font-bold text-stone-700 block mb-1 text-[10px] uppercase">Reported Symptoms:</span>
                       <p className="text-stone-600 leading-snug">
-                        {intake?.symptoms?.join(', ') || 'Muscle stiffness, localized tenderness, restricted range of motion.'}
+                        {intake?.symptoms?.join(', ') || 'Not recorded'}
                       </p>
                     </div>
 
                     <div className="p-2.5 bg-stone-50 rounded-lg border border-stone-200">
                       <span className="font-bold text-stone-700 block mb-1 text-[10px] uppercase">Aggravating Factors:</span>
                       <p className="text-stone-600 leading-snug">
-                        {intake?.aggravatingFactors?.join(', ') || 'Prolonged desk sitting, lumbar flexion.'}
+                        {intake?.aggravatingFactors?.join(', ') || 'Not recorded'}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Mapped Anatomical Zones Diagram Box */}
+                {/* Anatomy reference Diagram Box */}
                 <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex flex-col items-center justify-center text-center">
                   <span className="text-[9px] uppercase font-bold text-stone-500 mb-1">
-                    Mapped Anatomical Zones
+                    Anatomy reference
                   </span>
                   <div className="w-16 h-28 relative my-1 border border-stone-300 rounded-lg bg-white flex items-center justify-center p-1">
                     {/* Compact Stylized Silhouette for Print */}
@@ -370,15 +371,15 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
                       <path d="M 30 38 Q 50 32 70 38 L 74 65 L 66 100 L 62 120 L 38 120 L 34 100 L 26 65 Z" fill="#e7e5e4" stroke="#78716c" strokeWidth="1" />
                       <line x1="50" y1="32" x2="50" y2="115" stroke="#059669" strokeWidth="2" strokeDasharray="2,2" />
                       {/* Highlighted indicator nodes */}
-                      <circle cx="50" cy="42" r="4" fill="#10b981" />
-                      <circle cx="50" cy="85" r="5" fill="#10b981" />
-                      <circle cx="50" cy="110" r="4.5" fill="#10b981" />
+
+
+
                     </svg>
                   </div>
                   <div className="text-[10px] text-stone-700 font-semibold mt-1">
                     {intake?.bodyRegions && intake.bodyRegions.length > 0
                       ? intake.bodyRegions.join(', ')
-                      : 'Lumbar Spine, Thoracic Spine, Cervical'}
+                      : 'No regions recorded'}
                   </div>
                 </div>
               </div>
@@ -389,37 +390,37 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
               <div className="flex items-center justify-between border-b border-stone-200 pb-1">
                 <h4 className="font-bold uppercase tracking-wider text-[11px] text-stone-900 flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>2. Clinical Safety & Contraindication Clearance</span>
+                  <span>2. Patient-reported safety information</span>
                 </h4>
-                <span className="font-mono text-[10px] text-stone-500">Neurologic Red Flag Screen</span>
+                <span className="font-mono text-[10px] text-stone-500">Requires clinician review</span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
                 <div className="p-2 bg-stone-50 rounded border border-stone-200">
                   <span className="text-stone-500 block">Cauda Equina / Saddle Anesthesia</span>
                   <strong className={intake?.contraindications?.lossOfBowelBladder ? 'text-rose-700' : 'text-emerald-800'}>
-                    {intake?.contraindications?.lossOfBowelBladder ? '⚠️ POSITIVE - FLAGGED' : 'NEGATIVE (Cleared) ✓'}
+                    {intake?.contraindications?.lossOfBowelBladder ? '⚠️ POSITIVE - FLAGGED' : 'Not reported; review required'}
                   </strong>
                 </div>
 
                 <div className="p-2 bg-stone-50 rounded border border-stone-200">
                   <span className="text-stone-500 block">Osteoporosis / Fracture Screen</span>
                   <strong className={intake?.contraindications?.osteoporosisOrFracture ? 'text-amber-700' : 'text-emerald-800'}>
-                    {intake?.contraindications?.osteoporosisOrFracture ? 'Positive' : 'NEGATIVE (Cleared) ✓'}
+                    {intake?.contraindications?.osteoporosisOrFracture ? 'Positive' : 'Not reported; review required'}
                   </strong>
                 </div>
 
                 <div className="p-2 bg-stone-50 rounded border border-stone-200">
                   <span className="text-stone-500 block">Anticoagulants / Blood Thinners</span>
                   <strong className={intake?.contraindications?.bloodThinners ? 'text-amber-700' : 'text-emerald-800'}>
-                    {intake?.contraindications?.bloodThinners ? 'Positive' : 'NEGATIVE (Cleared) ✓'}
+                    {intake?.contraindications?.bloodThinners ? 'Positive' : 'Not reported; review required'}
                   </strong>
                 </div>
 
                 <div className="p-2 bg-stone-50 rounded border border-stone-200">
                   <span className="text-stone-500 block">Pacemaker / Metallic Implants</span>
                   <strong className={intake?.contraindications?.pacemakerOrImplant ? 'text-stone-700' : 'text-emerald-800'}>
-                    {intake?.contraindications?.pacemakerOrImplant ? 'Reported' : 'None Reported ✓'}
+                    {intake?.contraindications?.pacemakerOrImplant ? 'Reported' : 'Not reported; review required'}
                   </strong>
                 </div>
               </div>
@@ -441,7 +442,7 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
               <div className="flex items-center justify-between border-b border-stone-200 pb-1">
                 <h4 className="font-bold uppercase tracking-wider text-[11px] text-stone-900 flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>4. Itemized Superbill Statement (CMS-1500 Compliant)</span>
+                  <span>4. Clinician-entered procedure charges</span>
                 </h4>
                 <span className="font-mono text-[10px] text-stone-500">Diagnostic & Procedure Codes</span>
               </div>
@@ -472,12 +473,12 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
                       <td className="p-2 border border-stone-200 font-mono font-bold text-stone-900">{c.cpt}</td>
                       <td className="p-2 border border-stone-200 text-stone-800">{c.description}</td>
                       <td className="p-2 border border-stone-200 text-center font-mono">1</td>
-                      <td className="p-2 border border-stone-200 text-right font-mono font-semibold">£{c.fee}.00</td>
+                      <td className="p-2 border border-stone-200 text-right font-mono font-semibold">{clinic.currencySymbol || '$'}{c.fee.toFixed(2)}</td>
                     </tr>
                   ))}
                   <tr className="bg-stone-50 font-bold">
                     <td colSpan={3} className="p-2 text-right uppercase text-[10px] text-stone-600">Total Superbill Charge:</td>
-                    <td className="p-2 text-right font-mono text-emerald-900 text-sm">£{totalBilling}.00</td>
+                    <td className="p-2 text-right font-mono text-emerald-900 text-sm">{clinic.currencySymbol || '$'}{totalBilling.toFixed(2)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -488,13 +489,13 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Patient Informed Consent Executed</span>
+                  <span>{intake?.informedConsentAgreed && intake?.signatureDataUrl ? 'Patient intake acknowledgment recorded' : 'No signed intake acknowledgment recorded'}</span>
                 </div>
                 <p className="text-[10px] text-stone-500 max-w-sm">
-                  Electronic acknowledgment executed under Uniform Electronic Transactions Act. Patient consented to chiropractic evaluation, spinal adjustments, and clinical examinations.
+                  Review the recorded intake and discuss treatment consent with the patient. This summary does not verify identity or establish clinical clearance.
                 </p>
                 <p className="text-[10px] text-stone-400 font-mono">
-                  Signed: {intake?.completedAt ? new Date(intake.completedAt).toLocaleString() : 'On File'}
+                  Signed: {intake?.signedAt && intake?.signatureDataUrl ? new Date(intake.signedAt).toLocaleString() : 'Not recorded'}
                 </p>
               </div>
 
@@ -506,12 +507,12 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
                     className="h-10 w-auto object-contain mx-auto"
                   />
                   <span className="text-[8px] font-mono text-stone-400 block mt-0.5 border-t border-stone-200 pt-0.5">
-                    Verified Digital Patient Signature
+                    Patient-provided signature
                   </span>
                 </div>
               ) : (
                 <div className="p-2 bg-white rounded-xl border border-stone-300 w-44 text-center text-[10px] font-mono text-emerald-800">
-                  Consent Acknowledged ✓
+                  Signature not recorded
                 </div>
               )}
             </div>
@@ -527,7 +528,7 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
 
               <div className="flex flex-col items-end justify-end">
                 <div className="w-48 border-b border-stone-900 pb-1 text-center font-serif italic text-sm text-stone-800">
-                  {lead.practitionerName || 'Dr. Marcus Vance, D.C.'}
+                  &nbsp;
                 </div>
                 <div className="w-48 flex justify-between text-[9px] text-stone-500 font-mono pt-0.5">
                   <span>Provider Signature</span>
@@ -546,7 +547,7 @@ export const ClinicalChartPrintExport: React.FC<ClinicalChartPrintExportProps> =
         {/* Modal Bottom Bar */}
         <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between shrink-0 no-print">
           <span className="text-xs text-stone-400">
-            Pressing <strong>Print</strong> opens the native browser print dialog to save as a clean PDF.
+            This print-only summary uses the notes and fees entered here. Save the PDF to your clinical record system before closing; this editor does not persist an encounter.
           </span>
 
           <div className="flex items-center gap-2">

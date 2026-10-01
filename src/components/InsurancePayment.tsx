@@ -14,14 +14,14 @@ export const InsurancePayment: React.FC<InsurancePaymentProps> = ({ clinic }) =>
   const [showCoverNotice, setShowCoverNotice] = useState(false);
 
   const insurances =
-    clinic.customInsurances && clinic.customInsurances.length > 0
+    clinic.customInsurances !== undefined
       ? clinic.customInsurances
       : ['Bupa', 'AXA Health', 'Aviva', 'Vitality', 'WPA', 'Cigna', 'Self-pay'];
 
   return (
     <section className="py-14 sm:py-16 md:py-20 bg-white border-b border-stone-200/80 overflow-hidden relative">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-        
+
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 15 }}
           whileInView={{ opacity: 1, scale: 1, y: 0 }}

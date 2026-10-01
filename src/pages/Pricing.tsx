@@ -1,3 +1,4 @@
+import { usePageMeta } from '../data/usePageMeta';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 
 export default function Pricing() {
+  usePageMeta('Pricing & Fees');
   const { clinicData: clinic, openBookingModal } = useClinic();
 
   const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(0);
@@ -32,7 +34,7 @@ export default function Pricing() {
 
   // Fee schedule resolution
   const feeItems: PricingFeeItem[] =
-    clinic.customFeeItems && clinic.customFeeItems.length > 0
+    clinic.customFeeItems !== undefined
       ? clinic.customFeeItems
       : [
           {
@@ -47,7 +49,7 @@ export default function Pricing() {
 
   // Insurances resolution
   const insurers =
-    clinic.customInsurances && clinic.customInsurances.length > 0
+    clinic.customInsurances !== undefined
       ? clinic.customInsurances
       : ['Bupa', 'AXA Health', 'Aviva', 'Vitality', 'WPA', 'Self-pay'];
 

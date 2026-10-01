@@ -57,21 +57,21 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
 
   // Step 1: Body Map & Pain Character
   const [selectedBodyRegions, setSelectedBodyRegions] = useState<string[]>(
-    lead.intakeForm?.bodyRegions || ['lumbar']
+    lead.intakeForm?.bodyRegions || []
   );
   const [painArea, setPainArea] = useState<string>(
     lead.intakeForm?.painArea || lead.condition || 'Lower Back & Lumbar Spine'
   );
-  const [painLevel, setPainLevel] = useState<number>(lead.intakeForm?.painLevel || 6);
-  const [painDuration, setPainDuration] = useState<string>(lead.intakeForm?.painDuration || '2 to 4 weeks');
-  const [painType, setPainType] = useState<string>(lead.intakeForm?.painType || 'Sharp / Stabbing');
+  const [painLevel, setPainLevel] = useState<number>(lead.intakeForm?.painLevel ?? -1);
+  const [painDuration, setPainDuration] = useState<string>(lead.intakeForm?.painDuration || '');
+  const [painType, setPainType] = useState<string>(lead.intakeForm?.painType || '');
   const [selectedAggravators, setSelectedAggravators] = useState<string[]>(
-    lead.intakeForm?.aggravatingFactors || ['Prolonged sitting at desk/driving']
+    lead.intakeForm?.aggravatingFactors || []
   );
 
   // Step 2: Symptoms & Red Flags
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(
-    lead.intakeForm?.symptoms || ['Sharp radiating or shooting pain', 'Morning stiffness lasting > 30 minutes']
+    lead.intakeForm?.symptoms || []
   );
   const [contraindications, setContraindications] = useState({
     lossOfBowelBladder: lead.intakeForm?.contraindications?.lossOfBowelBladder || false,
@@ -83,12 +83,12 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
     pregnant: lead.intakeForm?.contraindications?.pregnant || false,
   });
   const [priorSurgeries, setPriorSurgeries] = useState<string>(
-    lead.intakeForm?.priorSurgeries || 'No prior surgeries or spinal implants reported.'
+    lead.intakeForm?.priorSurgeries || ''
   );
 
   // Step 3: Consent & Signature
   const [informedConsentAgreed, setInformedConsentAgreed] = useState<boolean>(
-    lead.intakeForm?.informedConsentAgreed !== false
+    lead.intakeForm?.informedConsentAgreed === true
   );
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(
     lead.intakeForm?.signatureDataUrl || null
@@ -125,6 +125,9 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!signatureDataUrl || painLevel < 0 || !painDuration || !painType || !priorSurgeries.trim()) {
+      alert('Please record pain level, duration, sensation, surgery history (or none), and sign the form.'); return;
+    }
     if (!informedConsentAgreed) {
       alert('Please review and check the informed consent acknowledgment to proceed.');
       return;
@@ -132,7 +135,9 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
+try {
+
       const intakePayload = {
         painArea,
         bodyRegions: selectedBodyRegions,
@@ -150,13 +155,15 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
         completedAt: new Date().toISOString(),
       };
 
-      const res = savePatientIntakeForm(lead.id, intakePayload);
+      const res = await savePatientIntakeForm(lead.id, intakePayload);
       setIsSubmitting(false);
       setSuccess(true);
       if (res.success && res.updatedLead && onIntakeCompleted) {
         onIntakeCompleted(res.updatedLead);
       }
-    }, 500);
+
+} catch (error: any) { setIsSubmitting(false); alert(error.message || 'Could not save. Please try again.'); }
+}, 500);
   };
 
   return (
@@ -208,17 +215,17 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
                 <CheckCircle2 className="w-9 h-9" />
               </div>
               <h4 className="font-serif font-bold text-2xl text-stone-900">
-                Clinical Intake Received & Locked
+                Clinical Intake Saved
               </h4>
               <p className="text-stone-600 text-sm max-w-md mx-auto leading-relaxed">
                 Thank you, <strong>{lead.name}</strong>. Your anatomical pain mapping, triage markers,
-                and digital signature have been securely encrypted and attached to your appointment record.
+                and signature have been saved to your appointment for clinician review.
               </p>
 
               <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-xl max-w-sm mx-auto text-left text-xs space-y-1 text-stone-600">
                 <div className="flex justify-between">
                   <span>Pain Level:</span>
-                  <strong className="text-stone-900">{painLevel} / 10</strong>
+                  <strong className="text-stone-900">{painLevel < 0 ? 'Choose your pain level' : `${painLevel} / 10`}</strong>
                 </div>
                 <div className="flex justify-between">
                   <span>Mapped Regions:</span>
@@ -313,7 +320,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
                             : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}
                       >
-                        {painLevel} / 10{' '}
+                        {painLevel < 0 ? 'Choose your pain level' : `${painLevel} / 10`}{' '}
                         {painLevel >= 8
                           ? '(Severe / Debilitating)'
                           : painLevel >= 5
@@ -323,9 +330,9 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
                     </div>
                     <input
                       type="range"
-                      min="1"
+                      min="0"
                       max="10"
-                      value={painLevel}
+                      value={Math.max(0, painLevel)} aria-label="Pain level from zero to ten"
                       onChange={(e) => setPainLevel(Number(e.target.value))}
                       className="w-full accent-emerald-700 cursor-pointer"
                     />
@@ -347,6 +354,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
                         onChange={(e) => setPainDuration(e.target.value)}
                         className="w-full p-2.5 bg-white border border-stone-200 rounded-xl text-xs font-medium text-stone-800 focus:border-emerald-600 focus:outline-none"
                       >
+                        <option value="">Select duration</option>
                         <option value="Less than 1 week (Acute)">Less than 1 week (Acute)</option>
                         <option value="1 to 4 weeks (Subacute)">1 to 4 weeks (Subacute)</option>
                         <option value="1 to 6 months (Persistent)">1 to 6 months (Persistent)</option>
@@ -363,6 +371,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
                         onChange={(e) => setPainType(e.target.value)}
                         className="w-full p-2.5 bg-white border border-stone-200 rounded-xl text-xs font-medium text-stone-800 focus:border-emerald-600 focus:outline-none"
                       >
+                        <option value="">Select sensation</option>
                         <option value="Sharp / Stabbing">Sharp / Stabbing</option>
                         <option value="Dull / Deep Aching">Dull / Deep Aching</option>
                         <option value="Burning / Radicular Nerve Pain">Burning / Radicular Nerve Pain</option>
@@ -678,7 +687,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4 text-emerald-300" />
-                          <span>Submit & Lock Intake Form</span>
+                          <span>Save Intake Form</span>
                         </>
                       )}
                     </button>

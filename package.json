@@ -8,9 +8,11 @@
     "build": "tsc && vite build && tsx scripts/prerender.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "migrate:firestore": "tsx scripts/migrate-to-firestore.ts",
-    "test:rules": "vitest run tests/firestore.rules.test.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "vitest run tests/patient-documents.test.ts",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-practice-review \"vitest run tests/firestore.rules.test.ts tests/security-boundaries.test.ts tests/booking-server.test.ts\"",
+    "prepare:clinic": "node scripts/prepare-clinic.cjs",
+    "pretest:rules": "npm run build --prefix functions"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -36,10 +38,20 @@
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "firebase-tools": "^15.32.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
     "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "packageManager": "npm@10.9.9",
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.5",
+    "uuid": "^11.1.1",
+    "re2": "^1.27.0"
   }
 }

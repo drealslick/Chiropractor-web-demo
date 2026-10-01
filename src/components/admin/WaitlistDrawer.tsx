@@ -42,14 +42,16 @@ export const WaitlistDrawer: React.FC<WaitlistDrawerProps> = ({
 
   const waitlistPatients = leads.filter((l) => l.status === 'waitlist');
 
-  const handleCreateWaitlistEntry = (e: React.FormEvent) => {
+  const handleCreateWaitlistEntry = async (e: React.FormEvent) => {
+try {
+
     e.preventDefault();
     if (!newWaitlistName.trim() || !newWaitlistPhone.trim()) {
       alert('Please enter patient name and contact phone.');
       return;
     }
 
-    saveLead({
+    await saveLead({
       source: 'booking',
       name: newWaitlistName.trim(),
       phone: newWaitlistPhone.trim(),
@@ -68,13 +70,19 @@ export const WaitlistDrawer: React.FC<WaitlistDrawerProps> = ({
     setNewWaitlistCondition('');
     setNewWaitlistNotes('');
     setIsAddingNew(false);
-  };
 
-  const handleRemoveFromWaitlist = (id: string) => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleRemoveFromWaitlist = async (id: string) => {
+try {
+
     if (confirm('Remove this patient from the cancellation waitlist?')) {
-      deleteLead(id);
+      await deleteLead(id);
     }
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   return (
     <div className="fixed inset-0 z-[125] flex justify-end bg-black/60 backdrop-blur-xs animate-fade-in">

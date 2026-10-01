@@ -334,6 +334,7 @@ export interface FinancingOption {
 }
 
 export interface ClinicInfo {
+  timeZone?: string;
   id?: string;
   name?: string;
   doctorName?: string;

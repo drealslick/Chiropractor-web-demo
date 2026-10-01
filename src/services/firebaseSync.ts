@@ -9,6 +9,7 @@ import {
   where,
   deleteDoc,
   orderBy,
+  runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
 import {
@@ -16,61 +17,60 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut,
-  onAuthStateChanged,
+  onIdTokenChanged,
   User,
+  signInAnonymously, linkWithCredential, EmailAuthProvider, updateProfile,
 } from 'firebase/auth';
-import { db, auth, isFirebaseConfigured } from '../lib/firebase';
-import { PatientLead, PatientAccount, DispatchedNotification } from '../data/leadsStore';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions, isFirebaseConfigured } from '../lib/firebase';
+import { PatientLead, PatientAccount, DispatchedNotification, cacheAppointments } from '../data/leadsStore';
 import { sandbox } from '../lib/sandbox';
 import { notifyDemoAction } from '../lib/data-provider';
 
 // Collection References
 const APPOINTMENTS_COLLECTION = 'appointments';
-const PATIENTS_COLLECTION = 'patients';
+const PATIENTS_COLLECTION = 'users';
 const SETTINGS_COLLECTION = 'clinic_settings';
 
-const isSandboxMode = () => import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
+const isSandboxMode = () => import.meta.env.VITE_DEMO_MODE === 'true';
 
 /**
  * Real-time Firestore sync for Appointments
  */
-export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boolean> {
-  if (isSandboxMode()) {
-    sandbox.create('appointments', lead.clinicName || 'columbus-chiropractic', lead);
-    return true;
-  }
+export const activeClinicId = () => import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
 
-  try {
-    const docRef = doc(db, APPOINTMENTS_COLLECTION, lead.id);
-    await setDoc(
-      docRef,
-      {
-        ...lead,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-    return true;
-  } catch (error) {
-    console.error('Failed to sync appointment to Firestore:', error);
-    return false;
+export async function ensureBookingIdentity() {
+  if (isSandboxMode()) return;
+  if (!isFirebaseConfigured) throw new Error('Online booking is not configured. Please contact the clinic.');
+  await auth.authStateReady();
+  if (!auth.currentUser) await signInAnonymously(auth);
+}
+
+export async function persistAppointment(id: string, patch: Partial<PatientLead>, action = 'save'): Promise<PatientLead | null> {
+  if (isSandboxMode()) {
+    if (action === 'delete') { sandbox.delete('appointments', id); return null; }
+    const old = sandbox.getById<PatientLead>('appointments', id);
+    return sandbox.create('appointments', activeClinicId(), { ...old, ...patch, id });
   }
+  await ensureBookingIdentity();
+  const mutate = httpsCallable(functions, 'mutateAppointment');
+  const response = await mutate({ id, clinicId: patch.clinicId || activeClinicId(), action,
+    patch: JSON.parse(JSON.stringify(patch)) });
+  return (response.data as any).appointment || null;
+}
+
+export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boolean> {
+  await persistAppointment(lead.id, lead);
+  return true;
 }
 
 /**
  * Subscribe to real-time appointments across all devices/branches
  */
-export function subscribeToAppointments(
-  callback: (appointments: PatientLead[]) => void,
-  clinicIdFilter?: string,
-  patientIdFilter?: string
-): () => void {
+export function subscribeToAppointments(callback: (appointments: PatientLead[]) => void): () => void {
   if (isSandboxMode()) {
     const emit = () => {
-      let appts = sandbox.list<PatientLead>('appointments');
-      if (patientIdFilter) {
-        appts = appts.filter(a => a.patientId === patientIdFilter);
-      }
+      const appts = sandbox.list<PatientLead>('appointments');
       callback(appts);
     };
     emit();
@@ -79,30 +79,23 @@ export function subscribeToAppointments(
     return () => window.removeEventListener('sandbox_updated', handler);
   }
 
-  try {
-    const activeClinicId = clinicIdFilter || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
-    let q = query(collection(db, APPOINTMENTS_COLLECTION), where('clinicId', '==', activeClinicId));
-    if (patientIdFilter) {
-      q = query(collection(db, APPOINTMENTS_COLLECTION), where('patientId', '==', patientIdFilter));
-    }
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const appts: PatientLead[] = [];
-        snapshot.forEach((docSnap) => {
-          appts.push(docSnap.data() as PatientLead);
-        });
-        callback(appts);
-      },
-      (error) => {
-        console.error('Firestore appointments subscription error:', error);
-      }
-    );
-    return unsubscribe;
-  } catch (error) {
-    console.error('Error initiating appointments subscription:', error);
-    return () => {};
-  }
+  let stop = () => {};
+  let generation = 0;
+  const stopAuth = onIdTokenChanged(auth, async user => {
+    const current = ++generation;
+    stop(); callback([]); cacheAppointments([]);
+    if (!user) return;
+    const token = await user.getIdTokenResult();
+    if (current !== generation) return;
+    const staff = ['admin', 'staff'].includes(String(token.claims.role));
+    const q = query(collection(db, APPOINTMENTS_COLLECTION),
+      where(staff ? 'clinicId' : 'patientId', '==', staff ? token.claims.clinicId : user.uid));
+    stop = onSnapshot(q, snapshot => {
+      const rows = snapshot.docs.map(d => d.data() as PatientLead);
+      cacheAppointments(rows); callback(rows);
+    }, error => { console.error('Appointment subscription failed', error); callback([]); });
+  });
+  return () => { ++generation; stop(); stopAuth(); };
 }
 
 /**
@@ -117,12 +110,15 @@ export async function fetchAppointmentsByEmailFromFirestore(email: string): Prom
 
   try {
     const cleanEmail = email.trim().toLowerCase();
-    const q = query(collection(db, APPOINTMENTS_COLLECTION), where('email', '==', cleanEmail));
+    await auth.authStateReady();
+    if (!auth.currentUser) return [];
+    const q = query(collection(db, APPOINTMENTS_COLLECTION), where('patientId', '==', auth.currentUser.uid));
     const querySnapshot = await getDocs(q);
     const results: PatientLead[] = [];
     querySnapshot.forEach((docSnap) => {
       results.push(docSnap.data() as PatientLead);
     });
+    cacheAppointments(results);
     return results;
   } catch (error) {
     console.error('Failed to query appointments by email:', error);
@@ -142,7 +138,9 @@ export async function fetchAppointmentByIdFromFirestore(id: string): Promise<Pat
     const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as PatientLead;
+      const lead = docSnap.data() as PatientLead;
+      cacheAppointments([lead]);
+      return lead;
     }
     return null;
   } catch (error) {
@@ -179,7 +177,10 @@ export async function registerPatientWithFirebaseAuth(
   try {
     const cleanEmail = email.trim().toLowerCase();
     // 1. Create user in Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+    await auth.authStateReady();
+    const userCredential = auth.currentUser?.isAnonymous
+      ? await linkWithCredential(auth.currentUser, EmailAuthProvider.credential(cleanEmail, password))
+      : await createUserWithEmailAndPassword(auth, cleanEmail, password);
     const user = userCredential.user;
 
     const patientProfile: PatientAccount = {
@@ -190,13 +191,20 @@ export async function registerPatientWithFirebaseAuth(
       createdAt: new Date().toISOString(),
     };
 
-    // 2. Persist profile document in Firestore
-    await setDoc(doc(db, PATIENTS_COLLECTION, user.uid), patientProfile);
+    // Merge only user-editable fields; provisioning owns role/clinic claims.
+    await updateProfile(user, { displayName: name.trim() });
+    const profile = doc(db, PATIENTS_COLLECTION, user.uid);
+    await runTransaction(db, async tx => {
+      const existing = await tx.get(profile);
+      tx.set(profile, existing.exists() ? {name:name.trim(),phone:phone?.trim() || ''} : patientProfile, {merge:true});
+    });
+    await httpsCallable(functions, 'ensureUserClaims')({});
+    await user.getIdToken(true);
 
     return {
       success: true,
       account: patientProfile,
-      message: 'Account created and verified on Columbus Chiropractic Care Cloud.',
+      message: 'Account created. Your bookings are linked to your account.',
     };
   } catch (error: any) {
     console.error('Firebase Auth Registration error:', error);
@@ -254,7 +262,7 @@ export async function loginPatientWithFirebaseAuth(
     const profileSnap = await getDoc(doc(db, PATIENTS_COLLECTION, user.uid));
     let account: PatientAccount;
     if (profileSnap.exists()) {
-      account = profileSnap.data() as PatientAccount;
+      account = { ...profileSnap.data(), id: user.uid, name: profileSnap.data().name || profileSnap.data().displayName || user.displayName || cleanEmail.split('@')[0], email: user.email || cleanEmail } as PatientAccount;
     } else {
       account = {
         id: user.uid,
@@ -320,24 +328,10 @@ export async function sendRealPasswordReset(
 export async function logoutPatientFromFirebase(): Promise<void> {
   try {
     await signOut(auth);
+    cacheAppointments([]);
+    localStorage.removeItem('agency_patient_leads_v1');
+    localStorage.removeItem('agency_patient_accounts_v1');
   } catch (err) {
     console.error('Logout error:', err);
-  }
-}
-
-/**
- * Seed initial sample appointments to Firestore so cross-device tests immediately have data
- */
-export async function seedInitialFirestoreData(leads: PatientLead[]): Promise<void> {
-  if (isSandboxMode()) {
-    return;
-  }
-  try {
-    for (const lead of leads) {
-      const docRef = doc(db, APPOINTMENTS_COLLECTION, lead.id);
-      await setDoc(docRef, lead, { merge: true });
-    }
-  } catch (err) {
-    console.warn('Initial Firestore seed warning:', err);
   }
 }

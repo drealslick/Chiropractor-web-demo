@@ -12,7 +12,7 @@ interface HeroProps {
 export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
   const isTriageEnabled = clinic.showHeroTriage !== false;
   const triageList: HeroTriageOption[] =
-    clinic.customTriageOptions && clinic.customTriageOptions.length > 0
+    clinic.customTriageOptions !== undefined
       ? clinic.customTriageOptions
       : defaultTriageOptions;
 
@@ -34,13 +34,13 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
       <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        
+
         {/* Top Kicker Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 pb-3 mb-6 sm:mb-8 text-xs text-stone-600">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
             <span className="font-medium text-stone-900 tracking-tight text-xs sm:text-sm">
-              {clinic.heroAcceptingPillText || `Accepting New Patients in ${clinic.cityState || clinic.city || 'Practice Area'}`}
+              {clinic.heroBadge || clinic.heroAcceptingPillText || `Accepting New Patients in ${clinic.cityState || clinic.city || 'Practice Area'}`}
             </span>
           </div>
           <div className="hidden md:flex items-center gap-3 text-stone-500 font-medium text-xs">
@@ -54,7 +54,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
 
         {/* Hero Asymmetric Two-Column Editorial Spread */}
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          
+
           {/* Left Column: Bold Headline & Interactive Symptom Triage */}
           <div className="lg:col-span-7 space-y-5 sm:space-y-6">
             <motion.div
@@ -63,7 +63,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold text-stone-900 tracking-tight leading-[1.12] [text-wrap:balance]">
-                {clinic.heroHeadline || "Get Back to What Pain Took Away."}
+                {clinic.heroHook || clinic.heroHeadline || "Get Back to What Pain Took Away."}
               </h1>
             </motion.div>
 
@@ -73,7 +73,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-sm sm:text-base lg:text-lg text-stone-600 leading-relaxed max-w-xl font-normal"
             >
-              {clinic.heroSubheadline || `Personalized, root-cause chiropractic care in ${clinic.city || 'our practice'}. We find the biomechanical source of your discomfort and build a clear plan to restore natural mobility.`}
+              {clinic.heroSubhead || clinic.heroSubheadline || `Personalized, root-cause chiropractic care in ${clinic.city || 'our practice'}. We find the biomechanical source of your discomfort and build a clear plan to restore natural mobility.`}
             </motion.p>
 
             {/* Interactive Clinical Triage Preview Box (Toggleable via Admin) */}
@@ -189,7 +189,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
                 loading="eager"
                 referrerPolicy="no-referrer"
               />
-              
+
               {/* Subtle bottom gradient scrim */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none" />
 

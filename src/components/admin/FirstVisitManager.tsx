@@ -44,7 +44,7 @@ export const FirstVisitManager: React.FC<FirstVisitManagerProps> = ({
   onUpdateClinic,
 }) => {
   const steps: ProcessStep[] =
-    clinic.customFirstVisitSteps && clinic.customFirstVisitSteps.length > 0
+    clinic.customFirstVisitSteps !== undefined
       ? clinic.customFirstVisitSteps
       : firstVisitSteps;
 

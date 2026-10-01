@@ -9,16 +9,16 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   // 📻 Tuning into our central brain!
   const context = useContext(ClinicContext);
-  
+
   // Safety check in case the context hasn't loaded
   if (!context) {
-    return null; 
+    return null;
   }
-  
-  const { clinicData: clinic, activeLocation, setActiveLocationId, allLocations } = context; 
+
+  const { clinicData: clinic, activeLocation, setActiveLocationId, allLocations } = context;
   const activeLogo = clinic.logoUrl || clinic.logoImage || (clinic as any).logo;
   const [logoImageError, setLogoImageError] = useState(false);
 
@@ -32,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
               <span className="text-emerald-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
                 <span>📍 Active Clinic Branch:</span>
               </span>
-              <select
+              <select aria-label="Clinic location"
                 value={activeLocation.id}
                 onChange={(e) => setActiveLocationId(e.target.value)}
                 className="bg-stone-800 border border-stone-700 text-stone-100 text-xs rounded-md px-2.5 py-0.5 font-semibold cursor-pointer focus:outline-none focus:border-emerald-500"
@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
       )}
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        
+
         {/* LOGO & Home Link */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2.5 group">

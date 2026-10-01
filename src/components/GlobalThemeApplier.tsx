@@ -53,21 +53,24 @@ export const GlobalThemeApplier: React.FC = () => {
     let headingVal = "'Playfair Display', Georgia, serif";
     let bodyVal = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif";
 
-    if (fontPair === 'modern-avant-garde') {
+    if (fontPair === 'modern-sans') {
+      url='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap';
+      headingVal="'Inter', sans-serif";bodyVal="'Montserrat', sans-serif";
+    } else if (fontPair === 'bold-contemporary') {
       url =
         'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Syne:wght@400..800&display=swap';
       headingVal = "'Syne', sans-serif";
       bodyVal = "'Space Grotesk', sans-serif";
-    } else if (fontPair === 'serene-academic') {
+    } else if (fontPair === 'warm-editorial') {
       url =
         'https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap';
       headingVal = "'Lora', serif";
       bodyVal = "'Inter', sans-serif";
-    } else if (fontPair === 'timeless-luxury') {
+    } else if (fontPair === 'refined-elegance') {
       url =
-        'https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Montserrat:wght@100..900&display=swap';
+        'https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap';
       headingVal = "'Cinzel', serif";
-      bodyVal = "'Montserrat', sans-serif";
+      bodyVal = "'Plus Jakarta Sans', sans-serif";
     } else {
       url =
         'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap';

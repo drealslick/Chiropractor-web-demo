@@ -75,7 +75,7 @@ export const sandbox = {
   /**
    * Check if demo mode is active
    */
-  isDemoMode: import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured,
+  isDemoMode: import.meta.env.VITE_DEMO_MODE === 'true',
 
   /**
    * List records in collection, optionally filtered by clinicId

@@ -31,6 +31,9 @@ export function usePageMeta(pageTitle: string, pageDesc?: string, pageImage?: st
       canonicalUrl = url.origin + url.pathname;
     }
 
+    let canonical = document.querySelector('link[rel=canonical]') as HTMLLinkElement | null;
+    if (!canonical) {canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical);}
+    canonical.href=canonicalUrl;
     // Standard HTML Title & Description
     document.title = fullTitle;
     setMetaTag('meta[name="description"]', 'name', 'description', desc);

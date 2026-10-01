@@ -225,7 +225,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
 
   // Practitioners list
   const practitioners: PublicTeamMember[] = useMemo(() => {
-    return clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
+    return clinic.publicTeamMembers !== undefined
       ? clinic.publicTeamMembers.filter((m) => m.showOnWebsite !== false)
       : defaultPublicTeamMembers;
   }, [clinic.publicTeamMembers]);
@@ -260,9 +260,13 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
   };
 
   // Status Change
-  const handleConfirmAppointment = (lead: PatientLead) => {
-    updateLeadStatus(lead.id, 'confirmed');
-  };
+  const handleConfirmAppointment = async (lead: PatientLead) => {
+try {
+
+    await updateLeadStatus(lead.id, 'confirmed');
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   const handleOpenReschedule = (lead: PatientLead) => {
     setReschedulingLead(lead);
@@ -271,42 +275,54 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
     setRescheduleDoctor(lead.practitionerName || practitioners[0]?.name || 'Lead Practitioner');
   };
 
-  const handleSaveReschedule = () => {
+  const handleSaveReschedule = async () => {
+try {
+
     if (!reschedulingLead) return;
-    updateLeadDetails(reschedulingLead.id, {
+    await updateLeadDetails(reschedulingLead.id, {
       date: rescheduleDate,
       time: rescheduleTime,
       practitionerName: rescheduleDoctor,
+      practitionerId: practitioners.find(p=>p.name===rescheduleDoctor)?.id,
       status: 'confirmed',
     });
     setReschedulingLead(null);
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   const handleOpenCancel = (lead: PatientLead) => {
     setCancellingLead(lead);
     setCancellationReason('Patient requested schedule change');
   };
 
-  const handleConfirmCancel = () => {
-    if (!cancellingLead) return;
-    updateLeadStatus(cancellingLead.id, 'cancelled', cancellationReason);
-    setCancellingLead(null);
-  };
+  const handleConfirmCancel = async () => {
+try {
 
-  const handleCreateWalkInBooking = (e: React.FormEvent) => {
+    if (!cancellingLead) return;
+    await updateLeadStatus(cancellingLead.id, 'cancelled', cancellationReason);
+    setCancellingLead(null);
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleCreateWalkInBooking = async (e: React.FormEvent) => {
+try {
+
     e.preventDefault();
     if (!newBookingData.name || !newBookingData.phone) {
       alert('Please enter patient name and phone number.');
       return;
     }
 
-    saveLead({
+    await saveLead({
       source: 'booking',
       name: newBookingData.name,
       phone: newBookingData.phone,
       email: newBookingData.email || 'walkin@example.com',
       condition: newBookingData.condition,
       practitionerName: newBookingData.practitionerName,
+      practitionerId: practitioners.find(p=>p.name===newBookingData.practitionerName)?.id,
       date: newBookingData.date,
       time: newBookingData.time,
       durationMinutes: currentRules.slotDurationMinutes || 45,
@@ -326,7 +342,9 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
       time: '10:00 AM',
       notes: 'Booked directly by front desk receptionist',
     });
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   // Add / Remove Holiday Blocker
   const handleAddHoliday = () => {
@@ -369,7 +387,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
       message: `TEST AUTORESPONDER: Hi Sarah, we received your appointment request for 2026-10-18 at 10:15 AM. Our care team will review within 24 hours.`,
     });
 
-    alert('Test notification dispatched! Check the CRM & Notification Activity Log below.');
+    alert('Sample notification preview created. No email or SMS was sent. Use the server gateway to test a real appointment message.');
   };
 
   // Filtered Leads
@@ -1971,6 +1989,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        if (import.meta.env.VITE_DEMO_MODE !== 'true') { alert('Configure Stripe server credentials and an optional verified Connect destination in clinic_settings. No account has been connected.'); return; }
                         const demoAcct = `acct_1M${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
                         handleSavePaymentPolicy({
                           ...paymentPolicyState,
@@ -1985,7 +2004,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                     <span className="text-[10px] text-stone-500 block text-center">
-                      Takes 2 minutes • Verified bank transfer & PCI Level 1 compliant
+                      Demo connection preview. Live accounts require server configuration.
                     </span>
                   </div>
                 )}

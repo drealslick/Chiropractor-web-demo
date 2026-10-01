@@ -52,7 +52,7 @@ export const ConditionManager: React.FC<ConditionManagerProps> = ({
 }) => {
   const [viewScope, setViewScope] = useState<'landing_pages' | 'homepage'>(initialScope);
   const condList: ProblemCondition[] =
-    clinic.customConditions && clinic.customConditions.length > 0
+    clinic.customConditions !== undefined
       ? clinic.customConditions
       : conditionsData;
 

@@ -1,6 +1,6 @@
 /**
  * Production Firebase Authentication Service
- * 
+ *
  * Supports:
  * - Patient sign-up & sign-in with email/password
  * - Email verification & Password resets
@@ -26,7 +26,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions, isFirebaseConfigured } from '../lib/firebase';
 
-export type UserRole = 'admin' | 'staff' | 'patient';
+export type UserRole = 'admin' | 'staff' | 'editor' | 'patient';
 
 export interface UserProfile {
   uid: string;
@@ -70,55 +70,10 @@ export async function signUpPatientWithEmail(
   phone?: string,
   clinicId?: string
 ): Promise<{ success: boolean; user?: User; message: string }> {
-  try {
-    const resolvedClinicId = clinicId || (await resolveActiveClinicId());
+  const { registerPatientWithFirebaseAuth } = await import('./firebaseSync');
+  const result = await registerPatientWithFirebaseAuth(fullName, email, pass, phone);
+  return {success:result.success,user:result.success ? auth.currentUser || undefined : undefined,message:result.message};
 
-    const cred = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), pass);
-    const user = cred.user;
-
-    // Update display name
-    await updateProfile(user, { displayName: fullName.trim() });
-
-    // Send email verification link
-    try {
-      await sendEmailVerification(user);
-    } catch (err) {
-      console.warn('Email verification dispatch notice:', err);
-    }
-
-    // Persist user document in Firestore under users/{uid}
-    if (import.meta.env.VITE_DEMO_MODE !== 'true') {
-      await setDoc(
-        doc(db, 'users', user.uid),
-        {
-          uid: user.uid,
-          email: user.email,
-          displayName: fullName.trim(),
-          role: 'patient',
-          clinicId: resolvedClinicId,
-          phone: phone?.trim() || '',
-          emailVerified: user.emailVerified,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-
-    return {
-      success: true,
-      user,
-      message: 'Account created successfully. A verification link has been sent to your email.',
-    };
-  } catch (error: any) {
-    console.error('Sign-up error:', error);
-    let message = error.message || 'Failed to create patient account.';
-    if (error.code === 'auth/email-already-in-use') {
-      message = 'An account with this email already exists. Please sign in instead.';
-    } else if (error.code === 'auth/weak-password') {
-      message = 'Password must be at least 6 characters long.';
-    }
-    return { success: false, message };
-  }
 }
 
 /**

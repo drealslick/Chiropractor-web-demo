@@ -1,3 +1,5 @@
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -156,7 +158,11 @@ export function AgencyWorkspace({
 }: AgencyWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
+  const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('staff');
+  useEffect(() => {
+    if (import.meta.env.VITE_DEMO_MODE === 'true') {setActiveRolePreview('admin');return;}
+    return onAuthStateChanged(auth, async user => { const token=await user?.getIdTokenResult(); setActiveRolePreview((token?.claims.role as UserRole) || 'staff'); });
+  }, []);
   const [selectedLeadToSchedule, setSelectedLeadToSchedule] = useState<PatientLead | null>(null);
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
@@ -394,8 +400,8 @@ export function AgencyWorkspace({
             {/* Quick Role Preview Switcher */}
             <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
               <span className="text-[10px] uppercase font-bold text-stone-400">Role:</span>
-              <select
-                value={activeRolePreview}
+              <select aria-label="Admin option"
+                disabled={import.meta.env.VITE_DEMO_MODE !== 'true'} value={activeRolePreview}
                 onChange={(e) => setActiveRolePreview(e.target.value as UserRole)}
                 className="bg-transparent text-emerald-400 font-bold text-xs cursor-pointer outline-none capitalize"
                 title="Preview admin interface from perspective of staff, editor, or owner"
@@ -563,7 +569,7 @@ export function AgencyWorkspace({
               </div>
 
               {/* Clean Section Dropdown */}
-              <select
+              <select aria-label="Admin option"
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value as AdminTabId)}
                 className="w-full bg-stone-850 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 font-bold cursor-pointer focus:border-emerald-500 focus:outline-none"
@@ -1998,7 +2004,7 @@ export function AgencyWorkspace({
 
                         <div>
                           <label className="block text-xs font-medium text-stone-300 mb-1">Color Theme</label>
-                          <select
+                          <select aria-label="Admin option"
                             value={banner.variant || 'amber'}
                             onChange={(e) =>
                               onUpdateClinic({
@@ -2031,7 +2037,7 @@ export function AgencyWorkspace({
                 clinic={clinic}
                 onUpdateClinic={onUpdateClinic}
                 activeRolePreview={activeRolePreview}
-                onSelectRolePreview={setActiveRolePreview}
+                onSelectRolePreview={role => {if(import.meta.env.VITE_DEMO_MODE === 'true') setActiveRolePreview(role);}}
               />
             )}
 
@@ -2129,7 +2135,7 @@ function Field({
         )}
       </div>
       {textarea ? (
-        <textarea
+        <textarea aria-label={label}
           rows={2}
           placeholder={placeholder}
           className="w-full bg-stone-900 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 focus:outline-none focus:border-emerald-500 transition shadow-inner"

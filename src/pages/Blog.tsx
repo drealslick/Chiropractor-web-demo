@@ -1,3 +1,4 @@
+import { usePageMeta } from '../data/usePageMeta';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
@@ -6,6 +7,7 @@ import { ClinicPost } from '../types';
 import { BookOpen, Calendar, Clock, User, ArrowRight, Sparkles, Search, ChevronRight } from 'lucide-react';
 
 export default function Blog() {
+  usePageMeta('Clinical Blog');
   const { clinicData: clinic, openBookingModal } = useClinic();
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');

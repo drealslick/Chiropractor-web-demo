@@ -53,8 +53,8 @@ export function ClientOnboardingWizard({
     { label: 'Doctor Quote / Philosophy', pass: Boolean(clinic.doctorQuote) },
     { label: 'New Patient Exam Fee', pass: Boolean(clinic.examFee) },
     { label: 'Offer Headline & CTA', pass: Boolean(clinic.offerHeadline && clinic.offerCtaText) },
-    { label: 'Intake Pain Map Enabled', pass: true },
-    { label: 'SMS / Gateway Configured', pass: Boolean(clinic.phoneRaw || clinic.name) },
+    { label: 'Intake reviewed in staging', pass: false },
+    { label: 'SMS / Gateway Configured', pass: false },
   ];
 
   const passedCount = checks.filter((c) => c.pass).length;
@@ -140,7 +140,7 @@ export function ClientOnboardingWizard({
               <div className="text-sm font-semibold text-white flex items-center gap-1">
                 {readinessPercent === 100 ? (
                   <span className="text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Ready for Live
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Content checks complete
                   </span>
                 ) : (
                   <span className="text-amber-400">{passedCount} of {checks.length} checks pass</span>
@@ -588,7 +588,7 @@ export function ClientOnboardingWizard({
                 <div className="text-right">
                   <div className="text-xs text-stone-400">Launch Readiness Status</div>
                   <div className="text-sm font-bold text-emerald-400 flex items-center gap-1 justify-end">
-                    <ShieldCheck className="w-4 h-4" /> 100% Client Ready
+                    <ShieldCheck className="w-4 h-4" /> Content setup checklist
                   </div>
                 </div>
               </div>
@@ -689,7 +689,7 @@ export function ClientOnboardingWizard({
                 className="bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs px-5 py-3 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-950/60 shrink-0"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Confirm & Mark Client Ready</span>
+                <span>Mark checklist reviewed</span>
               </button>
             </div>
 

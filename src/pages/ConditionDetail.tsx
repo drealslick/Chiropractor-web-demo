@@ -43,7 +43,7 @@ export default function ConditionDetail() {
   const { conditionId } = useParams<{ conditionId: string }>();
   const { clinicData: clinic, openBookingModal } = useClinic();
 
-  const list = clinic.customConditions?.length
+  const list = clinic.customConditions !== undefined
     ? clinic.customConditions
     : conditionsData;
 
@@ -115,7 +115,7 @@ export default function ConditionDetail() {
 
   // Cross-Linking: Related Blog Articles
   const allPosts: ClinicPost[] =
-    clinic.customPosts && clinic.customPosts.length > 0
+    clinic.customPosts !== undefined
       ? clinic.customPosts
       : defaultBlogPosts;
 
@@ -140,7 +140,7 @@ export default function ConditionDetail() {
 
   // Cross-Linking: Pricing Fees
   const feeItems =
-    clinic.customFeeItems && clinic.customFeeItems.length > 0
+    clinic.customFeeItems !== undefined
       ? clinic.customFeeItems
       : defaultPricingFees;
 
@@ -154,7 +154,7 @@ export default function ConditionDetail() {
 
   // Resolve specialists treating this condition
   const allTeamMembers: PublicTeamMember[] =
-    clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
+    clinic.publicTeamMembers !== undefined
       ? clinic.publicTeamMembers.filter((m) => m.showOnWebsite !== false)
       : defaultPublicTeamMembers;
 

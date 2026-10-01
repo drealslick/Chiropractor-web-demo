@@ -68,21 +68,9 @@ const CheckoutForm: React.FC<{
           last4: '••••',
           brand: 'Verified Card',
         });
-      } else if (result.paymentIntent && result.paymentIntent.status === 'processing') {
-        onSuccess({
-          paymentIntentId: result.paymentIntent.id,
-          status: 'processing',
-          amount,
-          last4: '••••',
-          brand: 'Processing',
-        });
       } else {
-        // Fallback if status requires offline review
-        onSuccess({
-          paymentIntentId: result.paymentIntent?.id || `pi_${Date.now()}`,
-          status: 'succeeded',
-          amount,
-        });
+        setErrorMessage('Payment is not settled yet. Please follow the bank instructions or check again later.');
+        setIsProcessing(false);
       }
     } catch (err: any) {
       console.error('Stripe confirmation error:', err);
@@ -141,7 +129,7 @@ const CheckoutForm: React.FC<{
 
         <button
           type="button"
-          onClick={onFallbackToDemo}
+          hidden={import.meta.env.VITE_DEMO_MODE !== 'true'} onClick={onFallbackToDemo}
           className="w-full py-2 text-[11px] text-stone-400 hover:text-stone-200 transition text-center cursor-pointer"
         >
           Switch to Interactive Demo Simulator
@@ -185,7 +173,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
       setInitError(null);
 
       if (import.meta.env.VITE_DEMO_MODE === 'true') {
-        notifyDemoAction(`✓ Would charge ${currencySymbol || '£'}${(amount / 100).toFixed(2)} (Demo Mode - card not charged)`);
+        notifyDemoAction(`✓ Would charge ${currencySymbol || '£'}${amount.toFixed(2)} (Demo Mode - card not charged)`);
         onFallbackToDemo('Demo Mode active: Payment is simulated without live card processing.');
         return;
       }
@@ -211,7 +199,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
 
         if (data?.isDemoMode) {
           // Clinic has not connected Stripe or server key not set; gracefully fall back
-          onFallbackToDemo(data.message || 'Clinic operates in interactive demo mode.');
+          setInitError('Online payment is unavailable. No payment has been made.');
           return;
         }
 
@@ -223,13 +211,13 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
           setStripePromise(stripeInstance);
           setClientSecret(data.clientSecret);
         } else {
-          onFallbackToDemo('Stripe keys not available on current deployment.');
+          setInitError('Online payment is not configured. Please contact the clinic.');
         }
       } catch (err: any) {
         console.warn('Stripe initialization notice:', err);
         if (isMounted) {
           // Fall back gracefully to demo preview on failure
-          onFallbackToDemo(err.message || 'Falling back to demo preview.');
+          setInitError(err.message || 'Could not initialize payment. Please try again.');
         }
       } finally {
         if (isMounted) {

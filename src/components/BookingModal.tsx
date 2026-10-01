@@ -1,3 +1,6 @@
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebase';
+import { activeClinicId } from '../services/firebaseSync';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
@@ -96,7 +99,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const cancelNotice = paymentPolicy.cancellationNoticeHours || 24;
 
   const [paymentChoice, setPaymentChoice] = useState<'deposit' | 'full' | 'card_hold' | 'pay_at_clinic'>(() => {
-    if (paymentPolicy.mode === 'card_hold') return 'card_hold';
+    if (paymentPolicy.mode === 'card_hold' && import.meta.env.VITE_DEMO_MODE === 'true') return 'card_hold';
     if (paymentPolicy.mode === 'full') return 'full';
     return 'deposit';
   });
@@ -156,7 +159,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Available practitioners
   const practitioners: PublicTeamMember[] = useMemo(() => {
-    return clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
+    return clinic.publicTeamMembers !== undefined
       ? clinic.publicTeamMembers.filter((m) => m.showOnWebsite !== false)
       : defaultPublicTeamMembers;
   }, [clinic.publicTeamMembers]);
@@ -166,7 +169,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Custom / Specialized Services catalog
   const customServicesList: PricingFeeItem[] = useMemo(() => {
-    if (clinic.customFeeItems && clinic.customFeeItems.length > 0) {
+    if (clinic.customFeeItems !== undefined) {
       return clinic.customFeeItems;
     }
     const sym = clinic.currencySymbol || '£';
@@ -372,7 +375,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   // Effective payment calculation based on active service price
   const parsedActiveFeeNumber = useMemo(() => {
-    const raw = parseInt(activeServiceDetails.price.replace(/[^0-9]/g, ''), 10);
+    const raw = Number(activeServiceDetails.price.replace(/[^0-9.]/g, ''));
     return isNaN(raw) || raw <= 0 ? defaultFullAmt : raw;
   }, [activeServiceDetails.price, defaultFullAmt]);
 
@@ -504,48 +507,40 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const slots: string[] = [];
     for (let cur = startMins; cur + slotDuration <= endMins; cur += intervalMinutes) {
-      if (dayConfig.lunchBreakEnabled && cur >= lunchStartMins && cur < lunchEndMins) {
+      if (dayConfig.lunchBreakEnabled && cur < lunchEndMins && cur + slotDuration > lunchStartMins) {
         continue;
       }
       slots.push(formatMinutesTo12h(cur));
     }
 
     if (slots.length === 0) {
-      return currentDay.isSaturday
-        ? ['9:30 AM', '10:15 AM', '11:00 AM', '11:45 AM', '12:30 PM']
-        : ['9:00 AM', '10:00 AM', '11:15 AM', '1:45 PM', '3:00 PM', '4:15 PM', '5:00 PM'];
+      return [];
     }
 
     return slots;
   }, [currentDay, schedulingRules, activeServiceDetails.durationMinutes, serviceType]);
 
-  // Determine taken/booked slots strictly from actual recorded leads
-  const takenSlotsForDay = useMemo(() => {
-    if (!currentDay) return new Set<string>();
-    const taken = new Set<string>();
-
-    try {
-      const stored = localStorage.getItem('agency_patient_leads_v1');
-      if (stored) {
-        const leads = JSON.parse(stored);
-        leads.forEach((l: { date?: string; time?: string; status?: string; practitionerId?: string }) => {
-          if (l.date === currentDay.dateString && l.time && l.status !== 'archived' && l.status !== 'cancelled') {
-            if (selectedPractitionerId) {
-              if (l.practitionerId === selectedPractitionerId) {
-                taken.add(l.time);
-              }
-            } else {
-              taken.add(l.time);
-            }
-          }
-        });
-      }
-    } catch {
-      // ignore
+  const [busyIntervals, setBusyIntervals] = useState<{start:number;end:number}[]>([]);
+  const [availabilityError, setAvailabilityError] = useState('');
+  const toMinutes = (value:string) => { const m=/(\d+):(\d+)\s*(AM|PM)?/i.exec(value); if(!m)return -1;return (m[3] ? +m[1]%12+(m[3].toUpperCase()==='PM'?12:0) : +m[1])*60 + +m[2]; };
+  useEffect(() => {
+    let cancelled=false;
+    setAvailabilityError(''); setBusyIntervals([]);
+    if (!isOpen || !currentDay) return;
+    if (import.meta.env.VITE_DEMO_MODE === 'true') {
+      const rows=getStoredLeads().filter(l=>l.date===currentDay.dateString && !['cancelled','archived','waitlist'].includes(l.status) && (!selectedPractitionerId || l.practitionerId===selectedPractitionerId || l.practitionerName===selectedPractitioner?.name));
+      setBusyIntervals(rows.map(l=>({start:toMinutes(l.time || ''),end:toMinutes(l.time || '')+(l.durationMinutes || 45)+(schedulingRules.bufferTimeMinutes || 0)})));
+      return;
     }
-
-    return taken;
-  }, [currentDay, step, selectedPractitionerId]);
+    httpsCallable(functions,'getAvailability')({clinicId:activeClinicId(),practitionerId:selectedPractitionerId || practitioners[0]?.id,date:currentDay.dateString})
+      .then(r=>{if(!cancelled)setBusyIntervals(r.data as any);})
+      .catch(()=>{if(!cancelled)setAvailabilityError('Availability is unavailable. Please try again or contact the clinic.');});
+    return ()=>{cancelled=true;};
+  },[isOpen,currentDay?.dateString,selectedPractitionerId,step]);
+  const takenSlotsForDay = useMemo(() => new Set(allSlots.filter(time=>{
+    const start=toMinutes(time);const end=start+activeServiceDetails.durationMinutes+(schedulingRules.bufferTimeMinutes || 0);
+    return !!availabilityError || busyIntervals.some(slot=>start<slot.end && slot.start<end);
+  })),[allSlots,busyIntervals,availabilityError,activeServiceDetails.durationMinutes,schedulingRules.bufferTimeMinutes]);
 
   const handlePractitionerChange = (docId: string) => {
     setSelectedPractitionerId(docId);
@@ -621,6 +616,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       date: currentDay.dateString,
       time: slot,
       serviceType: activeServiceDetails.type,
+          serviceId: activeServiceDetails.id,
+          clinicId: activeClinicId(),
+          locationId: context.activeLocation?.id,
+          locationName: context.activeLocation?.name,
+          locationAddress: context.activeLocation?.address,
       serviceTitle: activeServiceDetails.title,
       servicePrice: activeServiceDetails.price,
       serviceDuration: activeServiceDetails.durationMinutes,
@@ -644,7 +644,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       if (formData.name) url.searchParams.set('name', formData.name);
       if (firstName) url.searchParams.set('first_name', firstName);
       if (lastName) url.searchParams.set('last_name', lastName);
-      if (formData.email) url.searchParams.set('email', formData.email);
+
       if (formData.phone) url.searchParams.set('phone', formData.phone);
       if (formData.condition) {
         url.searchParams.set('condition', formData.condition);
@@ -654,7 +654,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     } catch {
       const params = new URLSearchParams();
       if (formData.name) params.set('name', formData.name);
-      if (formData.email) params.set('email', formData.email);
+
       if (formData.phone) params.set('phone', formData.phone);
       if (formData.condition) params.set('condition', formData.condition);
       const q = params.toString();
@@ -664,7 +664,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   }, [clinic.externalBookingUrl, formData]);
 
-  const handleSubmitStep3 = (e: React.FormEvent) => {
+  const handleSubmitStep3 = async (e: React.FormEvent) => {
+try {
+
     e.preventDefault();
 
     if (honeypot) {
@@ -684,13 +686,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (isPaymentEnabled) {
       if (!createdBookingRefId) {
-        const saved = saveLead({
+        const saved = await saveLead({
           source: 'booking',
           name: formData.name,
           phone: formData.phone,
           email: formData.email,
           condition: formData.condition || activeServiceDetails.title,
           serviceType: activeServiceDetails.type,
+          serviceId: activeServiceDetails.id,
+          clinicId: activeClinicId(),
+          locationId: context.activeLocation?.id,
+          locationName: context.activeLocation?.name,
+          locationAddress: context.activeLocation?.address,
           serviceTitle: activeServiceDetails.title,
           practitionerId: formData.preferredPractitionerId,
           practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
@@ -707,13 +714,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setStep(4);
     } else {
       // Direct booking without payment
-      const saved = saveLead({
+      const saved = await saveLead({
         source: 'booking',
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
         condition: formData.condition || activeServiceDetails.title,
         serviceType: activeServiceDetails.type,
+          serviceId: activeServiceDetails.id,
+          clinicId: activeClinicId(),
+          locationId: context.activeLocation?.id,
+          locationName: context.activeLocation?.name,
+          locationAddress: context.activeLocation?.address,
         serviceTitle: activeServiceDetails.title,
         practitionerId: formData.preferredPractitionerId,
         practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
@@ -728,59 +740,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCreatedBookingRefId(saved.id);
       setStep(4);
     }
-  };
 
-  const handleStripePaymentSuccess = (details: {
-    paymentIntentId: string;
-    status: string;
-    amount: number;
-    last4?: string;
-    brand?: string;
-  }) => {
-    const statusMap = {
-      deposit: 'deposit_paid' as const,
-      full: 'paid_full' as const,
-      card_hold: 'card_hold' as const,
-      pay_at_clinic: 'unpaid' as const,
-    };
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
-    const paymentDetail = {
-      status: statusMap[paymentChoice],
-      amount: `${currency}${details.amount}.00`,
-      method: 'card' as const,
-      last4: details.last4 || '••••',
-      brand: details.brand || 'Verified Stripe Card',
-      transactionId: details.paymentIntentId,
-    };
-
-    setConfirmedPaymentDetails(paymentDetail);
-
-    // Save lead with full payment & multi-service tracking
-    const saved = saveLead({
-      id: createdBookingRefId || undefined,
-      source: 'booking',
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      condition: formData.condition || activeServiceDetails.title,
-      serviceType: activeServiceDetails.type,
-      serviceTitle: activeServiceDetails.title,
-      practitionerId: formData.preferredPractitionerId,
-      practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
-      date: formData.date,
-      time: formData.time,
-      durationMinutes: activeServiceDetails.durationMinutes,
-      clinicName: clinic.name,
-      notes: `Stripe Payment ID: ${details.paymentIntentId}. Amount: ${currency}${details.amount}.00 (${paymentChoice}). Status: ${details.status}. Service: ${activeServiceDetails.title}`,
-      status: 'confirmed',
-      paymentStatus: statusMap[paymentChoice],
-      paymentAmount: `${currency}${details.amount}.00`,
-      paymentMethod: 'card',
-      transactionId: details.paymentIntentId,
-    });
-
-    setCreatedBookingRefId(saved.id);
-    setStep(isPaymentEnabled ? 5 : 4);
+  const handleStripePaymentSuccess = async (_details: {paymentIntentId:string;status:string;amount:number;last4?:string;brand?:string}) => {
+    try {
+      const result = await httpsCallable(functions, 'verifyAppointmentPayment')({appointmentId:createdBookingRefId});
+      const paid = result.data as any;
+      setConfirmedPaymentDetails({status:paid.paymentStatus,amount:paid.paymentAmount,method:'card',last4:'',brand:'Card',transactionId:paid.stripePaymentIntentId});
+      setStep(isPaymentEnabled ? 5 : 4);
+    } catch (error:any) { alert(error.message || 'Waiting for payment verification. Please check your portal.'); }
   };
 
   const handleTriggerWallet = (wallet: 'apple_pay' | 'google_pay') => {
@@ -788,6 +758,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleExecutePayment = (method: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash' = 'card') => {
+    if (import.meta.env.VITE_DEMO_MODE !== 'true') {
+      if (paymentChoice === 'pay_at_clinic') { setConfirmedPaymentDetails({status:'unpaid',amount:`${currency}0.00`,method:'clinic_cash',last4:'',brand:'Pay on arrival',transactionId:''}); setStep(5); }
+      else alert('Use secure checkout to pay.');
+      return;
+    }
     if (method === 'card' && paymentChoice !== 'pay_at_clinic') {
       const cleanNum = cardNumber.replace(/\s+/g, '');
       if (cleanNum.length < 15) {
@@ -806,7 +781,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     setIsProcessingPayment(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
+try {
+
       setIsProcessingPayment(false);
       setActiveWalletModal(null);
 
@@ -841,7 +818,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setConfirmedPaymentDetails(paymentDetail);
 
       // Save lead with full payment & multi-service tracking
-      const saved = saveLead({
+      const saved = await saveLead({
         id: createdBookingRefId || undefined,
         source: 'booking',
         name: formData.name,
@@ -849,6 +826,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         email: formData.email,
         condition: formData.condition || activeServiceDetails.title,
         serviceType: activeServiceDetails.type,
+          serviceId: activeServiceDetails.id,
+          clinicId: activeClinicId(),
+          locationId: context.activeLocation?.id,
+          locationName: context.activeLocation?.name,
+          locationAddress: context.activeLocation?.address,
         serviceTitle: activeServiceDetails.title,
         practitionerId: formData.preferredPractitionerId,
         practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
@@ -869,7 +851,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCreatedBookingRefId(saved.id);
 
       setStep(5);
-    }, 1100);
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+}, 1100);
   };
 
   const resetAndClose = () => {
@@ -1342,6 +1326,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto pr-1">
+                          {availabilityError && <p role="alert">{availabilityError}</p>}
                           {allSlots.map((slot) => {
                             const isTaken = takenSlotsForDay.has(slot);
                             const isSelected = formData.time === slot && formData.date === currentDay?.dateString;
@@ -1610,7 +1595,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           </button>
 
                           {/* Option 2: Card Hold Guarantee */}
-                          <button
+                          <button hidden={import.meta.env.VITE_DEMO_MODE !== 'true'}
                             type="button"
                             onClick={() => setPaymentChoice('card_hold')}
                             className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
@@ -1663,7 +1648,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 <span>Pay on Arrival</span>
                               </div>
                               <p className="text-[11px] text-stone-600 mt-1 leading-snug">
-                                Pay {currency}{effectiveFullAmt} at reception. Requires phone verification.
+                                Pay {currency}{effectiveFullAmt} at reception. Payment is due at your appointment.
                               </p>
                             </button>
                           )}
@@ -1689,7 +1674,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                               <CreditCard className="w-3.5 h-3.5" />
                               <span>Stripe Elements (Live)</span>
                             </button>
-                            <button
+                            <button hidden={import.meta.env.VITE_DEMO_MODE !== 'true'}
                               type="button"
                               onClick={() => setCheckoutMode('simulator')}
                               className={`flex-1 py-1.5 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -1727,7 +1712,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             onSuccess={handleStripePaymentSuccess}
                             onFallbackToDemo={(reason) => {
                               if (reason) setElementsFallbackNotice(reason);
-                              setCheckoutMode('simulator');
+                              if (import.meta.env.VITE_DEMO_MODE === 'true') setCheckoutMode('simulator');
                             }}
                           />
                         </div>
@@ -1942,7 +1927,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           </button>
                         </div>
                         <p className="text-[11px] text-stone-400 leading-snug">
-                          Use this unguessable reference passkey to log into your <strong>Patient Portal</strong>, print medical insurance receipts, or reschedule online.
+                          Keep this booking reference. Use your linked account or this browser session to open your <strong>Patient Portal</strong> and manage the appointment.
                         </p>
                       </div>
 
@@ -2019,7 +2004,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 Slot Guaranteed & Receipt Dispatched
                               </strong>
                               <span className="text-stone-600 text-[11px] leading-tight">
-                                Your appointment is reserved in our clinical schedule. Confirmation dispatched to {formData.email}.
+                                Your appointment is reserved in our clinical schedule. Keep your booking reference to contact the clinic.
                               </span>
                             </div>
                           </div>

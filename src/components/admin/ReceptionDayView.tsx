@@ -207,7 +207,9 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     setDragOverSlot(null);
   };
 
-  const handleDrop = (e: React.DragEvent, targetDoctor: string, targetTime: string) => {
+  const handleDrop = async (e: React.DragEvent, targetDoctor: string, targetTime: string) => {
+try {
+
     e.preventDefault();
     setDragOverSlot(null);
     const leadId = e.dataTransfer.getData('text/plain') || draggedLeadId;
@@ -217,7 +219,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     if (!leadToMove) return;
 
     // Update appointment with new time, doctor, and date
-    updateLeadDetails(leadId, {
+    await updateLeadDetails(leadId, {
       date: selectedDate,
       time: targetTime,
       practitionerName: targetDoctor,
@@ -232,64 +234,93 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     }, 3500);
 
     setDraggedLeadId(null);
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   // Patient profile action handlers
-  const handleCheckInPatient = (lead: PatientLead) => {
-    updateLeadStatus(lead.id, 'checked_in');
+  const handleCheckInPatient = async (lead: PatientLead) => {
+try {
+
+    await updateLeadStatus(lead.id, 'checked_in');
     setSelectedPatient({ ...lead, status: 'checked_in' });
-  };
 
-  const handleConfirmPatient = (lead: PatientLead) => {
-    updateLeadStatus(lead.id, 'confirmed');
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleConfirmPatient = async (lead: PatientLead) => {
+try {
+
+    await updateLeadStatus(lead.id, 'confirmed');
     setSelectedPatient({ ...lead, status: 'confirmed' });
-  };
 
-  const handleCancelPatient = (lead: PatientLead) => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleCancelPatient = async (lead: PatientLead) => {
+try {
+
     if (confirm(`Cancel appointment for ${lead.name}?`)) {
-      updateLeadStatus(lead.id, 'cancelled', 'Cancelled by front desk via calendar profile');
+      await updateLeadStatus(lead.id, 'cancelled', 'Cancelled by front desk via calendar profile');
       setSelectedPatient(null);
     }
-  };
 
-  const handleSaveStaffNote = () => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleSaveStaffNote = async () => {
+try {
+
     if (!selectedPatient || !newStaffNote.trim()) return;
     const existingNotes = selectedPatient.notes ? `${selectedPatient.notes}\n` : '';
     const timeStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const updatedNotes = `${existingNotes}[${timeStamp} Staff Note]: ${newStaffNote.trim()}`;
-    updateLeadDetails(selectedPatient.id, { notes: updatedNotes });
+    await updateLeadDetails(selectedPatient.id, { notes: updatedNotes });
     setSelectedPatient({ ...selectedPatient, notes: updatedNotes });
     setNewStaffNote('');
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   // Payment action handlers for Receptionist
-  const handleMarkBalancePaid = (patient: PatientLead) => {
-    updateLeadPayment(patient.id, {
+  const handleMarkBalancePaid = async (patient: PatientLead) => {
+try {
+
+    await updateLeadPayment(patient.id, {
       paymentStatus: 'paid_full',
-      paymentAmount: '£49.00',
+      paymentAmount: new Intl.NumberFormat('en-US',{style:'currency',currency:patient.currency || 'USD'}).format((patient.priceMinor || 0)/100),
+      paymentMethod: 'clinic_cash',
       notesAppend: 'Balance settled at reception on arrival.',
     });
     setSelectedPatient((prev) =>
-      prev ? { ...prev, paymentStatus: 'paid_full', paymentAmount: '£49.00' } : null
+      prev ? { ...prev, paymentStatus: 'paid_full', amountPaid:(prev.priceMinor || 0)/100 } : null
     );
-  };
 
-  const handleChargeNoShowFee = (patient: PatientLead) => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleChargeNoShowFee = async (patient: PatientLead) => {
+try {
+
     const fee = '£35.00';
     if (confirm(`Authorize no-show penalty fee of ${fee} to ${patient.name}'s card on file?`)) {
-      updateLeadPayment(patient.id, {
+      await updateLeadPayment(patient.id, {
         notesAppend: `No-show fee of ${fee} charged to card ending in ${patient.cardLast4 || 'file'} due to patient non-attendance.`,
       });
-      updateLeadStatus(patient.id, 'cancelled', 'No-show / fee charged');
+      await updateLeadStatus(patient.id, 'cancelled', 'No-show / fee charged');
       setSelectedPatient((prev) =>
         prev ? { ...prev, status: 'cancelled', notes: `${prev.notes} • [No-Show fee ${fee} charged]` } : null
       );
     }
-  };
 
-  const handleRefundPayment = (patient: PatientLead) => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleRefundPayment = async (patient: PatientLead) => {
+try {
+
     if (confirm(`Issue full deposit refund of ${patient.paymentAmount || '£25'} to ${patient.name}'s original card?`)) {
-      updateLeadPayment(patient.id, {
+      await updateLeadPayment(patient.id, {
         paymentStatus: 'refunded',
         notesAppend: `Deposit of ${patient.paymentAmount || '£25'} refunded to card ending in ${patient.cardLast4 || 'file'} per 24h cancellation guarantee.`,
       });
@@ -297,7 +328,9 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
         prev ? { ...prev, paymentStatus: 'refunded' } : null
       );
     }
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   // Day's active appointments
   const dayBookings = leads.filter(
@@ -858,7 +891,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                       onClick={() => handleMarkBalancePaid(selectedPatient)}
                       className="flex-1 py-1.5 px-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-200 text-[11px] font-bold rounded-lg transition cursor-pointer"
                     >
-                      Mark Paid at Desk (£49)
+                      Record Cash Payment
                     </button>
                   )}
                   {selectedPatient.paymentStatus !== 'refunded' && (
@@ -872,10 +905,10 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                   )}
                   <button
                     type="button"
-                    onClick={() => handleChargeNoShowFee(selectedPatient)}
+                    disabled={import.meta.env.VITE_DEMO_MODE !== "true"} title="Automatic no-show charges require a separately authorized saved payment method" onClick={() => handleChargeNoShowFee(selectedPatient)}
                     className="py-1.5 px-2 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-200 text-[11px] font-bold rounded-lg transition cursor-pointer"
                   >
-                    Charge No-Show (£35)
+                    {import.meta.env.VITE_DEMO_MODE === 'true' ? 'Simulate No-Show Fee' : 'No-Show Charging Unavailable'}
                   </button>
                 </div>
               </div>

@@ -18,14 +18,14 @@ service cloud.firestore {
 
     function isClinicAdmin(clinicId) {
       return isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         (hasRole('admin') && getUserClinicId() == clinicId)
       );
     }
 
     function isClinicStaff(clinicId) {
       return isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         ((hasRole('admin') || hasRole('staff')) && getUserClinicId() == clinicId)
       );
     }
@@ -38,28 +38,28 @@ service cloud.firestore {
     // Staff CANNOT modify theme or settings; ONLY clinic admins can update
     match /clinics/{clinicId} {
       allow read: if true;
-      allow update: if isClinicAdmin(clinicId);
+      allow update: if isClinicAdmin(clinicId) || (hasRole('editor') && getUserClinicId() == clinicId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['customPosts','heroHook','heroSubhead','heroBadge','heroUrgentPain','customConditions','publicTeamMembers','customReviews','customFaqs','heroImage','doctorImage','clinicImage','lastActive','updatedAt']));
       allow create: if isClinicAdmin(clinicId);
-      allow delete: if isAuthenticated() && request.auth.token.superAdmin == true;
+      allow delete: if isAuthenticated() && request.auth.token.get('superAdmin', false) == true;
     }
 
     // 1.5. Clinic Settings (Sensitive integrations, Stripe keys, webhook secrets)
     // ONLY authenticated Clinic Admins can read or write
     match /clinic_settings/{settingId} {
       allow read: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         isClinicAdmin(resource.data.clinicId)
       );
       allow create: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         isClinicAdmin(request.resource.data.clinicId)
       );
       allow update: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         (isClinicAdmin(resource.data.clinicId) && isClinicAdmin(request.resource.data.clinicId))
       );
       allow delete: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         isClinicAdmin(resource.data.clinicId)
       );
     }
@@ -71,7 +71,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if false; // Provisioned exclusively via Cloud Functions
       allow update: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         (
           resource != null &&
           isClinicAdmin(resource.data.primaryClinicId) &&
@@ -85,9 +85,13 @@ service cloud.firestore {
     // Strictly confidential: Not readable or writable by the public or non-admin users
     match /clinic_config_private/{configId} {
       allow read, write: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        request.auth.token.get('superAdmin', false) == true ||
         (resource != null && isClinicAdmin(resource.data.primaryClinicId))
       );
+    }
+
+    match /clinic_drafts/{clinicId} {
+      allow read, write: if isClinicAdmin(clinicId) || (hasRole('editor') && getUserClinicId() == clinicId);
     }
 
     // 2. Users Collection
@@ -95,44 +99,29 @@ service cloud.firestore {
     // Staff can read patient profiles; only Clinic Admins can promote roles.
     match /users/{userId} {
       allow read: if isOwner(userId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
-      allow create: if isAuthenticated() && request.auth.uid == userId
-                     && (!('role' in request.resource.data) || request.resource.data.role == 'patient');
-      allow update: if (
-        isOwner(userId) && 
-        (!('role' in request.resource.data) || request.resource.data.role == resource.data.role) &&
-        (!('clinicId' in request.resource.data) || request.resource.data.clinicId == resource.data.clinicId)
-      ) || (isAuthenticated() && isClinicAdmin(resource.data.clinicId));
-      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
+      allow create: if isOwner(userId) && request.resource.data.keys().hasOnly(['id', 'name', 'displayName', 'email', 'phone', 'createdAt']);
+      allow update: if isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['name', 'displayName', 'phone']);
+      allow delete: if false;
+
     }
 
     // 3. Appointments Collection
     // Strict isolation: Patients can only access their own appointments
     // Staff/Doctors can access appointments for their clinic
-    // Public booking creation allowed for unauthenticated patient web intake
     match /appointments/{appointmentId} {
       allow read: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
                      (isAuthenticated() && isClinicStaff(resource.data.clinicId));
-      
-      allow create: if true;
 
-      allow update: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
-                      (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+      // Reservations and settlement are validated by the server's transaction API.
+      allow create, update, delete: if false;
 
-      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
-    }
-
-    // Patients Collection Alias (maps to Users for backward compatibility)
-    match /patients/{patientId} {
-      allow read: if isOwner(patientId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
-      allow create: if isOwner(patientId) || !isAuthenticated();
-      allow update: if isOwner(patientId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
-      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
     // 4. Inquiries / Leads Collection
     // Public can create (website contact form), but only clinic staff can read/manage
     match /inquiries/{inquiryId} {
-      allow create: if true;
+      allow create: if false;
       allow read, update: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
       allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
@@ -141,42 +130,57 @@ service cloud.firestore {
     // Public read; staff can write
     match /conditions/{conditionId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId)
+        && request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
     }
 
     match /teamMembers/{memberId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId)
+        && request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
     }
 
     match /blogPosts/{postId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId)
+        && request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
     }
 
     match /testimonials/{testimonialId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId)
+        && request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
     }
 
     match /faqs/{faqId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId)
+        && request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
     }
 
     // 6. Support Tickets (Scoped by clinicId)
     match /tickets/{ticketId} {
       allow read: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
-        resource.data.clinicId == request.auth.token.clinicId
+        request.auth.token.get('superAdmin', false) == true ||
+        isClinicStaff(resource.data.clinicId)
       );
       allow create: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
-        request.resource.data.clinicId == request.auth.token.clinicId
+        request.auth.token.get('superAdmin', false) == true ||
+        request.isClinicStaff(resource.data.clinicId)
       );
       allow update: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
-        resource.data.clinicId == request.auth.token.clinicId
+        request.auth.token.get('superAdmin', false) == true ||
+        isClinicStaff(resource.data.clinicId)
       );
       allow delete: if false;
     }
@@ -190,8 +194,8 @@ service cloud.firestore {
     // 8. Invoices (Scoped by clinicId, no client write)
     match /invoices/{invoiceId} {
       allow read: if isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
-        resource.data.clinicId == request.auth.token.clinicId
+        request.auth.token.get('superAdmin', false) == true ||
+        isClinicStaff(resource.data.clinicId)
       );
       allow write: if false;
     }
@@ -203,7 +207,7 @@ service cloud.firestore {
 
     // 10. Diagnostics check collection
     match /_diag/{diagId} {
-      allow read, write, delete: if true;
+      allow read, write: if false;
     }
   }
 }

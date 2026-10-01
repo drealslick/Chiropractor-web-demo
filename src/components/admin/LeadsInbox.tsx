@@ -77,40 +77,56 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
     return () => window.removeEventListener('leads_updated', handleUpdate);
   }, []);
 
-  const handleStatusChange = (id: string, status: PatientLead['status']) => {
+  const handleStatusChange = async (id: string, status: PatientLead['status']) => {
+try {
+
     const targetLead = leads.find((l) => l.id === id);
     if (status === 'booked' && targetLead) {
       // Trigger receptionist modal to prompt calendar assignment
       setBookingPromptLead(targetLead);
       return;
     }
-    const updated = updateLeadStatus(id, status);
+    const updated = await updateLeadStatus(id, status);
     setLeads(updated);
-  };
 
-  const handleConfirmAssignToCalendar = () => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleConfirmAssignToCalendar = async () => {
+try {
+
     if (!bookingPromptLead) return;
-    const updated = updateLeadStatus(bookingPromptLead.id, 'booked');
+    const updated = await updateLeadStatus(bookingPromptLead.id, 'booked');
     setLeads(updated);
     if (onAssignToCalendar) {
       onAssignToCalendar(bookingPromptLead);
     }
     setBookingPromptLead(null);
-  };
 
-  const handleConfirmJustBooked = () => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleConfirmJustBooked = async () => {
+try {
+
     if (!bookingPromptLead) return;
-    const updated = updateLeadStatus(bookingPromptLead.id, 'booked');
+    const updated = await updateLeadStatus(bookingPromptLead.id, 'booked');
     setLeads(updated);
     setBookingPromptLead(null);
-  };
 
-  const handleDelete = (id: string) => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleDelete = async (id: string) => {
+try {
+
     if (confirm('Delete this inquiry record?')) {
-      const updated = deleteLead(id);
+      const updated = await deleteLead(id);
       setLeads(updated);
     }
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   const handleClearAll = () => {
     if (confirm('Clear all stored leads? This cannot be undone.')) {
@@ -119,13 +135,15 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
     }
   };
 
-  const handleAddDemoLead = () => {
+  const handleAddDemoLead = async () => {
+try {
+
     const names = ['Sarah Jenkins', 'Marcus Vance', 'David Chen', 'Emma Watson', 'Robert Taylor'];
     const randomName = names[Math.floor(Math.random() * names.length)];
     const conditions = ['Sciatica & Lumbar Pain', 'Neck Stiffness / Tech Neck', 'Sports Injury Assessment', 'Migraine & Posture'];
     const randomCond = conditions[Math.floor(Math.random() * conditions.length)];
-    
-    saveLead({
+
+    await saveLead({
       source: 'booking',
       name: randomName,
       phone: '+44 7700 900' + Math.floor(100 + Math.random() * 900),
@@ -137,7 +155,9 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
       clinicName,
       status: 'new',
     });
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   const filtered = leads.filter((l) => {
     if (filter !== 'all' && l.status !== filter) return false;

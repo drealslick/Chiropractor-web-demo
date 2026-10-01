@@ -54,7 +54,7 @@ export default function FirstVisit() {
   };
 
   const steps: ProcessStep[] =
-    clinic.customFirstVisitSteps && clinic.customFirstVisitSteps.length > 0
+    clinic.customFirstVisitSteps !== undefined
       ? clinic.customFirstVisitSteps
       : firstVisitSteps;
 
@@ -96,7 +96,7 @@ export default function FirstVisit() {
   return (
     <div className="min-h-screen bg-stone-50/70 py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-12 sm:space-y-16">
-        
+
         {/* 1. HERO SECTION: 2-COLUMN SPLIT LAYOUT ON DESKTOP */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Headlines & Reassurance Microcopy */}
@@ -244,7 +244,7 @@ export default function FirstVisit() {
 
         {/* 3. "BEFORE YOU ARRIVE" & "GETTING HERE" (2-COLUMN GRID ON DESKTOP) */}
         <section id="before-you-arrive" className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
-          
+
           {/* Left Column: Before You Arrive (Icon-Driven Checklist) */}
           <div className="p-6 sm:p-7 bg-white border border-stone-200/90 rounded-3xl shadow-sm space-y-5">
             <div className="space-y-1 border-b border-stone-100 pb-3">

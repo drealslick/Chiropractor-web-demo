@@ -96,7 +96,7 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-md animate-pulse">
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-700 text-white text-[10px] font-black flex items-center justify-center shadow-md">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

@@ -83,7 +83,7 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
 
   const handleSaveAll = () => {
     saveGatewaySettings(settings);
-    setSavedNotification('Gateway credentials, triggers & templates saved successfully!');
+    setSavedNotification('Template preferences saved. Provider credentials are managed on the server.');
     setTimeout(() => setSavedNotification(null), 3000);
   };
 
@@ -160,7 +160,7 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
             <span>Live SMS & Communication Gateway</span>
           </h3>
           <p className="text-xs text-stone-400 mt-0.5">
-            Connect live Twilio SMS credentials, configure automated patient appointment reminders, and preview interactive dispatches.
+            Preview notification templates and send appointment messages. Provider credentials are managed on the server; scheduled reminders require a separate scheduler.
           </p>
         </div>
 
@@ -237,7 +237,7 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
       {/* ------------------- SUBTAB 1: INTERACTIVE SIMULATOR & TEST SENDER ------------------- */}
       {activeSubTab === 'simulator' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+
           {/* Left Column: Live Test Sender Panel */}
           <div className="lg:col-span-6 space-y-4">
             <div className="p-5 bg-stone-850 border border-stone-800 rounded-2xl space-y-4">
@@ -825,7 +825,7 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
                     </label>
                     <input
                       type="password"
-                      value={settings.twilioAuthToken}
+                      disabled aria-label="Configure this credential on the server" value="Configured on server"
                       onChange={(e) => handleUpdateSetting('twilioAuthToken', e.target.value)}
                       placeholder="••••••••••••••••••••••••••••••••"
                       className="w-full px-3 py-2 bg-stone-950 border border-stone-700 rounded-lg text-xs text-stone-100 font-mono focus:border-emerald-500 focus:outline-none"
@@ -870,7 +870,7 @@ export const LiveGatewayManager: React.FC<LiveGatewayManagerProps> = ({ clinic, 
                   </label>
                   <input
                     type="password"
-                    value={settings.webhookSecret}
+                    disabled aria-label="Configure this credential on the server" value="Configured on server"
                     onChange={(e) => handleUpdateSetting('webhookSecret', e.target.value)}
                     placeholder="Bearer secret-token-xyz"
                     className="w-full px-3 py-2 bg-stone-950 border border-stone-700 rounded-lg text-xs text-stone-100 font-mono focus:border-emerald-500 focus:outline-none"

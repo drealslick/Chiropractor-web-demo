@@ -1,9 +1,12 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode, useCallback } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { initialClinic } from './siteDefaults';
+import { defaultPublicTeamMembers } from './defaultTeamData';
+import { subscribeToAppointments } from '../services/firebaseSync';
+import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode, useCallback, useRef } from 'react';
+import { doc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
+import { onIdTokenChanged } from 'firebase/auth';
 import { db, auth, isFirebaseConfigured } from '../lib/firebase';
 import { ClinicInfo, ClinicLocation } from '../types';
-import { defaultClinic, defaultLocations } from './clinicData';
+import { defaultClinic, defaultLocations, defaultSchedulingRules } from './clinicData';
 import { agencyDemoPresets } from './presets';
 import { LoadingScreen } from '../components/LoadingScreen';
 
@@ -11,16 +14,7 @@ export const STORAGE_KEY = 'agency_clinic_config_v1';
 export const CACHE_KEY = 'clinic_config';
 
 export function getActiveClinicId(): string {
-  if (typeof window === 'undefined') return 'columbus-chiropractic';
-  const params = new URLSearchParams(window.location.search);
-  const id =
-    params.get('clinic') ||
-    params.get('clinicId') ||
-    params.get('client') ||
-    params.get('preset') ||
-    params.get('demo') ||
-    import.meta.env.VITE_CLINIC_ID;
-  return id ? id.toLowerCase().trim() : 'columbus-chiropractic';
+  return import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
 }
 
 export type SyncStatus = 'idle' | 'saving' | 'synced' | 'local_only' | 'error';
@@ -81,9 +75,7 @@ function sanitize(clinic: ClinicInfo) {
 }
 
 function getInitialClinic(): { data: ClinicInfo; hasCache: boolean } {
-  const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
-  const presetData = agencyDemoPresets[defaultPresetKey] || {};
-  const baseClinic = { ...defaultClinic, ...presetData };
+  const baseClinic = initialClinic;
   try {
     const saved = localStorage.getItem(CACHE_KEY) || localStorage.getItem(STORAGE_KEY);
     if (saved) return { data: { ...baseClinic, ...JSON.parse(saved) }, hasCache: true };
@@ -94,6 +86,29 @@ function getInitialClinic(): { data: ClinicInfo; hasCache: boolean } {
 }
 
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const privatePosts = useRef<any[]>([]);
+  const draftsReady = useRef(import.meta.env.VITE_DEMO_MODE === 'true');
+  useEffect(() => subscribeToAppointments(() => {}), []);
+  useEffect(() => {
+    if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) return;
+    let stop = () => {};
+    let generation = 0;
+    const stopAuth = onIdTokenChanged(auth, async user => {
+      const current = ++generation;
+      stop(); privatePosts.current=[]; draftsReady.current=false;
+      setClinicData(prev=>({...prev,customPosts:prev.customPosts?.filter(p=>p.status!=='draft')}));
+      if (!user) return;
+      const token = await user.getIdTokenResult();
+      if (current !== generation) return;
+      if (!['admin','editor'].includes(String(token.claims.role)) || token.claims.clinicId !== getActiveClinicId()) return;
+      stop = onSnapshot(doc(db,'clinic_drafts',getActiveClinicId()), snap=>{
+        privatePosts.current = snap.data()?.posts || [];
+        draftsReady.current=true;
+        setClinicData(prev=>({...prev,customPosts:[...(prev.customPosts || []).filter(p=>p.status!=='draft'),...privatePosts.current]}));
+      });
+    });
+    return () => {++generation;stop();stopAuth();};
+  }, []);
   const initial = useMemo(() => getInitialClinic(), []);
   const [clinicData, setClinicData] = useState<ClinicInfo>(initial.data);
   const [isConfigLoaded, setIsConfigLoaded] = useState<boolean>(initial.hasCache);
@@ -116,7 +131,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       return;
     }
     try {
-      unsubAuth = onAuthStateChanged(auth, () => {
+      unsubAuth = onIdTokenChanged(auth, () => {
         setIsAuthReady(true);
       });
     } catch {
@@ -236,6 +251,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               const merged: ClinicInfo = {
                 ...prev,
                 ...data,
+                customPosts: [...(data.customPosts || []).filter((p:any)=>p.status!=='draft'),...privatePosts.current],
                 id: data.id || activeId,
                 name: data.name || prev.name,
                 doctorName: data.doctorName || prev.doctorName,
@@ -247,8 +263,8 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 notes: data.notes || prev.notes,
               };
               try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify(merged));
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                localStorage.setItem(CACHE_KEY, JSON.stringify({...merged,customPosts:merged.customPosts?.filter(p=>p.status!=='draft')}));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({...merged,customPosts:merged.customPosts?.filter(p=>p.status!=='draft')}));
               } catch {
                 // ignore
               }
@@ -279,19 +295,20 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, []);
 
-  const persist = useCallback((clinic: ClinicInfo) => {
-    const payload = sanitize(clinic);
+  const persist = useCallback(async (clinic: ClinicInfo) => {
+    const payload = sanitize({...clinic,customPosts:clinic.customPosts?.filter(p=>p.status!=='draft') || []});
+    const drafts = (clinic.customPosts || []).filter(p=>p.status==='draft');
     const activeId = getActiveClinicId();
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(import.meta.env.VITE_DEMO_MODE === 'true' ? clinic : payload));
+      localStorage.setItem(CACHE_KEY, JSON.stringify(import.meta.env.VITE_DEMO_MODE === 'true' ? clinic : payload));
       setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch {
       // ignore
     }
 
-    if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) {
+    if (import.meta.env.VITE_DEMO_MODE === 'true') {
       setSyncStatus('synced');
       return;
     }
@@ -300,34 +317,28 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Sync clinic customization settings to Cloud Firestore
     try {
-      const docRef = doc(db, 'clinics', activeId);
-      setDoc(
-        docRef,
-        {
-          ...payload,
-          id: activeId,
-          name: clinic.name || 'Columbus Chiropractic & Wellness',
-          doctorName: clinic.doctorName || 'Dr. Vance',
-          ownerEmail: clinic.ownerEmail || clinic.email || 'admin@vancechiro.com',
-          phone: clinic.phone || '(614) 555-0192',
-          city: clinic.city || 'Columbus',
-          state: clinic.state || 'OH',
-          lastActive: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      )
+      if (!isFirebaseConfigured || !auth.currentUser) throw new Error('Sign in to save clinic content.');
+      if (!draftsReady.current) throw new Error('Wait for private drafts to finish loading before saving.');
+      const token = await auth.currentUser.getIdTokenResult();
+      const editorKeys = ['customPosts','heroHook','heroSubhead','heroBadge','heroUrgentPain','customConditions','publicTeamMembers','customReviews','customFaqs','heroImage','doctorImage','clinicImage'];
+      const content = token.claims.role === 'editor' ? Object.fromEntries(Object.entries(payload).filter(([key])=>editorKeys.includes(key))) : payload;
+      const batch = writeBatch(db);
+      batch.set(doc(db,'clinic_drafts',activeId), {posts:drafts});
+      batch.set(doc(db,'clinics',activeId), {...content,lastActive:new Date().toISOString(),updatedAt:new Date().toISOString()}, {merge:true});
+      batch.commit()
         .then(() => {
           setSyncStatus('synced');
           setErrorMessage(null);
         })
         .catch((err) => {
           console.warn('Firestore clinic sync warning:', err);
-          setSyncStatus('local_only');
+          setSyncStatus('error');
+          setErrorMessage('Changes could not be saved to the clinic. Check your permissions and connection.');
         });
     } catch (err) {
       console.warn('Firestore write init error:', err);
-      setSyncStatus('local_only');
+      setSyncStatus('error');
+      setErrorMessage(err instanceof Error ? err.message : 'Clinic changes could not be saved.');
     }
   }, []);
 
@@ -340,9 +351,9 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 
   const resetClinic = useCallback(() => {
-    const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
+    const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || '').toLowerCase();
     const presetData = agencyDemoPresets[defaultPresetKey] || {};
-    const baseClinic = { ...defaultClinic, ...presetData };
+    const baseClinic = { ...defaultClinic, publicTeamMembers:defaultPublicTeamMembers, schedulingRules:defaultSchedulingRules, examFee:'$49', followUpFee:'$35', timeZone:'America/New_York', ...presetData };
     setClinicData(baseClinic);
     persist(baseClinic);
   }, [persist]);
@@ -361,9 +372,9 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const importClinicBlueprint = useCallback(
     (blueprint: Partial<ClinicInfo>) => {
       try {
-        const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
+        const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || '').toLowerCase();
         const presetData = agencyDemoPresets[defaultPresetKey] || {};
-        const baseClinic = { ...defaultClinic, ...presetData };
+        const baseClinic = { ...defaultClinic, publicTeamMembers:defaultPublicTeamMembers, schedulingRules:defaultSchedulingRules, examFee:'$49', followUpFee:'$35', timeZone:'America/New_York', ...presetData };
         const next: ClinicInfo = { ...baseClinic, ...blueprint };
         setClinicData(next);
         persist(next);

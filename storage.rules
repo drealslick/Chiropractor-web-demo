@@ -1,39 +1,29 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-
-    function isAuthenticated() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+    function staff(clinicId) {
+      return signedIn() && request.auth.token.clinicId == clinicId
+        && request.auth.token.role in ['admin', 'staff'];
     }
-
-    function isClinicStaff(clinicId) {
-      return isAuthenticated() &&
-        request.auth.token.clinicId == clinicId &&
-        (request.auth.token.role in ['staff', 'admin'] || request.auth.token.admin == true);
+    function imageOrDelete() {
+      return request.resource == null || (request.resource.contentType.matches('image/.*')
+        && request.resource.size < 5 * 1024 * 1024);
     }
-
-    function isValidImage() {
-      return request.resource.contentType.matches('image/.*')
-        && request.resource.size < 5 * 1024 * 1024; // 5MB limit
-    }
-
-    // Clinic media (headshots, hero images, blog thumbnails, clinic photos)
     match /clinics/{clinicId}/{allPaths=**} {
       allow read: if true;
-      allow write: if isClinicStaff(clinicId) && isValidImage();
+      allow write: if staff(clinicId) && imageOrDelete();
     }
-
-    // Patient records / intake uploads (strictly private to patient and staff of same clinic)
-    match /patients/{clinicId}/{patientId}/{allPaths=**} {
-      allow read, write: if isAuthenticated() && (
-        request.auth.uid == patientId ||
-        isClinicStaff(clinicId)
-      );
+    // Tenant-qualified paths are required for all new patient uploads.
+    match /patient_records/{clinicId}/{patientId}/{allPaths=**} {
+      allow read: if staff(clinicId) || (signedIn() && request.auth.uid == patientId && request.auth.token.clinicId == clinicId);
+      allow write: if (staff(clinicId) || (signedIn() && request.auth.uid == patientId && request.auth.token.clinicId == clinicId))
+        && (request.resource == null || request.resource.size < 5 * 1024 * 1024);
     }
-
-    // General patient uploads fallback
+    // Legacy unscoped paths cannot safely authorize clinic staff.
     match /patients/{patientId}/{allPaths=**} {
-      allow read, write: if isAuthenticated() && request.auth.uid == patientId;
+      allow read: if signedIn() && request.auth.uid == patientId;
+      allow write: if false;
     }
   }
 }

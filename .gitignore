@@ -17,3 +17,6 @@ firebase-applet-config.json
 serviceAccountKey.json
 *.pem
 *.key
+
+functions/lib/
+.firebase/

@@ -57,19 +57,19 @@ export const OurTeamManager: React.FC<OurTeamManagerProps> = ({ clinic, onUpdate
 
   // Practitioners list from clinic or defaults
   const teamMembers: PublicTeamMember[] =
-    clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
+    clinic.publicTeamMembers !== undefined
       ? clinic.publicTeamMembers
       : defaultPublicTeamMembers;
 
   // Support staff list from clinic or defaults
   const supportStaff: SupportStaffMember[] =
-    clinic.supportStaff && clinic.supportStaff.length > 0
+    clinic.supportStaff !== undefined
       ? clinic.supportStaff
       : defaultSupportStaff;
 
   // Available conditions for assigned multi-select
   const availableConditions: ProblemCondition[] =
-    clinic.customConditions && clinic.customConditions.length > 0
+    clinic.customConditions !== undefined
       ? clinic.customConditions
       : conditionsData;
 

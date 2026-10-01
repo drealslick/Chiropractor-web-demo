@@ -34,7 +34,7 @@ export default function TeamMemberDetail() {
   const [copied, setCopied] = useState(false);
 
   const teamMembers: PublicTeamMember[] =
-    clinic.publicTeamMembers && clinic.publicTeamMembers.length > 0
+    clinic.publicTeamMembers !== undefined
       ? clinic.publicTeamMembers
       : defaultPublicTeamMembers;
 
@@ -43,7 +43,7 @@ export default function TeamMemberDetail() {
   );
 
   const allConditions: ProblemCondition[] =
-    clinic.customConditions && clinic.customConditions.length > 0
+    clinic.customConditions !== undefined
       ? clinic.customConditions
       : conditionsData;
 
@@ -250,7 +250,7 @@ export default function TeamMemberDetail() {
         {/* 1. HERO SECTION: LARGE PHOTO ON LEFT, NAME/CREDENTIALS/ROLE ON RIGHT */}
         <section className="bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 md:p-10 shadow-sm relative overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            
+
             {/* Left Column: Headshot Photo */}
             <div className="lg:col-span-5">
               <div className="relative rounded-2xl overflow-hidden border border-stone-200 shadow-md bg-stone-100 aspect-4/5">

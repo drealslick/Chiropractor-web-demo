@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../lib/firebase';
+import { isDemoMode } from '../../lib/data-provider';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Shield,
@@ -66,11 +69,12 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
   onSelectRolePreview,
 }) => {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
-    return clinic.customTeamMembers && clinic.customTeamMembers.length > 0
+    return clinic.customTeamMembers !== undefined
       ? clinic.customTeamMembers
-      : defaultTeam;
+      : isDemoMode ? defaultTeam : [];
   });
 
+  useEffect(() => { if(!isDemoMode) httpsCallable(functions,'listClinicMembers')({}).then(r=>setTeamMembers(r.data as TeamMember[])).catch(e=>setNotification(e.message)); }, []);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberTitle, setNewMemberTitle] = useState('');
@@ -125,13 +129,13 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
 
   const handleSaveTeam = (updatedList: TeamMember[]) => {
     setTeamMembers(updatedList);
-    onUpdateClinic({
+    if (isDemoMode) onUpdateClinic({
       ...clinic,
       customTeamMembers: updatedList,
     });
   };
 
-  const handleAddMember = (e: React.FormEvent) => {
+  const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMemberName.trim() || !newMemberEmail.trim()) {
       alert('Please provide name and email.');
@@ -146,6 +150,10 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
       role: newMemberRole,
     };
 
+    if(!isDemoMode) {
+      try { const r=await httpsCallable(functions,'assignClinicMember')({email:newMember.email,role:newMember.role}); Object.assign(newMember,r.data); }
+      catch(e:any){setNotification(e.message || 'Account must register with this clinic first.');return;}
+    }
     const updated = [...teamMembers, newMember];
     handleSaveTeam(updated);
     setNewMemberName('');
@@ -156,8 +164,9 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleDeleteMember = (id: string, name: string) => {
+  const handleDeleteMember = async (id: string, name: string) => {
     if (confirm(`Remove team member "${name}"?`)) {
+      if(!isDemoMode) {try {await httpsCallable(functions,'assignClinicMember')({email:teamMembers.find(m=>m.id===id)?.email,role:'patient'});} catch(e:any){setNotification(e.message);return;}}
       const updated = teamMembers.filter((m) => m.id !== id);
       handleSaveTeam(updated);
       setNotification(`Removed ${name}.`);
@@ -165,7 +174,8 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
     }
   };
 
-  const handleRoleChange = (id: string, role: UserRole) => {
+  const handleRoleChange = async (id: string, role: UserRole) => {
+    if(!isDemoMode) {try {await httpsCallable(functions,'assignClinicMember')({email:teamMembers.find(m=>m.id===id)?.email,role});} catch(e:any){setNotification(e.message);return;}}
     const updated = teamMembers.map((m) => (m.id === id ? { ...m, role } : m));
     handleSaveTeam(updated);
   };
@@ -180,7 +190,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
             <span>Team Management & Role-Based Permissions</span>
           </h3>
           <p className="text-xs text-stone-400 mt-0.5">
-            Configure access tiers for receptionists, editors, and clinical doctors with dedicated permission boundaries.
+            Grant access to an account already registered with this clinic. Role changes take effect when the member signs in again.
           </p>
         </div>
 

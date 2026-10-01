@@ -1,3 +1,4 @@
+import { usePageMeta } from '../data/usePageMeta';
 import React from 'react';
 import { Shield, ArrowLeft, Phone, Mail, CheckCircle2, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -5,6 +6,7 @@ import { useClinic } from '../data/ClinicContext';
 import { getMarketCompliance, generateMarketPrivacyPolicy } from '../data/marketCompliance';
 
 export default function Privacy() {
+  usePageMeta('Privacy Policy');
   const { clinicData: clinic } = useClinic();
   const compliance = getMarketCompliance(clinic.marketRegion);
 

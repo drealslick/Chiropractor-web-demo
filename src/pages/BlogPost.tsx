@@ -1,3 +1,4 @@
+import { usePageMeta } from '../data/usePageMeta';
 import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
@@ -33,7 +34,8 @@ export default function BlogPost() {
       ? clinic.customPosts
       : defaultBlogPosts;
 
-  const post = posts.find((p) => p.slug === slug);
+  const post = posts.find((p) => p.slug === slug && p.status !== 'draft');
+  usePageMeta(post?.title || 'Article');
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);

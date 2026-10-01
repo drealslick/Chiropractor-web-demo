@@ -27,7 +27,8 @@ import {
 } from 'lucide-react';
 import { ClinicInfo, ClinicPaymentPolicy } from '../../types';
 import { doc, setDoc } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '../../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions, isFirebaseConfigured } from '../../lib/firebase';
 
 interface IntegrationsBillingManagerProps {
   clinic: ClinicInfo;
@@ -60,13 +61,13 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
     mode: 'deposit',
     depositAmount: 25,
     fullFeeAmount: 49,
-    currencySymbol: '£',
+    currencySymbol: clinic.currencySymbol || '$',
     noShowFee: 35,
     cancellationNoticeHours: 24,
     allowPayAtClinic: true,
     statementDescriptor: 'VANCE HEALTH CLINIC',
     stripeMode: 'test',
-    stripeAccountId: 'acct_1NxVanceHealth77',
+    stripeAccountId: '',
     stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
     stripeConnectedEmail: '',
     stripeConnectedAt: '',
@@ -110,7 +111,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
   ) => {
     setIsSavingToCloud(true);
     try {
-      if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
         const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastSavedTime(nowStr);
         setHasPendingChanges(false);
@@ -121,8 +122,8 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
       }
 
       // Write sensitive integration settings to clinic_settings/integrations (admin-only rule)
-      const targetClinicId = clinic.id || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
-      const settingsRef = doc(db, 'clinic_settings', 'integrations');
+      const targetClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+      const settingsRef = doc(db, 'clinic_settings', targetClinicId);
       await setDoc(
         settingsRef,
         {
@@ -137,7 +138,6 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
           notificationPhone: phone,
           emailAlertsEnabled: emailAlerts,
           smsAlertsEnabled: smsAlerts,
-          webhookSecret: secret,
           updatedAt: new Date().toISOString(),
         },
         { merge: true }
@@ -161,7 +161,8 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
       setShowAutoSaveToast(true);
       setTimeout(() => setShowAutoSaveToast(false), 3500);
     } catch (err) {
-      console.error('Firestore auto-save sync note:', err);
+      console.error('Integration save failed', err);
+      alert('Integration settings could not be saved. Please sign in as a clinic administrator.');
     } finally {
       setIsSavingToCloud(false);
     }
@@ -211,16 +212,18 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
     handleUpdatePolicy({ stripeMode: 'live' });
   };
 
-  const handleSimulateWebhookPing = () => {
-    setIsTestingWebhook(true);
-    setTestResult(null);
-    setTimeout(() => {
-      setIsTestingWebhook(false);
-      setTestResult({
-        success: true,
-        message: 'Ping payload sent to Stripe webhook listener. Received 200 OK (payment_intent.succeeded).',
-      });
-    }, 900);
+  const handleSimulateWebhookPing = async () => {
+    setIsTestingWebhook(true); setTestResult(null);
+    try {
+      if (import.meta.env.VITE_DEMO_MODE === 'true') {
+        setTestResult({success:true,message:'Demo preview only. No provider or webhook was contacted.'});
+      } else {
+        const result = await httpsCallable(functions,'getIntegrationStatus')({clinicId:import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic'});
+        const status = result.data as any;
+        setTestResult({success:status.stripe && status.email && status.sms,message:`Server configuration: Stripe ${status.stripe?'present ('+status.stripeMode+')':'missing'}, email ${status.email?'present':'missing'}, SMS ${status.sms?'present':'missing'}. Run a staging transaction and delivery test to verify operation.`});
+      }
+    } catch(e:any) {setTestResult({success:false,message:e.message});}
+    finally {setIsTestingWebhook(false);}
   };
 
   return (
@@ -234,7 +237,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
             </span>
             <h3 className="font-bold text-lg text-white">Integrations & Stripe Billing Hub</h3>
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
-              Production Gateway
+              Provider Configuration
             </span>
           </div>
           <p className="text-xs text-stone-400 mt-1">
@@ -380,7 +383,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
               <div>
                 <span className="text-stone-500 block text-[11px]">Connected Account ID</span>
                 <span className="font-mono text-stone-200 font-medium">
-                  {paymentPolicy.stripeAccountId || 'acct_1NxVanceHealth77'}
+                  {paymentPolicy.stripeAccountId || 'Platform account (no Connect destination)'}
                 </span>
               </div>
               <div>
@@ -452,16 +455,16 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
               <span>Clinic Consultation & No-Show Deposit Rules</span>
             </h4>
             <p className="text-xs text-stone-400">
-              Requiring a small deposit at booking eliminates no-shows by 95% while keeping entry frictionless.
+              Configure an optional deposit credited toward the appointment fee.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-3.5 bg-stone-950/70 border border-stone-800/80 rounded-xl space-y-2">
                 <label className="text-xs font-medium text-stone-300 block">Upfront Deposit Amount</label>
                 <div className="flex items-center gap-2">
-                  <span className="text-stone-400 font-bold text-sm">£</span>
+                  <span className="text-stone-400 font-bold text-sm">{clinic.currencySymbol || '$'}</span>
                   <input
-                    type="number"
+                    type="number" aria-label="Upfront deposit amount"
                     min={0}
                     value={paymentPolicy.depositAmount}
                     onChange={(e) => handleUpdatePolicy({ depositAmount: parseFloat(e.target.value) || 0 })}
@@ -474,9 +477,9 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
               <div className="p-3.5 bg-stone-950/70 border border-stone-800/80 rounded-xl space-y-2">
                 <label className="text-xs font-medium text-stone-300 block">Standard Initial Fee</label>
                 <div className="flex items-center gap-2">
-                  <span className="text-stone-400 font-bold text-sm">£</span>
+                  <span className="text-stone-400 font-bold text-sm">{clinic.currencySymbol || '$'}</span>
                   <input
-                    type="number"
+                    type="number" aria-label="Standard initial fee"
                     min={0}
                     value={paymentPolicy.fullFeeAmount}
                     onChange={(e) => handleUpdatePolicy({ fullFeeAmount: parseFloat(e.target.value) || 0 })}
@@ -495,7 +498,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
                 </span>
               </div>
               <input
-                type="checkbox"
+                type="checkbox" aria-label="Allow pay on arrival"
                 checked={paymentPolicy.allowPayAtClinic}
                 onChange={(e) => handleUpdatePolicy({ allowPayAtClinic: e.target.checked })}
                 className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
@@ -662,7 +665,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
                 <div className="relative">
                   <input
                     type={showSecretPlaintext ? 'text' : 'password'}
-                    value={webhookSecret}
+                    disabled aria-label="Stripe webhook secret is configured on the server" value="Set in private server environment"
                     onChange={(e) => {
                       setWebhookSecret(e.target.value);
                       triggerAutoSave(paymentPolicy, notificationEmail, notificationPhone, emailAlertsEnabled, smsAlertsEnabled, e.target.value);
@@ -698,7 +701,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
                   </div>
                 </div>
                 <span className="text-[11px] text-stone-500 mt-1 block">
-                  Stored server-side under <code className="text-stone-400 font-mono">clinic_settings/integrations</code> and restricted exclusively to Clinic Admin role by Firestore Security Rules.
+                  Set STRIPE_WEBHOOK_SECRET in the functions environment. Secrets are never saved by this browser form.
                 </span>
               </div>
 
@@ -731,7 +734,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
                   {isTestingWebhook ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Sending Test Event...</span>
+                      <span>Checking configuration...</span>
                     </>
                   ) : (
                     <>
@@ -774,7 +777,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
             </div>
 
             <p className="text-xs text-stone-300 leading-relaxed">
-              Real patient credit cards will now be processed directly into your clinic’s Stripe bank account. Test card numbers will no longer be accepted.
+              This preference does not change server credentials. Live processing requires matching live Stripe keys and a verified webhook in the deployment environment.
             </p>
 
             <div className="p-3 bg-stone-950 rounded-xl border border-stone-800 text-[11px] text-stone-400 space-y-1">

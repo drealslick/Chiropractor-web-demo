@@ -1,5 +1,5 @@
 import { PublicTeamMember, SupportStaffMember } from '../types';
-import doctorImg from '../assets/images/doctor_portrait_1789573972470.jpg';
+import doctorImg from '../assets/images/doctor_portrait_1789573972470.webp';
 
 export const defaultPublicTeamMembers: PublicTeamMember[] = [
   {
@@ -70,7 +70,7 @@ export const defaultPublicTeamMembers: PublicTeamMember[] = [
     name: 'Dr. Elena Rostova',
     credentials: 'D.C., B.Sc. (Hons) Chiro, CACCP',
     role: 'Senior Associate Chiropractor & Cervical Spine Lead',
-    photoUrl: 'https://images.unsplash.com/photo-1594824813580-044238711efd?auto=format&fit=crop&q=80&w=800',
+    photoUrl: doctorImg,
     photoAlt: 'Dr. Elena Rostova Senior Associate Chiropractor portrait',
     shortSummary: 'Specializing in cervical motion restoration, tension headaches, vertigo relief, and perinatal chiropractic care.',
     quote: 'Restoring cervical alignment transforms not just physical neck mobility, but cognitive clarity and daily energy.',

@@ -64,12 +64,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const pendingRequests = leads.filter(
     (l) => l.status === 'new' && (!l.date || l.date !== todayStr)
   );
-  const pendingCount = pendingRequests.length > 0 ? pendingRequests.length : 3;
+  const pendingCount = pendingRequests.length;
 
   const todayAppointments = leads.filter(
     (l) => l.date === todayStr && l.status !== 'cancelled' && l.status !== 'archived' && l.status !== 'waitlist'
   );
-  const todayCount = todayAppointments.length > 0 ? todayAppointments.length : 8;
+  const todayCount = todayAppointments.length;
 
   const unconfirmedCount = todayAppointments.filter((l) => l.status === 'new').length || 2;
   const checkedInCount = todayAppointments.filter((l) => l.status === 'checked_in').length || 1;
@@ -102,7 +102,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const passedCount = checks.filter(Boolean).length;
   const healthPercent = Math.round((passedCount / checks.length) * 100);
 
-  const handleSimulateLead = () => {
+  const handleSimulateLead = async () => {
+try {
+
     const mockNames = ['Sarah Mitchell', 'David Chen', 'Emily Watson', 'James Thorne', 'Elena Rossi'];
     const mockConditions = [
       'Lower Back & Sciatica',
@@ -115,7 +117,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     const randCond = mockConditions[Math.floor(Math.random() * mockConditions.length)];
     const randPhone = `(${Math.floor(100 + Math.random() * 900)}) 555-0${Math.floor(100 + Math.random() * 900)}`;
 
-    saveLead({
+    await saveLead({
       source: 'booking',
       name: randName,
       email: `${randName.toLowerCase().replace(/\s+/g, '.')}@example.com`,
@@ -128,7 +130,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
     setTestLeadAdded(true);
     setTimeout(() => setTestLeadAdded(false), 2500);
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   const handleToggleBanner = () => {
     const current = clinic.announcementBanner || { enabled: false, message: '' };

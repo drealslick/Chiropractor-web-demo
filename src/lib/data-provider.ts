@@ -5,7 +5,7 @@ import { functions, isFirebaseConfigured } from './firebase';
 import { httpsCallable } from 'firebase/functions';
 import { dispatchSafeEvent } from '../utils/customEvents';
 
-export const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
+export const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
 /**
  * Dispatch lightweight demo notification toast for simulated side-effects
@@ -32,22 +32,22 @@ export const appointmentsProvider = {
       notifyDemoAction(`✓ Booking recorded in browser sandbox (${lead.name})`);
       return created;
     }
-    await firestoreSync.syncAppointmentToFirestore(lead);
-    return lead;
+    return (await firestoreSync.persistAppointment(lead.id, {...lead,clinicId}))!;
   },
 
   update: async (id: string, patch: Partial<PatientLead>): Promise<PatientLead | null> => {
     if (isDemoMode) {
       return sandbox.update<PatientLead>('appointments', id, patch);
     }
-    return null;
+    return firestoreSync.persistAppointment(id, patch);
   },
 
   delete: async (id: string): Promise<boolean> => {
     if (isDemoMode) {
       return sandbox.delete('appointments', id);
     }
-    return false;
+    await firestoreSync.persistAppointment(id, {}, 'delete');
+    return true;
   },
 
   getById: async (id: string): Promise<PatientLead | null> => {

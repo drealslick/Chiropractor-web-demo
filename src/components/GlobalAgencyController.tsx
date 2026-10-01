@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useClinic } from '../data/ClinicContext';
-import { AgencyWorkspace } from './AgencyWorkspace';
+const AgencyWorkspace = lazy(() => import('./AgencyWorkspace').then(m=>({default:m.AgencyWorkspace})));
 import { ErrorBoundary } from './ErrorBoundary';
 import { resolvePalette, generateCustomShades } from '../data/colorPalettes';
 import { Lock, Sliders, Shield, AlertCircle, RefreshCw, Mail, LogOut, CheckCircle2, Sparkles, Building2, X } from 'lucide-react';
@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
+  onIdTokenChanged,
   getIdToken,
   getIdTokenResult,
   User,
@@ -91,7 +91,7 @@ export function GlobalAgencyController() {
       const role = tokenResult.claims.role;
       const isSuperAdmin = tokenResult.claims.superAdmin === true;
 
-      return role === 'admin' || role === 'staff' || isSuperAdmin;
+      return isSuperAdmin || (tokenResult.claims.clinicId === (import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic') && ['admin','editor','staff'].includes(String(role)));
     } catch (err) {
       console.warn('Error verifying admin authorization:', err);
       return false;
@@ -104,7 +104,7 @@ export function GlobalAgencyController() {
       setIsCheckingAuth(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onIdTokenChanged(auth, async (user) => {
       setIsCheckingAuth(true);
       if (user) {
         setCurrentUser(user);
@@ -167,7 +167,7 @@ export function GlobalAgencyController() {
 
     if (typeof document !== 'undefined') {
       const root = document.documentElement;
-      
+
       Object.entries(config.variables).forEach(([cssVar, colorVal]) => {
         root.style.setProperty(cssVar, colorVal);
       });
@@ -637,7 +637,7 @@ export function GlobalAgencyController() {
         ) : (
           /* Authenticated Admin Shell (Zero render until verified) */
           <ErrorBoundary fallbackTitle="Admin Workspace Notice" onReset={() => setIsOpen(false)}>
-            <AgencyWorkspace
+            <Suspense fallback={<p role="status">Loading workspace…</p>}><AgencyWorkspace
               isOpen={isOpen}
               onClose={() => setIsOpen(false)}
               clinic={clinic}
@@ -647,7 +647,7 @@ export function GlobalAgencyController() {
               lastSaved={lastSaved}
               isCloudSynced={isCloudSynced}
               onSignOut={handleSignOut}
-            />
+            /></Suspense>
           </ErrorBoundary>
         )
       )}

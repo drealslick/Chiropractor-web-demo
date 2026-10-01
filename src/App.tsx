@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Phone, MapPin } from 'lucide-react';
 import { ClinicSchema } from './components/ClinicSchema';
@@ -8,32 +8,31 @@ import { GlobalAnnouncementBanner } from './components/GlobalAnnouncementBanner'
 import { GlobalAgencyController } from './components/GlobalAgencyController';
 import { GlobalThemeApplier } from './components/GlobalThemeApplier';
 import { Footer } from './components/Footer';
-import { BookingModal } from './components/BookingModal';
-import { PatientPortalModal } from './components/PatientPortalModal';
+const BookingModal = lazy(() => import('./components/BookingModal').then(m=>({default:m.BookingModal})));
+const PatientPortalModal = lazy(() => import('./components/PatientPortalModal').then(m=>({default:m.PatientPortalModal})));
 import { ScrollToTop } from './components/ScrollToTop';
 import { DemoModeBanner } from './components/DemoModeBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 import Home from './pages/Home';
-
-const Conditions = React.lazy(() => import('./pages/Conditions'));
-const ConditionDetail = React.lazy(() => import('./pages/ConditionDetail'));
-const FirstVisit = React.lazy(() => import('./pages/FirstVisit'));
-const About = React.lazy(() => import('./pages/About'));
-const Contact = React.lazy(() => import('./pages/Contact'));
-const Privacy = React.lazy(() => import('./pages/Privacy'));
-const Terms = React.lazy(() => import('./pages/Terms'));
-const Pricing = React.lazy(() => import('./pages/Pricing'));
-const Blog = React.lazy(() => import('./pages/Blog'));
-const BlogPost = React.lazy(() => import('./pages/BlogPost'));
-const Team = React.lazy(() => import('./pages/Team'));
-const TeamMemberDetail = React.lazy(() => import('./pages/TeamMemberDetail'));
-const PatientPortalPage = React.lazy(() => import('./pages/PatientPortalPage'));
-const NotFound = React.lazy(() => import('./pages/NotFound'));
+const Conditions = lazy(() => import('./pages/Conditions'));
+const ConditionDetail = lazy(() => import('./pages/ConditionDetail'));
+const FirstVisit = lazy(() => import('./pages/FirstVisit'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const Blog = lazy(() => import('./pages/Blog'));
+const BlogPost = lazy(() => import('./pages/BlogPost'));
+const Team = lazy(() => import('./pages/Team'));
+const TeamMemberDetail = lazy(() => import('./pages/TeamMemberDetail'));
+const PatientPortalPage = lazy(() => import('./pages/PatientPortalPage'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 function AppShell() {
   const [, setMobileMenuOpen] = useState(false);
-  const { clinicData: clinic, isPatientPortalOpen, closePatientPortal, patientPortalInitialQuery } = useClinic();
+  const { clinicData: clinic, isBookingModalOpen, isPatientPortalOpen, closePatientPortal, patientPortalInitialQuery } = useClinic();
 
   return (
     <Router>
@@ -53,7 +52,7 @@ function AppShell() {
                 <Phone className="w-3 h-3 text-emerald-400" /> {clinic.phone}
               </span>
               <span className="bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded text-[10px]">
-                {clinic.legalLabel || "GDPR Ready"}
+                {clinic.legalLabel || "Patient information"}
               </span>
             </div>
           </div>
@@ -62,38 +61,36 @@ function AppShell() {
         <Navbar onBookClick={() => setMobileMenuOpen(false)} />
 
         <main className="flex-grow">
-          <React.Suspense fallback={<div className="p-8 text-center text-stone-500">Loading...</div>}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/conditions" element={<Conditions />} />
-              <Route path="/conditions/:conditionId" element={<ConditionDetail />} />
-              <Route path="/first-visit" element={<FirstVisit />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/team" element={<Team />} />
-              <Route path="/team/:memberSlug" element={<TeamMemberDetail />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/portal" element={<PatientPortalPage />} />
-              <Route path="/patient-portal" element={<PatientPortalPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </React.Suspense>
+          <Suspense fallback={<p role="status" className="p-8">Loading…</p>}><Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/conditions" element={<Conditions />} />
+            <Route path="/conditions/:conditionId" element={<ConditionDetail />} />
+            <Route path="/first-visit" element={<FirstVisit />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/team/:memberSlug" element={<TeamMemberDetail />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/portal" element={<PatientPortalPage />} />
+            <Route path="/patient-portal" element={<PatientPortalPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes></Suspense>
         </main>
 
         <Footer clinic={clinic} />
 
         <DemoModeBanner />
         <GlobalAgencyController />
-        <BookingModal />
-        <PatientPortalModal
+        {isBookingModalOpen && <Suspense fallback={<p role="status">Opening booking…</p>}><BookingModal /></Suspense>}
+        {isPatientPortalOpen && <Suspense fallback={<p role="status">Opening patient portal…</p>}><PatientPortalModal
           isOpen={isPatientPortalOpen}
           onClose={closePatientPortal}
           initialQuery={patientPortalInitialQuery}
-        />
+        /></Suspense>}
       </div>
     </Router>
   );

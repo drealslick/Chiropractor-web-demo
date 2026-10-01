@@ -1,3 +1,4 @@
+import { usePageMeta } from '../data/usePageMeta';
 import React from 'react';
 import { FileCheck, ArrowLeft, Phone, Mail, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -5,6 +6,7 @@ import { useClinic } from '../data/ClinicContext';
 import { getMarketCompliance, generateMarketTerms } from '../data/marketCompliance';
 
 export default function Terms() {
+  usePageMeta('Terms of Service');
   const { clinicData: clinic } = useClinic();
   const compliance = getMarketCompliance(clinic.marketRegion);
 

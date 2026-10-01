@@ -1,3 +1,6 @@
+import { fetchAppointmentByIdFromFirestore } from '../services/firebaseSync';
+import { isDemoMode } from '../lib/data-provider';
+import { appointmentCalendar, paidLabel, paidAmount } from '../utils/patientDocuments';
 import React, { useState, useEffect, useRef } from 'react';
 import { useClinic } from '../data/ClinicContext';
 import {
@@ -88,7 +91,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePerformSearch = (query: string) => {
+  const handlePerformSearch = async (query: string) => {
     const q = query.trim();
     if (!q) {
       setSearchResults([]);
@@ -96,8 +99,9 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
       return;
     }
 
-    let matches = findPatientAppointments(q);
-    if (matches.length === 0 && q.includes('@')) {
+    const remote = isDemoMode ? null : await fetchAppointmentByIdFromFirestore(q.toUpperCase());
+    let matches = isDemoMode ? findPatientAppointments(q) : remote ? [remote] : [];
+    if (isDemoMode && matches.length === 0 && q.includes('@')) {
       matches = findPatientAppointmentsByEmail(q);
     }
     setSearchResults(matches);
@@ -111,11 +115,14 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
     }
   };
 
-  const handleResubmitReschedule = (e: React.FormEvent) => {
+  const handleResubmitReschedule = async (e: React.FormEvent) => {
+try {
+
     e.preventDefault();
     if (!selectedAppt || !newDate) return;
 
-    const res = requestPatientReschedule(selectedAppt.id, newDate, newTime, rescheduleNote);
+    const res = await requestPatientReschedule(selectedAppt.id, newDate, newTime, rescheduleNote);
+    if (!res.success) { alert(res.message); return; }
     if (res.success && res.updatedLead) {
       setSelectedAppt(res.updatedLead);
       setRescheduleSuccess(true);
@@ -124,11 +131,16 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
         setActiveTab('details');
       }, 2500);
     }
-  };
 
-  const handleConfirmCancellation = () => {
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
+
+  const handleConfirmCancellation = async () => {
+try {
+
     if (!selectedAppt) return;
-    const res = requestPatientCancellation(selectedAppt.id, cancelReason);
+    const res = await requestPatientCancellation(selectedAppt.id, cancelReason);
+    if (!res.success) { alert(res.message); return; }
     if (res.success && res.updatedLead) {
       setSelectedAppt(res.updatedLead);
       setCancelSuccess(true);
@@ -137,7 +149,9 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
         setActiveTab('details');
       }, 2500);
     }
-  };
+
+} catch (error: any) { alert(error.message || 'Could not save. Please try again.'); }
+};
 
   // Generate .ics Calendar File
   const handleDownloadCalendarFile = () => {
@@ -146,20 +160,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
     const desc = `${selectedAppt.serviceTitle || selectedAppt.condition || 'Consultation'} with ${selectedAppt.practitionerName || clinic.leadPractitionerName || 'Chiropractor'}`;
     const location = `${clinic.address}, ${clinic.cityState || clinic.city || ''}`;
 
-    const icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Columbus Chiropractic Care//Patient Portal//EN',
-      'BEGIN:VEVENT',
-      `SUMMARY:${title}`,
-      `DESCRIPTION:${desc}`,
-      `LOCATION:${location}`,
-      `DTSTART:${selectedAppt.date.replace(/-/g, '')}T090000Z`,
-      `DTEND:${selectedAppt.date.replace(/-/g, '')}T100000Z`,
-      'STATUS:CONFIRMED',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\n');
+    const icsContent = appointmentCalendar(selectedAppt, clinic);
 
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -169,6 +170,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handlePrintReceipt = () => {
@@ -566,11 +568,11 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
                         <span className="font-bold text-stone-900 block">
                           Payment Status:{' '}
                           {selectedAppt.paymentStatus === 'deposit_paid'
-                            ? `Deposit Paid (${selectedAppt.paymentAmount || '£25.00'})`
+                            ? `Deposit paid (${paidLabel(selectedAppt, clinic.currencySymbol)})`
                             : selectedAppt.paymentStatus === 'paid_full'
-                            ? `Paid in Full (${selectedAppt.paymentAmount})`
+                            ? `Paid in full (${paidLabel(selectedAppt, clinic.currencySymbol)})`
                             : selectedAppt.paymentStatus === 'card_hold'
-                            ? 'Card-Hold Authorized (No Upfront Charge)'
+                            ? 'No payment recorded'
                             : 'Pay at Clinic'}
                         </span>
                         <span className="text-[11px] text-stone-600">
@@ -739,7 +741,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-stone-700">
-                      Official Clinic Invoice & Claim Receipt
+                      Appointment & Payment Statement
                     </span>
                     <button
                       type="button"
@@ -819,7 +821,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
                             {selectedAppt.durationMinutes || 45} mins
                           </td>
                           <td className="py-2.5 px-1 text-right font-bold">
-                            {selectedAppt.paymentAmount || '£49.00'}
+                            {paidLabel(selectedAppt, clinic.currencySymbol)}
                           </td>
                         </tr>
                       </tbody>
@@ -828,13 +830,13 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
                     {/* Total & Certification Footer */}
                     <div className="flex justify-between items-end pt-1 text-xs">
                       <div className="space-y-0.5 text-[10px] text-stone-500">
-                        <p>VAT Status: Zero-rated medical healthcare services.</p>
+                        <p>Please contact the clinic for applicable tax and provider details.</p>
                         <p>Approved for private healthcare reimbursement (Bupa, AXA, HSA, FSA).</p>
                       </div>
                       <div className="text-right">
                         <span className="text-xs text-stone-500 block">Total Paid:</span>
                         <span className="font-serif font-black text-lg text-emerald-800">
-                          {selectedAppt.paymentAmount || '£49.00'}
+                          {paidLabel(selectedAppt, clinic.currencySymbol)}
                         </span>
                       </div>
                     </div>

@@ -3,18 +3,25 @@ import {
   sendLiveOrSimulatedSms,
   interpolateTemplate,
 } from './gatewayStore';
-import { syncAppointmentToFirestore } from '../services/firebaseSync';
+import { syncAppointmentToFirestore, persistAppointment, activeClinicId } from '../services/firebaseSync';
 import { sandbox } from '../lib/sandbox';
 import { dispatchSafeEvent } from '../utils/customEvents';
 import { isFirebaseConfigured } from '../lib/firebase';
 
 export function isDemoMode(): boolean {
-  return import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
+  return import.meta.env.VITE_DEMO_MODE === 'true';
 }
 
 export interface PatientLead {
   id: string;
+  clinicId?: string;
   patientId?: string;
+  serviceId?: string;
+  amountPaid?: number;
+  currency?: string;
+  priceMinor?: number;
+  timeZone?: string;
+  clinicalPlan?: { phase: string; milestone: string; progress: number; frequency: string; doctorNote: string; exercises?: any[] };
   source: 'booking' | 'contact';
   name: string;
   email: string;
@@ -86,15 +93,13 @@ export interface DispatchedNotification {
 const LEADS_STORAGE_KEY = 'agency_patient_leads_v1';
 const NOTIFICATIONS_STORAGE_KEY = 'agency_dispatched_notifications_v1';
 
-export function generateSecureBookingReference(prefix: string = 'VH'): string {
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // base32 without ambiguous chars (no 0/O, 1/I)
-  let part1 = '';
-  let part2 = '';
-  for (let i = 0; i < 4; i++) {
-    part1 += chars.charAt(Math.floor(Math.random() * chars.length));
-    part2 += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `${prefix}-${part1}-${part2}`;
+export function generateSecureBookingReference(prefix = 'VH'): string {
+  return `${prefix}-${crypto.randomUUID()}`.toUpperCase();
+}
+let appointmentCache: PatientLead[] = [];
+export function cacheAppointments(rows: PatientLead[]) {
+  appointmentCache = rows;
+  dispatchSafeEvent('leads_updated', rows);
 }
 
 export function getDefaultSeedLeads(): PatientLead[] {
@@ -281,18 +286,7 @@ export function getStoredLeads(): PatientLead[] {
   if (isDemoMode()) {
     leads = sandbox.list<PatientLead>('appointments');
   } else {
-    try {
-      const raw = localStorage.getItem(LEADS_STORAGE_KEY);
-      if (!raw) {
-        const seeds = getDefaultSeedLeads();
-        localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(seeds));
-        return seeds;
-      }
-      const parsed = JSON.parse(raw);
-      leads = Array.isArray(parsed) && parsed.length > 0 ? parsed : getDefaultSeedLeads();
-    } catch {
-      leads = getDefaultSeedLeads();
-    }
+    leads = appointmentCache;
   }
 
   // Deduplicate by ID to guarantee unique React keys across the application
@@ -306,6 +300,7 @@ export function getStoredLeads(): PatientLead[] {
 }
 
 export function getDispatchedNotifications(): DispatchedNotification[] {
+  if (!isDemoMode()) return [];
   try {
     const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
     if (!raw) {
@@ -335,7 +330,7 @@ export function logNotification(notif: Omit<DispatchedNotification, 'id' | 'time
     subject: notif.subject,
     message: notif.message,
     timestamp: notif.timestamp || new Date().toISOString(),
-    status: notif.status || 'delivered',
+    status: notif.status || 'simulated',
   };
   const updated = [entry, ...current].slice(0, 50); // keep last 50
   try {
@@ -356,266 +351,37 @@ export function clearDispatchedNotifications(): void {
   }
 }
 
-export function saveLead(
-  leadInput: Omit<PatientLead, 'id' | 'createdAt' | 'status'> & Partial<PatientLead>
-): PatientLead {
-  const currentLeads = getStoredLeads();
-  const newLead: PatientLead = {
-    id: leadInput.id || generateSecureBookingReference('VH'),
-    source: leadInput.source || 'booking',
-    name: leadInput.name || 'Anonymous',
-    email: leadInput.email || '',
-    phone: leadInput.phone || '',
-    condition: leadInput.condition || 'General Consultation',
-    practitionerId: leadInput.practitionerId,
-    practitionerName: leadInput.practitionerName || 'First Available Practitioner',
-    date: leadInput.date,
-    time: leadInput.time,
-    durationMinutes: leadInput.durationMinutes || 45,
-    locationId: leadInput.locationId,
-    locationName: leadInput.locationName,
-    locationAddress: leadInput.locationAddress,
-    notes: leadInput.notes || '',
-    createdAt: leadInput.createdAt || new Date().toISOString(),
-    status: leadInput.status || 'new',
-    clinicName: leadInput.clinicName || 'Clinic',
-    cancellationReason: leadInput.cancellationReason,
-    paymentStatus: leadInput.paymentStatus || 'unpaid',
-    paymentAmount: leadInput.paymentAmount,
-    paymentMethod: leadInput.paymentMethod,
-    cardLast4: leadInput.cardLast4,
-    cardBrand: leadInput.cardBrand,
-    transactionId: leadInput.transactionId,
-    noShowProtected: leadInput.noShowProtected,
-  };
-
-  const existingIndex = currentLeads.findIndex((l) => l.id === newLead.id);
-  let updated: PatientLead[];
-  if (existingIndex >= 0) {
-    updated = [...currentLeads];
-    updated[existingIndex] = {
-      ...currentLeads[existingIndex],
-      ...newLead,
-    };
-  } else {
-    updated = [newLead, ...currentLeads];
-  }
-
-  // Deduplicate updated array by ID
-  const seenIds = new Set<string>();
-  updated = updated.filter((l, idx) => {
-    const key = l?.id ? String(l.id) : `lead_${idx}`;
-    if (seenIds.has(key)) return false;
-    seenIds.add(key);
-    return true;
-  });
-
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    dispatchSafeEvent('leads_updated', updated );
-  } catch {
-    // Ignore storage quota
-  }
-
-  // Auto-dispatch simulated notification alerts when a booking request is saved
-  if (newLead.source === 'booking') {
-    // 1. Alert to Clinic Front Desk
-    logNotification({
-      type: 'clinic_alert',
-      recipient: 'reception@vancehealth.co.uk',
-      channel: 'email',
-      subject: `[New Appointment Request] ${newLead.name} (${newLead.condition})`,
-      message: `A new appointment request was submitted by ${newLead.name} (${newLead.phone}, ${newLead.email}) for ${newLead.date} at ${newLead.time} with ${newLead.practitionerName}. Status: Pending review.`,
-    });
-
-    // 2. Auto-responder to Patient
-    if (newLead.email) {
-      logNotification({
-        type: 'patient_autoresponder',
-        recipient: newLead.email,
-        channel: 'email',
-        subject: `We've received your appointment request - ${newLead.clinicName}`,
-        message: `Hello ${newLead.name},\n\nWe received your appointment request for ${newLead.date} at ${newLead.time} with ${newLead.practitionerName}.\n\nOur front-desk team will review your symptoms and insurance details within 24 hours to confirm your booking.`,
-      });
-    }
-
-    // 3. Live or Simulated SMS Dispatch to Patient via Twilio / Gateway
-    if (newLead.phone) {
-      const gwSettings = getGatewaySettings();
-      if (gwSettings.autoSendBookingConfirmation !== false) {
-        const templateVars = {
-          patient_name: newLead.name,
-          clinic_name: newLead.clinicName || 'Columbus Chiropractic Care',
-          doctor_name: newLead.practitionerName || 'Doctor of Chiropractic',
-          date: newLead.date || 'Upcoming',
-          time: newLead.time || 'Scheduled Time',
-          ref_code: newLead.id,
-          portal_url: `${window.location.origin}/portal?ref=${newLead.id}`,
-        };
-        const smsBody = interpolateTemplate(gwSettings.customSmsBookingTemplate, templateVars);
-        sendLiveOrSimulatedSms(newLead.phone, smsBody, 'booking_confirmation');
-      }
-
-      logNotification({
-        type: 'patient_autoresponder',
-        recipient: newLead.phone,
-        channel: 'sms',
-        subject: 'SMS Confirmation Sent',
-        message: `${newLead.clinicName}: We received your booking request for ${newLead.date} @ ${newLead.time}. Ref: ${newLead.id}.`,
-      });
-    }
-  }
-
-  // Sync lead asynchronously to Cloud Firestore for real-time multi-device access
-  try {
-    syncAppointmentToFirestore(newLead).catch(() => {});
-  } catch {
-    // Ignore background network failure
-  }
-
-  return newLead;
+async function saveMutation(id: string, patch: Partial<PatientLead>, action = 'save') {
+  const result = await persistAppointment(id, patch, action);
+  const rows = getStoredLeads().filter(l => l.id !== id);
+  cacheAppointments(result ? [result, ...rows] : rows);
+  return result;
 }
 
-export function updateLeadStatus(id: string, status: PatientLead['status'], cancellationReason?: string): PatientLead[] {
-  const current = getStoredLeads();
-  let updatedLead: PatientLead | undefined;
-  const updated = current.map((lead) => {
-    if (lead.id === id) {
-      updatedLead = {
-        ...lead,
-        status,
-        ...(cancellationReason ? { cancellationReason } : {}),
-      };
-      return updatedLead;
-    }
-    return lead;
-  });
-  try {
-    if (isDemoMode()) {
-      sandbox.update('appointments', id, { status, ...(cancellationReason ? { cancellationReason } : {}) });
-    }
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    dispatchSafeEvent('leads_updated', updated );
-  } catch {
-    // Ignore
-  }
-
-  // Log status change notification
-  if (updatedLead) {
-    if (status === 'confirmed') {
-      logNotification({
-        type: 'status_update',
-        recipient: updatedLead.email || updatedLead.phone,
-        channel: 'email',
-        subject: `Appointment Confirmed: ${updatedLead.date} at ${updatedLead.time}`,
-        message: `Dear ${updatedLead.name}, your appointment with ${updatedLead.practitionerName || 'our clinic'} on ${updatedLead.date} at ${updatedLead.time} has been officially CONFIRMED. Please arrive 10 minutes early.`,
-      });
-    } else if (status === 'cancelled') {
-      logNotification({
-        type: 'status_update',
-        recipient: updatedLead.email || updatedLead.phone,
-        channel: 'email',
-        subject: `Appointment Request Cancelled`,
-        message: `Dear ${updatedLead.name}, your appointment request for ${updatedLead.date} at ${updatedLead.time} has been cancelled.${cancellationReason ? ` Reason: ${cancellationReason}` : ''} Please contact us if you need to reschedule.`,
-      });
-    }
-  }
-
-  return updated;
+export async function saveLead(lead: Omit<PatientLead, 'id' | 'createdAt' | 'status'> & Partial<PatientLead>): Promise<PatientLead> {
+  const record = { ...lead, id: lead.id || generateSecureBookingReference(), createdAt: lead.createdAt || new Date().toISOString(),
+    clinicId: lead.clinicId || activeClinicId(), status: lead.status || 'new', paymentStatus: lead.paymentStatus || 'unpaid' } as PatientLead;
+  return (await saveMutation(record.id, record))!;
 }
-
-export function updateLeadDetails(id: string, partial: Partial<PatientLead>): PatientLead[] {
-  const current = getStoredLeads();
-  let modifiedLead: PatientLead | undefined;
-  const updated = current.map((lead) => {
-    if (lead.id === id) {
-      modifiedLead = { ...lead, ...partial };
-      return modifiedLead;
-    }
-    return lead;
-  });
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    dispatchSafeEvent('leads_updated', updated );
-  } catch {
-    // Ignore
-  }
-
-  if (modifiedLead && (partial.date || partial.time)) {
-    logNotification({
-      type: 'rescheduled',
-      recipient: modifiedLead.email || modifiedLead.phone,
-      channel: 'email',
-      subject: `Appointment Rescheduled: ${modifiedLead.date} at ${modifiedLead.time}`,
-      message: `Dear ${modifiedLead.name}, your appointment has been rescheduled to ${modifiedLead.date} at ${modifiedLead.time} with ${modifiedLead.practitionerName || 'our team'}.`,
-    });
-  }
-
-  return updated;
+export async function updateLeadStatus(id: string, status: PatientLead['status'], cancellationReason?: string): Promise<PatientLead[]> {
+  await saveMutation(id, { status, ...(cancellationReason ? { cancellationReason } : {}) });
+  return getStoredLeads();
 }
-
-export function updateLeadPayment(
-  id: string,
-  paymentUpdate: {
-    paymentStatus?: PatientLead['paymentStatus'];
-    paymentAmount?: string;
-    paymentMethod?: PatientLead['paymentMethod'];
-    cardLast4?: string;
-    cardBrand?: string;
-    transactionId?: string;
-    noShowProtected?: boolean;
-    notesAppend?: string;
-  }
-): PatientLead[] {
-  const current = getStoredLeads();
-  let modifiedLead: PatientLead | undefined;
-  const updated = current.map((lead) => {
-    if (lead.id === id) {
-      modifiedLead = {
-        ...lead,
-        ...paymentUpdate,
-        notes: paymentUpdate.notesAppend
-          ? `${lead.notes ? lead.notes + ' • ' : ''}[Payment Action: ${paymentUpdate.notesAppend}]`
-          : lead.notes,
-      };
-      return modifiedLead;
-    }
-    return lead;
-  });
-
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    dispatchSafeEvent('leads_updated', updated );
-  } catch {
-    // Ignore
-  }
-
-  if (modifiedLead && paymentUpdate.notesAppend) {
-    logNotification({
-      type: 'status_update',
-      recipient: modifiedLead.email || 'reception@vancehealth.co.uk',
-      channel: 'email',
-      subject: `Payment Record Updated: ${modifiedLead.name}`,
-      message: `Payment status for ${modifiedLead.name} was updated to: ${paymentUpdate.paymentStatus || modifiedLead.paymentStatus}. Details: ${paymentUpdate.notesAppend}`,
-    });
-  }
-
-  return updated;
+export async function updateLeadDetails(id: string, patch: Partial<PatientLead>): Promise<PatientLead[]> {
+  await saveMutation(id, patch); return getStoredLeads();
 }
-
-export function deleteLead(id: string): PatientLead[] {
-  const current = getStoredLeads();
-  const updated = current.filter((lead) => lead.id !== id);
-  try {
-    if (isDemoMode()) {
-      sandbox.delete('appointments', id);
-    }
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
-    dispatchSafeEvent('leads_updated', updated );
-  } catch {
-    // Ignore
-  }
-  return updated;
+export async function updateLeadPayment(id: string, patch: Partial<PatientLead> & { notesAppend?: string }): Promise<PatientLead[]> {
+  if (!isDemoMode()) {
+    const { httpsCallable } = await import('firebase/functions');
+    const { functions } = await import('../lib/firebase');
+    if (patch.paymentStatus === 'refunded') await httpsCallable(functions, 'refundAppointment')({appointmentId:id});
+    else if (patch.paymentMethod === 'clinic_cash') await httpsCallable(functions, 'recordCashPayment')({appointmentId:id});
+    else throw new Error('Card charges require a verified payment. No charge has been made.');
+  } else await saveMutation(id, patch);
+  return getStoredLeads();
+}
+export async function deleteLead(id: string): Promise<PatientLead[]> {
+  await saveMutation(id, {}, 'delete'); return getStoredLeads();
 }
 
 export function markNotificationAsRead(id: string): DispatchedNotification[] {
@@ -715,7 +481,6 @@ export function getDefaultSeedPatientAccounts(): PatientAccount[] {
     {
       id: 'acc-john-doe',
       email: 'johndoe@example.com',
-      password: 'password123',
       name: 'John Doe',
       phone: '(303) 555-0199',
       createdAt: new Date().toISOString(),
@@ -723,7 +488,6 @@ export function getDefaultSeedPatientAccounts(): PatientAccount[] {
     {
       id: 'acc-emily-watson',
       email: 'emily.w@example.com',
-      password: 'password123',
       name: 'Emily Watson',
       phone: '(303) 555-0194',
       createdAt: new Date().toISOString(),
@@ -732,6 +496,7 @@ export function getDefaultSeedPatientAccounts(): PatientAccount[] {
 }
 
 export function getStoredPatientAccounts(): PatientAccount[] {
+  if (!isDemoMode()) { localStorage.removeItem(PATIENT_ACCOUNTS_KEY); return []; }
   try {
     const raw = localStorage.getItem(PATIENT_ACCOUNTS_KEY);
     if (!raw) {
@@ -745,7 +510,9 @@ export function getStoredPatientAccounts(): PatientAccount[] {
       localStorage.setItem(PATIENT_ACCOUNTS_KEY, JSON.stringify(seeds));
       return seeds;
     }
-    return parsed;
+    const safe = parsed.map(({password, ...account}: PatientAccount) => account);
+    localStorage.setItem(PATIENT_ACCOUNTS_KEY, JSON.stringify(safe));
+    return safe;
   } catch {
     return getDefaultSeedPatientAccounts();
   }
@@ -757,6 +524,7 @@ export function registerPatientAccount(
   password: string,
   phone?: string
 ): { success: boolean; account?: PatientAccount; message: string } {
+  if (!isDemoMode()) return {success:false, message:'Use secure account registration.'};
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || !password || !name) {
     return { success: false, message: 'Please provide full name, email, and password.' };
@@ -771,7 +539,7 @@ export function registerPatientAccount(
     id: `acc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     name: name.trim(),
     email: cleanEmail,
-    password: password.trim(),
+
     phone: phone?.trim() || '',
     createdAt: new Date().toISOString(),
   };
@@ -791,6 +559,7 @@ export function authenticatePatientAccount(
   password: string
 ): { success: boolean; account?: PatientAccount; message: string } {
   const cleanEmail = email.trim().toLowerCase();
+  if (!isDemoMode()) return {success:false, message:'Use secure sign in.'};
   const accounts = getStoredPatientAccounts();
   const match = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
 
@@ -798,7 +567,7 @@ export function authenticatePatientAccount(
     return { success: false, message: 'No patient account found with that email. Please check your spelling or sign up.' };
   }
 
-  if (match.password && match.password !== password.trim()) {
+  if (!isDemoMode()) {
     return { success: false, message: 'Incorrect password. Please try again.' };
   }
 
@@ -846,191 +615,17 @@ export function findPatientAppointments(searchQuery: string): PatientLead[] {
   });
 }
 
-export function requestPatientReschedule(
-  leadId: string,
-  newDate: string,
-  newTime: string,
-  notes?: string
-): { success: boolean; updatedLead?: PatientLead; message: string } {
-  const leads = getStoredLeads();
-  const targetIndex = leads.findIndex((l) => l.id === leadId);
-
-  if (targetIndex === -1) {
-    return { success: false, message: 'Appointment not found.' };
-  }
-
-  const existing = leads[targetIndex];
-  const oldDate = existing.date || 'TBD';
-  const oldTime = existing.time || 'TBD';
-
-  const updatedLead: PatientLead = {
-    ...existing,
-    date: newDate,
-    time: newTime,
-    status: 'new', // Flag as new/needs reception check
-    notes: `${existing.notes || ''}\n[RESCHEDULE REQUESTED by patient on ${new Date().toLocaleDateString()} from ${oldDate} ${oldTime} to ${newDate} ${newTime}. Note: ${notes || 'None'}]`.trim(),
-  };
-
-  leads[targetIndex] = updatedLead;
-
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
-    dispatchSafeEvent('leads_updated', leads );
-
-    // Dispatch front desk notification
-    const newNotif: DispatchedNotification = {
-      id: `notif-reschedule-${Date.now()}`,
-      type: 'rescheduled',
-      recipient: 'Front Desk',
-      channel: 'sms',
-      subject: `Reschedule request from ${updatedLead.name}`,
-      message: `${updatedLead.name} requested to move appointment from ${oldDate} ${oldTime} to ${newDate} ${newTime}.`,
-      timestamp: new Date().toISOString(),
-      status: 'delivered',
-      priority: 'high',
-      read: false,
-    };
-
-    // Dispatch patient SMS confirmation for reschedule
-    if (updatedLead.phone) {
-      const gwSettings = getGatewaySettings();
-      if (gwSettings.autoSendRescheduleAlert !== false) {
-        const templateVars = {
-          patient_name: updatedLead.name,
-          clinic_name: updatedLead.clinicName || 'Columbus Chiropractic Care',
-          doctor_name: updatedLead.practitionerName || 'Doctor of Chiropractic',
-          date: newDate,
-          time: newTime,
-          ref_code: updatedLead.id,
-          portal_url: `${window.location.origin}/portal?ref=${updatedLead.id}`,
-        };
-        const smsBody = interpolateTemplate(gwSettings.customSmsRescheduleTemplate, templateVars);
-        sendLiveOrSimulatedSms(updatedLead.phone, smsBody, 'reschedule');
-      }
-    }
-
-    const currentNotifs = getDispatchedNotifications();
-    const updatedNotifs = [newNotif, ...currentNotifs];
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
-    dispatchSafeEvent('notifications_updated', updatedNotifs );
-  } catch {
-    // Ignore
-  }
-
-  return { success: true, updatedLead, message: 'Appointment reschedule request submitted successfully.' };
+export async function requestPatientReschedule(leadId: string, date: string, time: string, notes?: string) {
+  try { const updatedLead = await saveMutation(leadId, { date, time, notes: notes || '', status:'new' });
+    return { success: true, updatedLead: updatedLead || undefined, message: 'Reschedule request saved.' };
+  } catch (e:any) { return { success:false, updatedLead:undefined, message:e.message }; }
 }
-
-export function requestPatientCancellation(
-  leadId: string,
-  reason: string
-): { success: boolean; updatedLead?: PatientLead; message: string } {
-  const leads = getStoredLeads();
-  const targetIndex = leads.findIndex((l) => l.id === leadId);
-
-  if (targetIndex === -1) {
-    return { success: false, message: 'Appointment not found.' };
-  }
-
-  const existing = leads[targetIndex];
-  const updatedLead: PatientLead = {
-    ...existing,
-    status: 'cancelled',
-    cancellationReason: reason,
-    notes: `${existing.notes || ''}\n[CANCELLED by patient on ${new Date().toLocaleDateString()}: ${reason}]`.trim(),
-  };
-
-  leads[targetIndex] = updatedLead;
-
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
-    dispatchSafeEvent('leads_updated', leads );
-
-    // Dispatch patient SMS cancellation receipt
-    if (updatedLead.phone) {
-      const gwSettings = getGatewaySettings();
-      if (gwSettings.autoSendCancellationAlert !== false) {
-        const templateVars = {
-          patient_name: updatedLead.name,
-          clinic_name: updatedLead.clinicName || 'Columbus Chiropractic Care',
-          doctor_name: updatedLead.practitionerName || 'Doctor of Chiropractic',
-          date: existing.date || 'Scheduled Date',
-          time: existing.time || 'Scheduled Time',
-          ref_code: updatedLead.id,
-          portal_url: `${window.location.origin}/portal`,
-        };
-        const smsBody = interpolateTemplate(gwSettings.customSmsCancellationTemplate, templateVars);
-        sendLiveOrSimulatedSms(updatedLead.phone, smsBody, 'cancellation');
-      }
-    }
-
-    // Dispatch front desk alert
-    const newNotif: DispatchedNotification = {
-      id: `notif-cancel-${Date.now()}`,
-      type: 'status_update',
-      recipient: 'Front Desk',
-      channel: 'email',
-      subject: `Appointment Cancelled: ${updatedLead.name}`,
-      message: `${updatedLead.name} cancelled their ${existing.date || ''} ${existing.time || ''} booking. Reason: "${reason}". Slot opened.`,
-      timestamp: new Date().toISOString(),
-      status: 'delivered',
-      priority: 'high',
-      read: false,
-    };
-
-    const currentNotifs = getDispatchedNotifications();
-    const updatedNotifs = [newNotif, ...currentNotifs];
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
-    dispatchSafeEvent('notifications_updated', updatedNotifs );
-  } catch {
-    // Ignore
-  }
-
-  return { success: true, updatedLead, message: 'Appointment cancelled successfully.' };
+export async function requestPatientCancellation(leadId: string, reason: string) {
+  try { const updatedLead = await saveMutation(leadId, {status:'cancelled',cancellationReason:reason});
+    return {success:true, updatedLead:updatedLead || undefined, message:'Appointment cancelled.'};
+  } catch (e:any) { return {success:false, updatedLead:undefined, message:e.message}; }
 }
-
-export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['intakeForm']) {
-  const leads = getStoredLeads();
-  let updatedLead: PatientLead | null = null;
-  const updatedLeads = leads.map((l) => {
-    if (l.id === leadId) {
-      updatedLead = { ...l, intakeForm: intakeData };
-      return updatedLead;
-    }
-    return l;
-  });
-
-  if (updatedLead) {
-    try {
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLeads));
-      dispatchSafeEvent('leads_updated', updatedLeads );
-
-      // Sync directly to Firestore cloud database
-      syncAppointmentToFirestore(updatedLead);
-
-      // Create staff notification
-      const newNotif: DispatchedNotification = {
-        id: `notif-intake-${Date.now()}`,
-        type: 'status_update',
-        recipient: 'Clinical Team',
-        channel: 'email',
-        subject: `Pre-Visit Intake Received: ${(updatedLead as PatientLead).name}`,
-        message: `${(updatedLead as PatientLead).name} completed their pre-visit digital intake questionnaire. Pain: ${(updatedLead as PatientLead).intakeForm?.painLevel}/10 (${(updatedLead as PatientLead).intakeForm?.painArea}). Chart ready for review.`,
-        timestamp: new Date().toISOString(),
-        status: 'delivered',
-        priority: (updatedLead as PatientLead).intakeForm?.hasRedFlags ? 'high' : 'info',
-        read: false,
-      };
-
-      const currentNotifs = getDispatchedNotifications();
-      const updatedNotifs = [newNotif, ...currentNotifs];
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
-      dispatchSafeEvent('notifications_updated', updatedNotifs );
-    } catch {
-      // ignore
-    }
-  }
-
-  return { success: Boolean(updatedLead), updatedLead };
+export async function savePatientIntakeForm(leadId: string, intakeForm: PatientLead['intakeForm']) {
+  const updatedLead = await saveMutation(leadId, {intakeForm});
+  return {success:!!updatedLead, updatedLead};
 }
-
-

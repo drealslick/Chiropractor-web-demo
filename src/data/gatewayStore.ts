@@ -1,3 +1,6 @@
+import { isDemoMode } from '../lib/data-provider';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebase';
 import { dispatchSafeEvent } from '../utils/customEvents';
 
 export interface GatewaySettings {
@@ -125,13 +128,19 @@ export function getGatewaySettings(): GatewaySettings {
       localStorage.setItem(GATEWAY_SETTINGS_KEY, JSON.stringify(DEFAULT_GATEWAY_SETTINGS));
       return DEFAULT_GATEWAY_SETTINGS;
     }
-    return { ...DEFAULT_GATEWAY_SETTINGS, ...JSON.parse(raw) };
+    const clean = scrubSecrets({ ...DEFAULT_GATEWAY_SETTINGS, ...JSON.parse(raw) });
+    localStorage.setItem(GATEWAY_SETTINGS_KEY, JSON.stringify(clean));
+    return clean;
   } catch {
     return DEFAULT_GATEWAY_SETTINGS;
   }
 }
 
+function scrubSecrets(settings: GatewaySettings): GatewaySettings {
+  return {...settings,twilioAuthToken:'',sendgridApiKey:'',resendApiKey:'',webhookSecret:''};
+}
 export function saveGatewaySettings(settings: GatewaySettings): void {
+  settings = scrubSecrets(settings);
   try {
     localStorage.setItem(GATEWAY_SETTINGS_KEY, JSON.stringify(settings));
     dispatchSafeEvent('gateway_settings_updated', settings);
@@ -141,16 +150,17 @@ export function saveGatewaySettings(settings: GatewaySettings): void {
 }
 
 export function getGatewayLogs(): GatewayLogEntry[] {
+  if (!isDemoMode) return [];
   try {
     const raw = localStorage.getItem(GATEWAY_LOGS_KEY);
     if (!raw) {
       localStorage.setItem(GATEWAY_LOGS_KEY, JSON.stringify(DEFAULT_INITIAL_GATEWAY_LOGS));
-      return DEFAULT_INITIAL_GATEWAY_LOGS;
+      return isDemoMode ? DEFAULT_INITIAL_GATEWAY_LOGS : [];
     }
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : DEFAULT_INITIAL_GATEWAY_LOGS;
   } catch {
-    return DEFAULT_INITIAL_GATEWAY_LOGS;
+    return isDemoMode ? DEFAULT_INITIAL_GATEWAY_LOGS : [];
   }
 }
 
@@ -192,185 +202,25 @@ export function interpolateTemplate(template: string, vars: Record<string, strin
 /**
  * Send Live or Simulated SMS
  */
-export async function sendLiveOrSimulatedSms(
-  toPhone: string,
-  messageText: string,
-  eventType: GatewayLogEntry['eventType'] = 'test'
-): Promise<{ success: boolean; message: string; logId: string; status: GatewayLogEntry['status'] }> {
-  const settings = getGatewaySettings();
-  const cleanPhone = toPhone.trim();
-
-  if (!cleanPhone) {
-    return {
-      success: false,
-      message: 'Recipient phone number is required.',
-      logId: '',
-      status: 'failed',
-    };
-  }
-
-  // 1. ROUTE DISPATCH VIA CLOUD FUNCTION (SERVER-SIDE DISPATCH)
+async function dispatch(channel: 'email' | 'sms', recipient: string, messageText: string, eventType: GatewayLogEntry['eventType'], subject = '') {
   try {
-    const { httpsCallable } = await import('firebase/functions');
-    const { functions } = await import('../lib/firebase');
-    const sendFn = httpsCallable(functions, 'sendAutomatedNotification');
-    const result: any = await sendFn({
-      channel: 'sms',
-      recipient: cleanPhone,
-      messageText,
-      subject: 'SMS Notification',
-      clinicName: 'Columbus Chiropractic Care',
-    });
-    if (result.data?.success) {
-      const log = logGatewayEvent({
-        channel: 'sms',
-        provider: 'Twilio Cloud Function',
-        recipient: cleanPhone,
-        eventType,
-        status: 'delivered',
-        payloadPreview: messageText,
-      });
-      return { success: true, message: 'SMS dispatched via Cloud Function.', logId: log.id, status: 'delivered' };
+    if (!recipient.trim()) throw new Error('Choose a patient contact.');
+    let status: GatewayLogEntry['status'] = 'simulated';
+    if (!isDemoMode) {
+      const { getStoredLeads } = await import('./leadsStore');
+      const appointment = getStoredLeads().find(a => channel === 'sms' ? a.phone === recipient : a.email === recipient);
+      if (!appointment) throw new Error('Select an appointment before sending a notification.');
+      const response = await httpsCallable(functions, 'sendAutomatedNotification')({ appointmentId:appointment.id, channel,recipient,messageText,subject });
+      if (!(response.data as any).success) throw new Error('Provider did not accept the message.');
+      status='sent';
     }
-  } catch (err: any) {
-    console.warn('Cloud Function SMS dispatch fallback:', err?.message);
-  }
-
-  // 2. CUSTOM WEBHOOK DISPATCH
-  if (settings.smsProvider === 'custom_webhook' && settings.webhookUrl) {
-    try {
-      const resp = await fetch(settings.webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(settings.webhookSecret ? { 'X-Webhook-Secret': settings.webhookSecret } : {}),
-        },
-        body: JSON.stringify({
-          event: 'sms_dispatch',
-          eventType,
-          to: cleanPhone,
-          message: messageText,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      if (resp.ok) {
-        const log = logGatewayEvent({
-          channel: 'webhook',
-          provider: 'Custom Webhook (Make/Zapier)',
-          recipient: cleanPhone,
-          eventType,
-          status: 'delivered',
-          payloadPreview: messageText,
-        });
-
-        return {
-          success: true,
-          message: `SMS payload transmitted to external webhook (${resp.status} OK)`,
-          logId: log.id,
-          status: 'delivered',
-        };
-      }
-    } catch (err: any) {
-      // Ignore webhook error fallback to simulation
-    }
-  }
-
-  // 3. SIMULATED DISPATCH (Zero-Config Immediate Preview)
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  const log = logGatewayEvent({
-    channel: 'sms',
-    provider: 'Simulated Gateway (Sandbox)',
-    recipient: cleanPhone,
-    eventType,
-    status: 'simulated',
-    payloadPreview: messageText,
-  });
-
-  return {
-    success: true,
-    message: `SMS simulated successfully to ${cleanPhone}. (Provider set to Simulator)`,
-    logId: log.id,
-    status: 'simulated',
-  };
+    const log=logGatewayEvent({channel,provider:isDemoMode?'Demo':'Server gateway',recipient,eventType,status,payloadPreview:messageText.slice(0,100)});
+    return {success:true,message:isDemoMode?'Demo message simulated.':'Message accepted by provider; delivery is pending.',logId:log.id,status};
+  } catch(e:any) { return {success:false,message:e.message,logId:'',status:'failed' as const}; }
 }
-
-/**
- * Send Live or Simulated Email
- */
-export async function sendLiveOrSimulatedEmail(
-  toEmail: string,
-  subject: string,
-  bodyHtmlOrText: string,
-  eventType: GatewayLogEntry['eventType'] = 'test'
-): Promise<{ success: boolean; message: string; logId: string; status: GatewayLogEntry['status'] }> {
-  const settings = getGatewaySettings();
-  const cleanEmail = toEmail.trim();
-
-  if (!cleanEmail) {
-    return {
-      success: false,
-      message: 'Recipient email is required.',
-      logId: '',
-      status: 'failed',
-    };
-  }
-
-  // 1. LIVE RESEND GATEWAY DISPATCH
-  if (settings.emailProvider === 'resend' && settings.resendApiKey) {
-    try {
-      const resp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${settings.resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: `${settings.sendgridFromName || 'Practice'} <${settings.sendgridFromEmail || 'onboarding@resend.dev'}>`,
-          to: cleanEmail,
-          subject,
-          html: `<p>${bodyHtmlOrText.replace(/\n/g, '<br/>')}</p>`,
-        }),
-      });
-
-      const data = await resp.json();
-      if (resp.ok && data.id) {
-        const log = logGatewayEvent({
-          channel: 'email',
-          provider: `Resend Live (${data.id})`,
-          recipient: cleanEmail,
-          eventType,
-          status: 'delivered',
-          payloadPreview: `Subject: ${subject} • Body: ${bodyHtmlOrText.slice(0, 100)}...`,
-        });
-
-        return {
-          success: true,
-          message: `Live Email delivered via Resend (ID: ${data.id})`,
-          logId: log.id,
-          status: 'delivered',
-        };
-      }
-    } catch (err: any) {
-      // Fallback
-    }
-  }
-
-  // 2. SIMULATED EMAIL
-  await new Promise((resolve) => setTimeout(resolve, 350));
-  const log = logGatewayEvent({
-    channel: 'email',
-    provider: 'Simulated Email Engine',
-    recipient: cleanEmail,
-    eventType,
-    status: 'simulated',
-    payloadPreview: `Subject: ${subject} • Body: ${bodyHtmlOrText.slice(0, 100)}...`,
-  });
-
-  return {
-    success: true,
-    message: `Email simulated successfully to ${cleanEmail}.`,
-    logId: log.id,
-    status: 'simulated',
-  };
+export async function sendLiveOrSimulatedSms(toPhone: string, messageText: string, eventType: GatewayLogEntry['eventType'] = 'test') {
+  return dispatch('sms',toPhone,messageText,eventType);
+}
+export async function sendLiveOrSimulatedEmail(toEmail: string, subject: string, bodyHtmlOrText: string, eventType: GatewayLogEntry['eventType'] = 'test') {
+  return dispatch('email',toEmail,bodyHtmlOrText,eventType,subject);
 }
