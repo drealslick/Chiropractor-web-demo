@@ -17,6 +17,11 @@ service firebase.storage {
         && request.resource.size < 5 * 1024 * 1024; // 5MB limit
     }
 
+    function isValidDocument() {
+      return (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf')
+        && request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+
     // Clinic media (headshots, hero images, blog thumbnails, clinic photos)
     match /clinics/{clinicId}/{allPaths=**} {
       allow read: if true;
@@ -25,15 +30,19 @@ service firebase.storage {
 
     // Patient records / intake uploads (strictly private to patient and staff of same clinic)
     match /patients/{clinicId}/{patientId}/{allPaths=**} {
-      allow read, write: if isAuthenticated() && (
+      allow read: if isAuthenticated() && (
         request.auth.uid == patientId ||
         isClinicStaff(clinicId)
       );
+      allow write: if isAuthenticated() && (
+        request.auth.uid == patientId ||
+        isClinicStaff(clinicId)
+      ) && isValidDocument();
     }
 
-    // General patient uploads fallback
+    // General patient uploads fallback (strictly private to authenticated owner)
     match /patients/{patientId}/{allPaths=**} {
-      allow read, write: if isAuthenticated() && request.auth.uid == patientId;
+      allow read, write: if isAuthenticated() && request.auth.uid == patientId && isValidDocument();
     }
   }
 }

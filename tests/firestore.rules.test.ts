@@ -157,6 +157,14 @@ describe('Firestore Security Rules Matrix', () => {
         clinicId: CLINIC_A,
       });
 
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc(`clinics/${CLINIC_A}`).set({
+          id: CLINIC_A,
+          name: 'Columbus Chiropractic Care',
+          theme: { primaryColor: '#000000' },
+        });
+      });
+
       const clinicRef = staffContext.firestore().doc(`clinics/${CLINIC_A}`);
       await assertFails(clinicRef.update({ theme: { primaryColor: '#0000ff' } }));
     });
@@ -166,6 +174,14 @@ describe('Firestore Security Rules Matrix', () => {
         role: 'admin',
         admin: true,
         clinicId: CLINIC_A,
+      });
+
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc(`clinics/${CLINIC_A}`).set({
+          id: CLINIC_A,
+          name: 'Columbus Chiropractic Care',
+          theme: { primaryColor: '#000000' },
+        });
       });
 
       const clinicRef = adminContext.firestore().doc(`clinics/${CLINIC_A}`);
@@ -316,6 +332,75 @@ describe('Firestore Security Rules Matrix', () => {
           primaryClinicId: CLINIC_A,
         })
       );
+    });
+  });
+
+  describe('4. Zero-Trust Hardening & Tampering Protection', () => {
+    it('DENIES a patient from changing their appointment payment status to paid_full', async () => {
+      const patientId = 'patient_attacker';
+      const patientContext = testEnv.authenticatedContext(patientId, {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc('appointments/appt_unpaid_1').set({
+          id: 'appt_unpaid_1',
+          clinicId: CLINIC_A,
+          patientId: patientId,
+          paymentStatus: 'unpaid',
+          amountPaid: 0,
+        });
+      });
+
+      const apptRef = patientContext.firestore().doc('appointments/appt_unpaid_1');
+      // Patient attempting to mark appointment paid is STRICTLY DENIED
+      await assertFails(apptRef.update({ paymentStatus: 'paid_full' }));
+      await assertFails(apptRef.update({ amountPaid: 100 }));
+      // Patient can update safe details like notes
+      await assertSucceeds(apptRef.update({ notes: 'Arriving 5 mins early' }));
+    });
+
+    it('DENIES Clinic A staff from overwriting Clinic B public blog content', async () => {
+      const clinicAStaff = testEnv.authenticatedContext('staff_clinic_a', {
+        role: 'staff',
+        clinicId: CLINIC_A,
+      });
+
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc('blogPosts/post_clinic_b').set({
+          id: 'post_clinic_b',
+          clinicId: CLINIC_B,
+          title: 'Summit Health Blog Post',
+        });
+      });
+
+      const postRef = clinicAStaff.firestore().doc('blogPosts/post_clinic_b');
+      // Overwriting with new clinicId or updating another clinic's post is DENIED
+      await assertFails(postRef.update({ title: 'Hacked by Clinic A', clinicId: CLINIC_A }));
+      await assertFails(postRef.update({ title: 'Hacked title' }));
+    });
+
+    it('DENIES a patient from reading another patient invoice in the same clinic', async () => {
+      const patientA = 'patient_alice';
+      const patientB = 'patient_bob';
+      const patientAContext = testEnv.authenticatedContext(patientA, {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc('invoices/inv_bob_1').set({
+          id: 'inv_bob_1',
+          clinicId: CLINIC_A,
+          patientId: patientB,
+          totalAmount: 150,
+        });
+      });
+
+      const invoiceRef = patientAContext.firestore().doc('invoices/inv_bob_1');
+      // Alice cannot read Bob's invoice
+      await assertFails(invoiceRef.get());
     });
   });
 });

@@ -221,7 +221,7 @@ export function AgencyWorkspace({
         { id: 'homepage_conditions' as AdminTabId, label: 'Homepage Conditions', icon: Stethoscope, badge: 'Home' },
         { id: 'trust_badges' as AdminTabId, label: 'Trust & Badges', icon: ShieldCheck },
         { id: 'why_us' as AdminTabId, label: 'Why Choose Us (Homepage)', icon: Heart },
-        { id: 'roadmap' as AdminTabId, label: '3-Phase Roadmap', icon: Clock },
+        { id: 'roadmap' as AdminTabId, label: '4-Phase Roadmap', icon: Clock },
         { id: 'reviews' as AdminTabId, label: 'Patient Reviews & Case Studies', icon: MessageSquare },
         { id: 'environment' as AdminTabId, label: 'Clinic Gallery & Environment', icon: Sparkles },
         { id: 'faqs' as AdminTabId, label: 'FAQs & First Visit', icon: HelpCircle },
@@ -924,7 +924,7 @@ export function AgencyWorkspace({
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="why-us" />
             )}
 
-            {/* 11. 3-PHASE ROADMAP */}
+            {/* 11. 4-PHASE ROADMAP */}
             {activeTab === 'roadmap' && (
               <ListsEditor clinic={clinic} onUpdateClinic={onUpdateClinic} initialCategory="process" />
             )}

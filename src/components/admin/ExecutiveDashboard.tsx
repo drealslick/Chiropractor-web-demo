@@ -869,8 +869,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             className="p-2.5 rounded-lg bg-stone-850 hover:bg-stone-800 border border-stone-800 flex items-center justify-between text-left transition cursor-pointer"
           >
             <div>
-              <span className="font-medium text-stone-200 block">3-Phase Patient Journey Roadmap</span>
-              <span className="text-[11px] text-stone-500">Discovery, relief, and discharge phases</span>
+              <span className="font-medium text-stone-200 block">4-Phase Patient Journey Roadmap</span>
+              <span className="text-[11px] text-stone-500">Discovery, relief, recovery, and long-term progress phases</span>
             </div>
             <span className="text-emerald-400 text-xs font-semibold">Edit →</span>
           </button>

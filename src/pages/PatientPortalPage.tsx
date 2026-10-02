@@ -169,6 +169,15 @@ export default function PatientPortalPage() {
         doctorNote: 'Strictly avoid heavy forward-bending or single-sided loaded carries. Continue McKenzie extension press-ups.'
       };
     }
+    if (lower.includes('sport') || lower.includes('athletic') || lower.includes('performance') || lower.includes('wellness') || lower.includes('maintenance')) {
+      return {
+        phase: 'Phase 4: Functional Optimization & Athletic Longevity',
+        milestone: 'Kinetic chain biomechanics and segmental mobility are operating at 100%. Maintaining peak performance routines.',
+        progress: 100,
+        frequency: '1 performance check-in every 4–6 weeks',
+        doctorNote: 'Continue rotational thoracic mobilization and dynamic hip warm-ups before training sessions.'
+      };
+    }
     return {
       phase: 'Phase 3: Prevention, Maintenance & Spinal Resilience',
       milestone: 'All major mechanical alignment blocks have resolved. Focus is on maintaining segment health and postural posture.',
@@ -303,9 +312,6 @@ export default function PatientPortalPage() {
       try {
         // 1. Register with Firebase Auth & Cloud Firestore
         const firebaseRes = await registerPatientWithFirebaseAuth(nameInput, emailInput, passwordInput, phoneInput);
-        
-        // Also register in local registry as cache fallback
-        registerPatientAccount(nameInput, emailInput, passwordInput, phoneInput);
 
         setIsLoading(false);
         if (firebaseRes.success && firebaseRes.account) {
@@ -367,24 +373,28 @@ export default function PatientPortalPage() {
             // Ignore
           }
         } else {
-          // Fallback check against local seed accounts
-          const localRes = authenticatePatientAccount(emailInput, passwordInput);
-          if (localRes.success && localRes.account) {
-            const appts = findPatientAppointmentsByEmail(localRes.account.email);
-            setActivePatient({ name: localRes.account.name, email: localRes.account.email, isAccount: true });
-            setPatientAppointments(appts);
-            if (appts.length > 0) setSelectedAppt(appts[0]);
+          // In production, reject login when cloud auth fails!
+          if (import.meta.env.VITE_DEMO_MODE === 'true') {
+            const localRes = authenticatePatientAccount(emailInput, passwordInput);
+            if (localRes.success && localRes.account) {
+              const appts = findPatientAppointmentsByEmail(localRes.account.email);
+              setActivePatient({ name: localRes.account.name, email: localRes.account.email, isAccount: true });
+              setPatientAppointments(appts);
+              if (appts.length > 0) setSelectedAppt(appts[0]);
 
-            try {
-              sessionStorage.setItem(
-                PATIENT_SESSION_KEY,
-                JSON.stringify({ id: localRes.account.id, name: localRes.account.name, email: localRes.account.email, isAccount: true })
-              );
-            } catch {
-              // Ignore
+              try {
+                sessionStorage.setItem(
+                  PATIENT_SESSION_KEY,
+                  JSON.stringify({ id: localRes.account.id, name: localRes.account.name, email: localRes.account.email, isAccount: true })
+                );
+              } catch {
+                // Ignore
+              }
+            } else {
+              setLoginError(authRes.message || localRes.message);
             }
           } else {
-            setLoginError(authRes.message || localRes.message);
+            setLoginError(authRes.message || 'Invalid email or password.');
           }
         }
       } catch (err: any) {
@@ -1298,85 +1308,121 @@ export default function PatientPortalPage() {
                 </div>
               )}
 
-              {/* TAB 2: OFFICIAL MEDICAL RECEIPT */}
-              {activeTab === 'receipts' && (
-                <div className="p-6 sm:p-8 space-y-6">
-                  <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-                    <div>
-                      <h3 className="font-serif font-bold text-lg text-stone-950">Official Health Insurance Receipt</h3>
-                      <p className="text-xs text-stone-500">Itemized with GCC provider credentials for Bupa, AXA, Aviva & HSA reimbursement.</p>
+              {/* TAB 2: OFFICIAL MEDICAL RECEIPT / INVOICE */}
+              {activeTab === 'receipts' && (() => {
+                const isPaid = selectedAppt.paymentStatus === 'paid_full' || selectedAppt.paymentStatus === 'deposit_paid';
+                const currency = clinic.currencySymbol || '$';
+                const recordedTotal = typeof selectedAppt.priceAmount === 'number' 
+                  ? `${currency}${selectedAppt.priceAmount.toFixed(2)}`
+                  : (selectedAppt.paymentAmount || `${currency}0.00`);
+                const recordedPaid = isPaid
+                  ? (typeof selectedAppt.amountPaid === 'number'
+                      ? `${currency}${selectedAppt.amountPaid.toFixed(2)}`
+                      : (selectedAppt.paymentAmount || recordedTotal))
+                  : `${currency}0.00`;
+                const balanceDue = isPaid && selectedAppt.paymentStatus === 'paid_full'
+                  ? `${currency}0.00`
+                  : (typeof selectedAppt.priceAmount === 'number' && typeof selectedAppt.amountPaid === 'number'
+                      ? `${currency}${Math.max(0, selectedAppt.priceAmount - selectedAppt.amountPaid).toFixed(2)}`
+                      : (isPaid ? `${currency}0.00` : recordedTotal));
+
+                return (
+                  <div className="p-6 sm:p-8 space-y-6">
+                    <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+                      <div>
+                        <h3 className="font-serif font-bold text-lg text-stone-950">
+                          {isPaid ? 'Payment Receipt & Statement' : 'Statement of Services / Pending Payment'}
+                        </h3>
+                        <p className="text-xs text-stone-500">
+                          {isPaid
+                            ? 'Itemized clinical payment record for insurance claims or FSA/HSA reimbursement.'
+                            : 'Pending balance due upon arrival or via online portal.'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition cursor-pointer flex items-center gap-2"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print / PDF</span>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition cursor-pointer flex items-center gap-2"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      <span>Print / PDF</span>
-                    </button>
+
+                    {/* Printable Invoice Card */}
+                    <div ref={receiptRef} className="p-6 sm:p-8 rounded-2xl border border-stone-200 bg-white space-y-6 text-stone-900 shadow-2xs font-sans">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-stone-200 pb-6">
+                        <div>
+                          <div className="font-serif font-bold text-xl text-stone-950">{clinic.name}</div>
+                          <p className="text-xs text-stone-500 mt-0.5">{clinic.address}, {clinic.cityState || clinic.city} {clinic.zip}</p>
+                          <p className="text-xs text-stone-500">Phone: {clinic.phone} • Email: {clinic.email}</p>
+                          {clinic.licenseNumber && (
+                            <p className="text-xs font-mono text-emerald-800 mt-1 font-semibold">Practice License / Reg: {clinic.licenseNumber}</p>
+                          )}
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {isPaid ? (selectedAppt.paymentStatus === 'deposit_paid' ? 'DEPOSIT PAID' : 'PAID IN FULL') : 'PAYMENT PENDING / $0.00 PAID'}
+                          </span>
+                          <span className="font-mono font-bold text-sm text-stone-900 block mt-1">REC-{selectedAppt.id}</span>
+                          <p className="text-xs text-stone-500 mt-1">Date: {selectedAppt.date || new Date().toISOString().split('T')[0]}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <span className="font-bold text-stone-400 uppercase tracking-wider block text-[10px]">PATIENT DETAILS</span>
+                          <strong className="text-stone-900 text-sm block mt-0.5">{selectedAppt.name}</strong>
+                          <span className="text-stone-500">{selectedAppt.email}</span>
+                          <span className="text-stone-500 block">{selectedAppt.phone}</span>
+                        </div>
+                        <div>
+                          <span className="font-bold text-stone-400 uppercase tracking-wider block text-[10px]">ATTENDING CLINICIAN</span>
+                          <strong className="text-stone-900 text-sm block mt-0.5">{selectedAppt.practitionerName || clinic.leadPractitionerName || 'Clinical Practitioner'}</strong>
+                          <span className="text-stone-500">Licensed Chiropractic Provider</span>
+                        </div>
+                      </div>
+
+                      <table className="w-full text-xs text-left border-t border-stone-200 pt-4">
+                        <thead>
+                          <tr className="border-b border-stone-200 text-stone-400 font-bold uppercase tracking-wider text-[10px]">
+                            <th className="py-2">Service Description</th>
+                            <th className="py-2">Payment Status</th>
+                            <th className="py-2 text-right">Fee</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-100">
+                          <tr>
+                            <td className="py-3 font-medium text-stone-900">
+                              {selectedAppt.serviceTitle || selectedAppt.condition || 'Consultation & Clinical Assessment'}
+                            </td>
+                            <td className="py-3 text-stone-500">
+                              {isPaid ? (selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit Settled' : 'Payment Settled') : 'Unpaid (Due at Visit)'}
+                            </td>
+                            <td className="py-3 text-right font-mono font-bold text-stone-900">{recordedTotal}</td>
+                          </tr>
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-stone-200 font-bold text-stone-700">
+                            <td colSpan={2} className="py-2 text-right">Amount Paid:</td>
+                            <td className="py-2 text-right font-mono text-emerald-800">{recordedPaid}</td>
+                          </tr>
+                          {!isPaid && (
+                            <tr className="border-t-2 border-stone-900 font-bold text-stone-950">
+                              <td colSpan={2} className="py-2 text-right">Balance Due:</td>
+                              <td className="py-2 text-right font-mono text-sm text-amber-900">{balanceDue}</td>
+                            </tr>
+                          )}
+                        </tfoot>
+                      </table>
+
+                      <div className="p-3 bg-stone-50 rounded-xl text-[11px] text-stone-500 space-y-1">
+                        <p><strong>Receipt Verification:</strong> Payment record generated from verified settlement data for {clinic.name}. Retain this statement for private healthcare plan reimbursement or tax reporting.</p>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Printable Invoice Card */}
-                  <div ref={receiptRef} className="p-6 sm:p-8 rounded-2xl border border-stone-200 bg-white space-y-6 text-stone-900 shadow-2xs font-sans">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-stone-200 pb-6">
-                      <div>
-                        <div className="font-serif font-bold text-xl text-stone-950">{clinic.name}</div>
-                        <p className="text-xs text-stone-500 mt-0.5">{clinic.address}, {clinic.cityState || clinic.city} {clinic.zip}</p>
-                        <p className="text-xs text-stone-500">Phone: {clinic.phone} • Email: {clinic.email}</p>
-                        <p className="text-xs font-mono text-emerald-800 mt-1 font-semibold">GCC Registration: 04182 • Statutory Regulated Healthcare Provider</p>
-                      </div>
-                      <div className="text-left sm:text-right">
-                        <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block">RECEIPT / INVOICE</span>
-                        <span className="font-mono font-bold text-sm text-stone-900">INV-{selectedAppt.id}</span>
-                        <p className="text-xs text-stone-500 mt-1">Date: {selectedAppt.date || new Date().toISOString().split('T')[0]}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="font-bold text-stone-400 uppercase tracking-wider block text-[10px]">PATIENT DETAILS</span>
-                        <strong className="text-stone-900 text-sm block mt-0.5">{selectedAppt.name}</strong>
-                        <span className="text-stone-500">{selectedAppt.email}</span>
-                        <span className="text-stone-500 block">{selectedAppt.phone}</span>
-                      </div>
-                      <div>
-                        <span className="font-bold text-stone-400 uppercase tracking-wider block text-[10px]">ATTENDING CLINICIAN</span>
-                        <strong className="text-stone-900 text-sm block mt-0.5">{selectedAppt.practitionerName || clinic.leadPractitionerName || 'Chiropractic Specialist'}</strong>
-                        <span className="text-stone-500">Doctor of Chiropractic (DC, MChiro)</span>
-                      </div>
-                    </div>
-
-                    <table className="w-full text-xs text-left border-t border-stone-200 pt-4">
-                      <thead>
-                        <tr className="border-b border-stone-200 text-stone-400 font-bold uppercase tracking-wider text-[10px]">
-                          <th className="py-2">Service Description</th>
-                          <th className="py-2">Type</th>
-                          <th className="py-2 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-stone-100">
-                        <tr>
-                          <td className="py-3 font-medium text-stone-900">
-                            {selectedAppt.serviceTitle || selectedAppt.condition || 'Initial Diagnostic Consultation & Assessment'}
-                          </td>
-                          <td className="py-3 text-stone-500">VAT Exempt (Healthcare)</td>
-                          <td className="py-3 text-right font-mono font-bold text-stone-900">{selectedAppt.paymentAmount || '£49.00'}</td>
-                        </tr>
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 border-stone-900 font-bold text-stone-950">
-                          <td colSpan={2} className="py-3 text-right">Total Paid:</td>
-                          <td className="py-3 text-right font-mono text-sm">{selectedAppt.paymentAmount || '£49.00'}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-
-                    <div className="p-3 bg-stone-50 rounded-xl text-[11px] text-stone-500 space-y-1">
-                      <p><strong>Note for Insurance Providers:</strong> Chiropractic care provided at this clinic is delivered by a statutory registered practitioner regulated under the Chiropractors Act 1994. Invoices are exempt from VAT under VATA 1994, Sch 9, Group 7.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* TAB 3: RESCHEDULE VIEW */}
               {activeTab === 'reschedule' && (

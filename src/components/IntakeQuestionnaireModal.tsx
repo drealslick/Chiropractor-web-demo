@@ -57,21 +57,21 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
 
   // Step 1: Body Map & Pain Character
   const [selectedBodyRegions, setSelectedBodyRegions] = useState<string[]>(
-    lead.intakeForm?.bodyRegions || ['lumbar']
+    lead.intakeForm?.bodyRegions || []
   );
   const [painArea, setPainArea] = useState<string>(
-    lead.intakeForm?.painArea || lead.condition || 'Lower Back & Lumbar Spine'
+    lead.intakeForm?.painArea || lead.condition || ''
   );
-  const [painLevel, setPainLevel] = useState<number>(lead.intakeForm?.painLevel || 6);
-  const [painDuration, setPainDuration] = useState<string>(lead.intakeForm?.painDuration || '2 to 4 weeks');
-  const [painType, setPainType] = useState<string>(lead.intakeForm?.painType || 'Sharp / Stabbing');
+  const [painLevel, setPainLevel] = useState<number>(lead.intakeForm?.painLevel || 0);
+  const [painDuration, setPainDuration] = useState<string>(lead.intakeForm?.painDuration || '');
+  const [painType, setPainType] = useState<string>(lead.intakeForm?.painType || '');
   const [selectedAggravators, setSelectedAggravators] = useState<string[]>(
-    lead.intakeForm?.aggravatingFactors || ['Prolonged sitting at desk/driving']
+    lead.intakeForm?.aggravatingFactors || []
   );
 
   // Step 2: Symptoms & Red Flags
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>(
-    lead.intakeForm?.symptoms || ['Sharp radiating or shooting pain', 'Morning stiffness lasting > 30 minutes']
+    lead.intakeForm?.symptoms || []
   );
   const [contraindications, setContraindications] = useState({
     lossOfBowelBladder: lead.intakeForm?.contraindications?.lossOfBowelBladder || false,
@@ -83,12 +83,12 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
     pregnant: lead.intakeForm?.contraindications?.pregnant || false,
   });
   const [priorSurgeries, setPriorSurgeries] = useState<string>(
-    lead.intakeForm?.priorSurgeries || 'No prior surgeries or spinal implants reported.'
+    lead.intakeForm?.priorSurgeries || ''
   );
 
-  // Step 3: Consent & Signature
+  // Step 3: Consent & Signature - strictly unselected by default
   const [informedConsentAgreed, setInformedConsentAgreed] = useState<boolean>(
-    lead.intakeForm?.informedConsentAgreed !== false
+    lead.intakeForm?.informedConsentAgreed === true
   );
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(
     lead.intakeForm?.signatureDataUrl || null
@@ -133,8 +133,9 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
     setIsSubmitting(true);
 
     setTimeout(() => {
+      const isSigned = Boolean(signatureDataUrl && signatureDataUrl.trim().length > 0);
       const intakePayload = {
-        painArea,
+        painArea: painArea || 'General Consultation Assessment',
         bodyRegions: selectedBodyRegions,
         painLevel,
         painDuration,
@@ -146,7 +147,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
         hasRedFlags,
         informedConsentAgreed,
         signatureDataUrl: signatureDataUrl || undefined,
-        signedAt: new Date().toISOString(),
+        signedAt: isSigned ? new Date().toISOString() : undefined,
         completedAt: new Date().toISOString(),
       };
 

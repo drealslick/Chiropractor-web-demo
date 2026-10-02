@@ -104,6 +104,7 @@ export default function ConditionDetail() {
           'Phase 1: Targeted spinal manipulation and joint mobilization to relieve acute mechanical restriction',
           'Phase 2: Specialized soft tissue therapy and decompression to reduce localized swelling and muscle splinting',
           'Phase 3: Active kinetic rehabilitation and posture re-education to build lasting resilience',
+          'Phase 4: Progressive core stabilization and biomechanical maintenance to prevent future flare-ups',
         ];
 
   const homeCareAdvice =

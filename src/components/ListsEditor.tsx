@@ -257,7 +257,7 @@ export function ListsEditor({
     { id: 'trust', label: 'Trust & Badges', icon: ShieldCheck, count: 4 },
     { id: 'conditions', label: 'Conditions & Protocols', icon: Activity, count: condList.length },
     { id: 'why-us', label: 'Why Choose Us (Matrix)', icon: Heart, count: 4 },
-    { id: 'process', label: '3-Phase Roadmap', icon: Clock, count: processList.length },
+    { id: 'process', label: '4-Phase Roadmap', icon: Clock, count: processList.length },
     { id: 'reviews', label: 'Reviews & Case Studies', icon: MessageSquare, count: reviewList.length },
     { id: 'sanctuary', label: 'Practice Environment', icon: Sparkles, count: 3 },
     { id: 'faqs', label: 'FAQs', icon: HelpCircle, count: faqList.length },
@@ -775,7 +775,7 @@ export function ListsEditor({
           <div className="border-b border-stone-800 pb-2">
             <h3 className="font-bold text-stone-100 text-sm flex items-center gap-2">
               <Clock className="w-4 h-4 text-emerald-400" />
-              <span>3-Phase Patient Care Roadmap</span>
+              <span>4-Phase Patient Care Roadmap</span>
             </h3>
             <p className="text-[11px] text-stone-400">
               Interactive timeline detailing how patients progress from pain to freedom.

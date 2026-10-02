@@ -190,8 +190,23 @@ export async function registerPatientWithFirebaseAuth(
       createdAt: new Date().toISOString(),
     };
 
-    // 2. Persist profile document in Firestore
-    await setDoc(doc(db, PATIENTS_COLLECTION, user.uid), patientProfile);
+    // 2. Persist profile document in both patients and users collections
+    const activeClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    await Promise.all([
+      setDoc(doc(db, PATIENTS_COLLECTION, user.uid), {
+        ...patientProfile,
+        clinicId: activeClinicId,
+      }),
+      setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: cleanEmail,
+        displayName: name.trim(),
+        role: 'patient',
+        clinicId: activeClinicId,
+        phone: phone?.trim() || '',
+        createdAt: serverTimestamp(),
+      }),
+    ]);
 
     return {
       success: true,
@@ -339,5 +354,57 @@ export async function seedInitialFirestoreData(leads: PatientLead[]): Promise<vo
     }
   } catch (err) {
     console.warn('Initial Firestore seed warning:', err);
+  }
+}
+
+/**
+ * Persist website contact form inquiries to Cloud Firestore
+ */
+export async function syncInquiryToFirestore(inquiry: {
+  id?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  message?: string;
+  condition?: string;
+  clinicName?: string;
+  clinicId?: string;
+  createdAt?: string;
+}): Promise<boolean> {
+  const activeClinicId = inquiry.clinicId || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+  if (isSandboxMode()) {
+    sandbox.create('inquiries', activeClinicId, inquiry);
+    return true;
+  }
+  try {
+    const docId = inquiry.id || `inq_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    await setDoc(doc(db, 'inquiries', docId), {
+      ...inquiry,
+      id: docId,
+      clinicId: activeClinicId,
+      createdAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    console.error('Failed to sync inquiry to Firestore:', error);
+    return false;
+  }
+}
+
+/**
+ * Delete appointment from Cloud Firestore
+ */
+export async function deleteAppointmentFromFirestore(appointmentId: string): Promise<boolean> {
+  if (isSandboxMode()) {
+    sandbox.delete('appointments', appointmentId);
+    return true;
+  }
+  try {
+    const { deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(doc(db, APPOINTMENTS_COLLECTION, appointmentId));
+    return true;
+  } catch (error) {
+    console.error('Failed to delete appointment from Firestore:', error);
+    return false;
   }
 }

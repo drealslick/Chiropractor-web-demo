@@ -106,17 +106,30 @@ service cloud.firestore {
     }
 
     // 3. Appointments Collection
-    // Strict isolation: Patients can only access their own appointments
-    // Staff/Doctors can access appointments for their clinic
-    // Public booking creation allowed for unauthenticated patient web intake
+    // Strict isolation:
+    // - Patients can read their own appointments
+    // - Clinic staff can read appointments for their clinic
+    // - Public web booking creation allowed
+    // - Payment status, amountPaid, and tenant/owner identities are IMMUTABLE to patient clients
     match /appointments/{appointmentId} {
       allow read: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
                      (isAuthenticated() && isClinicStaff(resource.data.clinicId));
       
       allow create: if true;
 
-      allow update: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
-                      (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+      allow update: if (
+        // Patient update: can edit notes/intake/reschedule, but CANNOT touch payment, owner, or clinic tenant
+        isAuthenticated() && resource.data.patientId == request.auth.uid &&
+        request.resource.data.patientId == resource.data.patientId &&
+        request.resource.data.clinicId == resource.data.clinicId &&
+        (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus == resource.data.paymentStatus) &&
+        (!('amountPaid' in request.resource.data) || request.resource.data.amountPaid == resource.data.amountPaid) &&
+        (!('stripePaymentIntentId' in request.resource.data) || request.resource.data.stripePaymentIntentId == resource.data.stripePaymentIntentId)
+      ) || (
+        // Staff update: clinic tenant remains immutable
+        isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+        request.resource.data.clinicId == resource.data.clinicId
+      );
 
       allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
@@ -125,7 +138,11 @@ service cloud.firestore {
     match /patients/{patientId} {
       allow read: if isOwner(patientId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
       allow create: if isOwner(patientId) || !isAuthenticated();
-      allow update: if isOwner(patientId) || (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+      allow update: if (
+        isOwner(patientId) &&
+        (!('role' in request.resource.data) || request.resource.data.role == resource.data.role) &&
+        (!('clinicId' in request.resource.data) || request.resource.data.clinicId == resource.data.clinicId)
+      ) || (isAuthenticated() && isClinicAdmin(resource.data.clinicId));
       allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
@@ -133,35 +150,52 @@ service cloud.firestore {
     // Public can create (website contact form), but only clinic staff can read/manage
     match /inquiries/{inquiryId} {
       allow create: if true;
-      allow read, update: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
+      allow read, update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+                             request.resource.data.clinicId == resource.data.clinicId;
       allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
     // 5. Conditions, Team, Blogs, Testimonials, FAQs (Public Content)
-    // Public read; staff can write
+    // Public read; staff can create and update ONLY within their own clinic;
+    // Overwrite across clinics is strictly prevented by checking both resource and request.resource
     match /conditions/{conditionId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+                       request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
     match /teamMembers/{memberId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+                       request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
     match /blogPosts/{postId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+                       request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
     match /testimonials/{testimonialId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+                       request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
     match /faqs/{faqId} {
       allow read: if true;
-      allow write: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow create: if isAuthenticated() && isClinicStaff(request.resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+                       request.resource.data.clinicId == resource.data.clinicId;
+      allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
     // 6. Support Tickets (Scoped by clinicId)
@@ -176,7 +210,7 @@ service cloud.firestore {
       );
       allow update: if isAuthenticated() && (
         request.auth.token.superAdmin == true ||
-        resource.data.clinicId == request.auth.token.clinicId
+        (resource.data.clinicId == request.auth.token.clinicId && request.resource.data.clinicId == resource.data.clinicId)
       );
       allow delete: if false;
     }
@@ -187,11 +221,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // 8. Invoices (Scoped by clinicId, no client write)
+    // 8. Invoices (Scoped by clinicId & patient ownership, no client write)
+    // Patients can only read invoices issued to them; staff can read all invoices for their clinic
     match /invoices/{invoiceId} {
       allow read: if isAuthenticated() && (
         request.auth.token.superAdmin == true ||
-        resource.data.clinicId == request.auth.token.clinicId
+        isClinicStaff(resource.data.clinicId) ||
+        (resource.data.patientId == request.auth.uid && resource.data.clinicId == getUserClinicId())
       );
       allow write: if false;
     }
@@ -201,9 +237,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // 10. Diagnostics check collection
+    // 9.1. Transactional Slot Reservations & Rate Limiting (Server-only via Admin SDK)
+    match /reservations/{reservationId} {
+      allow read, write: if false;
+    }
+
+    match /clinic_notifications_ratelimit/{clinicId} {
+      allow read, write: if false;
+    }
+
+    // 10. Diagnostics check collection (SuperAdmin only in production)
     match /_diag/{diagId} {
-      allow read, write, delete: if true;
+      allow read, write: if isAuthenticated() && request.auth.token.superAdmin == true;
     }
   }
 }

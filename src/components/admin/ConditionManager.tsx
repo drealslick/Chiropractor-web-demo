@@ -114,6 +114,7 @@ export const ConditionManager: React.FC<ConditionManagerProps> = ({
         'Phase 1: Precision joint mobilization to relieve acute mechanical restriction',
         'Phase 2: Targeted soft tissue therapy and disc decompression',
         'Phase 3: Progressive kinetic chain stabilization to prevent recurrence',
+        'Phase 4: Neuromuscular re-education and functional lifestyle integration to sustain peak spinal health',
       ],
       homeCareAdvice:
         'Avoid prolonged static postures. Implement gentle micro-extensions every 30 minutes and apply cold therapy to acute flare-ups for 15 minutes twice daily.',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useClinic } from '../data/ClinicContext';
-import { saveLead } from '../data/leadsStore';
+import { syncInquiryToFirestore } from '../services/firebaseSync';
 import {
   CheckCircle2,
   Instagram,
@@ -190,15 +190,14 @@ export default function Contact() {
           const email = String(data.get('email') || '');
           const message = String(data.get('message') || '');
 
-          saveLead({
-            source: 'contact',
+          syncInquiryToFirestore({
             name: name || 'Website Visitor',
             phone,
             email,
+            message,
             condition: 'Contact Inquiry',
-            notes: message,
             clinicName: clinic.name,
-            status: 'new',
+            clinicId: clinic.id,
           });
 
           const subject = encodeURIComponent(`Website enquiry — ${clinic.name}`);

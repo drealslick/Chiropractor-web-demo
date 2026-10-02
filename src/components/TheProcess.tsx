@@ -46,6 +46,17 @@ export const TheProcess: React.FC<TheProcessProps> = ({ clinic }) => {
       ],
       doctorNote: "Our mission is to make you self-sufficient, not reliant on weekly appointments.",
     },
+    {
+      timing: "Visits 06+ · Resilience",
+      highlight: "Progress Tracking & Long-Term Freedom",
+      whatHappens: [
+        "Objective re-examination to quantify mobility gains and permanent postural stability",
+        "Personalized daily movement hygiene routines taking under 5 minutes",
+        "Elective wellness checks or sport-specific performance tuning on your schedule",
+        "Direct access through your secure Patient Portal for exercises and records",
+      ],
+      doctorNote: "True spinal health isn't just being pain-free—it's having the freedom to live, lift, and train without fear of reinjury.",
+    },
   ];
 
   return (
@@ -67,10 +78,18 @@ export const TheProcess: React.FC<TheProcessProps> = ({ clinic }) => {
           </p>
         </div>
 
-        {/* 3 Step Connected Stepper */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          {steps.slice(0, 3).map((step, idx) => {
+        {/* 4 Step Connected Stepper */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {steps.slice(0, 4).map((step, idx) => {
             const isSelected = selectedPhase === idx;
+            const badgeLabel =
+              idx === 0
+                ? 'Discovery'
+                : idx === 1
+                ? 'Relief'
+                : idx === 2
+                ? 'Recovery'
+                : 'Progress';
             return (
               <button
                 key={idx}
@@ -89,7 +108,7 @@ export const TheProcess: React.FC<TheProcessProps> = ({ clinic }) => {
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold ${
                     isSelected ? 'bg-stone-800 text-stone-300' : 'bg-stone-100 text-stone-500'
                   }`}>
-                    {idx === 0 ? 'Discovery' : idx === 1 ? 'Relief' : 'Graduation'}
+                    {badgeLabel}
                   </span>
                 </div>
                 <h3 className={`font-serif text-lg font-bold mb-1.5 ${isSelected ? 'text-white' : 'text-stone-900'}`}>
@@ -122,8 +141,8 @@ export const TheProcess: React.FC<TheProcessProps> = ({ clinic }) => {
                   {phaseDetails[selectedPhase]?.highlight}
                 </h4>
               </div>
-              <div className="text-xs text-stone-400">
-                Phase {selectedPhase + 1} of 3
+              <div className="text-xs text-stone-400 font-medium">
+                Phase {selectedPhase + 1} of {Math.min(steps.length, phaseDetails.length)}
               </div>
             </div>
 

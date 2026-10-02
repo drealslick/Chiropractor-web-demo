@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth, isFirebaseConfigured } from '../lib/firebase';
@@ -81,7 +81,8 @@ function sanitize(clinic: ClinicInfo) {
 }
 
 function getInitialClinic(): { data: ClinicInfo; hasCache: boolean } {
-  const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
+  const rawPreset = import.meta.env.VITE_DEFAULT_PRESET || 'austin';
+  const defaultPresetKey = String(rawPreset).toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'austin';
   const presetData = agencyDemoPresets[defaultPresetKey] || {};
   const baseClinic = { ...defaultClinic, ...presetData };
   try {
@@ -94,9 +95,8 @@ function getInitialClinic(): { data: ClinicInfo; hasCache: boolean } {
 }
 
 export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const initial = useMemo(() => getInitialClinic(), []);
-  const [clinicData, setClinicData] = useState<ClinicInfo>(initial.data);
-  const [isConfigLoaded, setIsConfigLoaded] = useState<boolean>(initial.hasCache);
+  const [clinicData, setClinicData] = useState<ClinicInfo>(() => getInitialClinic().data);
+  const [isConfigLoaded, setIsConfigLoaded] = useState<boolean>(() => getInitialClinic().hasCache);
   const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(isFirebaseConfigured ? 'idle' : 'local_only');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -385,67 +385,36 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     persist(next);
   }, [clinicData, persist]);
 
-  const value = useMemo<ClinicContextType>(
-    () => ({
-      clinicData,
-      setClinicData,
-      updateClinic,
-      resetClinic,
-      loadPreset,
-      syncStatus,
-      lastSaved,
-      errorMessage,
-      isCloudConnected,
-      isCloudSynced,
-      importClinicBlueprint,
-      activeLocation,
-      setActiveLocationId,
-      allLocations,
-      isBookingModalOpen,
-      bookingInitialCondition,
-      bookingInitialServiceType,
-      bookingInitialServiceTitle,
-      bookingInitialServicePrice,
-      bookingInitialPractitionerId,
-      openBookingModal,
-      closeBookingModal,
-      isPatientPortalOpen,
-      patientPortalInitialQuery,
-      openPatientPortal,
-      closePatientPortal,
-      isConfigLoaded,
-      isAuthReady,
-    }),
-    [
-      clinicData,
-      updateClinic,
-      resetClinic,
-      loadPreset,
-      syncStatus,
-      lastSaved,
-      errorMessage,
-      isCloudConnected,
-      isCloudSynced,
-      importClinicBlueprint,
-      activeLocation,
-      setActiveLocationId,
-      allLocations,
-      isBookingModalOpen,
-      bookingInitialCondition,
-      bookingInitialServiceType,
-      bookingInitialServiceTitle,
-      bookingInitialServicePrice,
-      bookingInitialPractitionerId,
-      openBookingModal,
-      closeBookingModal,
-      isPatientPortalOpen,
-      patientPortalInitialQuery,
-      openPatientPortal,
-      closePatientPortal,
-      isConfigLoaded,
-      isAuthReady,
-    ]
-  );
+  const value: ClinicContextType = {
+    clinicData,
+    setClinicData,
+    updateClinic,
+    resetClinic,
+    loadPreset,
+    syncStatus,
+    lastSaved,
+    errorMessage,
+    isCloudConnected,
+    isCloudSynced,
+    importClinicBlueprint,
+    activeLocation,
+    setActiveLocationId,
+    allLocations,
+    isBookingModalOpen,
+    bookingInitialCondition,
+    bookingInitialServiceType,
+    bookingInitialServiceTitle,
+    bookingInitialServicePrice,
+    bookingInitialPractitionerId,
+    openBookingModal,
+    closeBookingModal,
+    isPatientPortalOpen,
+    patientPortalInitialQuery,
+    openPatientPortal,
+    closePatientPortal,
+    isConfigLoaded,
+    isAuthReady,
+  };
 
   // Gate initial paint until clinic config and auth state are ready
   // Eliminates flash of unconfigured text or "Sign In" button flicker

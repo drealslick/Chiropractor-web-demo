@@ -39,6 +39,10 @@ export interface PatientLead {
   // Upfront Payment & No-Show Protection tracking
   paymentStatus?: 'paid_full' | 'deposit_paid' | 'card_hold' | 'unpaid' | 'refunded';
   paymentAmount?: string;
+  priceAmount?: number;
+  depositAmount?: number;
+  amountPaid?: number;
+  currency?: string;
   paymentMethod?: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash';
   cardLast4?: string;
   cardBrand?: string;
@@ -360,13 +364,17 @@ export function saveLead(
   leadInput: Omit<PatientLead, 'id' | 'createdAt' | 'status'> & Partial<PatientLead>
 ): PatientLead {
   const currentLeads = getStoredLeads();
+  const activeClinicId = leadInput.clinicName?.toLowerCase().replace(/\s+/g, '-') || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
   const newLead: PatientLead = {
     id: leadInput.id || generateSecureBookingReference('VH'),
+    patientId: leadInput.patientId,
     source: leadInput.source || 'booking',
     name: leadInput.name || 'Anonymous',
     email: leadInput.email || '',
     phone: leadInput.phone || '',
     condition: leadInput.condition || 'General Consultation',
+    serviceType: leadInput.serviceType || 'initial',
+    serviceTitle: leadInput.serviceTitle || leadInput.condition || 'Chiropractic Consultation',
     practitionerId: leadInput.practitionerId,
     practitionerName: leadInput.practitionerName || 'First Available Practitioner',
     date: leadInput.date,
@@ -375,10 +383,11 @@ export function saveLead(
     locationId: leadInput.locationId,
     locationName: leadInput.locationName,
     locationAddress: leadInput.locationAddress,
+    preferredTimeWindow: leadInput.preferredTimeWindow,
     notes: leadInput.notes || '',
     createdAt: leadInput.createdAt || new Date().toISOString(),
     status: leadInput.status || 'new',
-    clinicName: leadInput.clinicName || 'Clinic',
+    clinicName: leadInput.clinicName || 'Columbus Chiropractic Care',
     cancellationReason: leadInput.cancellationReason,
     paymentStatus: leadInput.paymentStatus || 'unpaid',
     paymentAmount: leadInput.paymentAmount,
@@ -387,6 +396,7 @@ export function saveLead(
     cardBrand: leadInput.cardBrand,
     transactionId: leadInput.transactionId,
     noShowProtected: leadInput.noShowProtected,
+    intakeForm: leadInput.intakeForm,
   };
 
   const existingIndex = currentLeads.findIndex((l) => l.id === newLead.id);
@@ -476,6 +486,19 @@ export function saveLead(
   return newLead;
 }
 
+export async function saveLeadAsync(
+  leadInput: Omit<PatientLead, 'id' | 'createdAt' | 'status'> & Partial<PatientLead>
+): Promise<{ success: boolean; lead: PatientLead; error?: string }> {
+  const lead = saveLead(leadInput);
+  try {
+    const synced = await syncAppointmentToFirestore(lead);
+    return { success: synced, lead };
+  } catch (err: any) {
+    console.error('Error awaiting appointment persistence:', err);
+    return { success: false, lead, error: err?.message || 'Persistence failed' };
+  }
+}
+
 export function updateLeadStatus(id: string, status: PatientLead['status'], cancellationReason?: string): PatientLead[] {
   const current = getStoredLeads();
   let updatedLead: PatientLead | undefined;
@@ -493,6 +516,8 @@ export function updateLeadStatus(id: string, status: PatientLead['status'], canc
   try {
     if (isDemoMode()) {
       sandbox.update('appointments', id, { status, ...(cancellationReason ? { cancellationReason } : {}) });
+    } else if (updatedLead) {
+      syncAppointmentToFirestore(updatedLead).catch(() => {});
     }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
     dispatchSafeEvent('leads_updated', updated );
@@ -535,6 +560,11 @@ export function updateLeadDetails(id: string, partial: Partial<PatientLead>): Pa
     return lead;
   });
   try {
+    if (isDemoMode()) {
+      sandbox.update('appointments', id, partial);
+    } else if (modifiedLead) {
+      syncAppointmentToFirestore(modifiedLead).catch(() => {});
+    }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
     dispatchSafeEvent('leads_updated', updated );
   } catch {
@@ -584,6 +614,11 @@ export function updateLeadPayment(
   });
 
   try {
+    if (isDemoMode()) {
+      sandbox.update('appointments', id, paymentUpdate);
+    } else if (modifiedLead) {
+      syncAppointmentToFirestore(modifiedLead).catch(() => {});
+    }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
     dispatchSafeEvent('leads_updated', updated );
   } catch {
@@ -609,6 +644,10 @@ export function deleteLead(id: string): PatientLead[] {
   try {
     if (isDemoMode()) {
       sandbox.delete('appointments', id);
+    } else {
+      import('../services/firebaseSync').then(({ deleteAppointmentFromFirestore }) => {
+        deleteAppointmentFromFirestore(id).catch(() => {});
+      });
     }
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
     dispatchSafeEvent('leads_updated', updated );
@@ -702,7 +741,6 @@ export function exportLeadsToCSV(leads: PatientLead[], clinicName: string = 'Cli
 export interface PatientAccount {
   id: string;
   email: string;
-  password?: string;
   name: string;
   phone?: string;
   createdAt: string;
@@ -715,7 +753,6 @@ export function getDefaultSeedPatientAccounts(): PatientAccount[] {
     {
       id: 'acc-john-doe',
       email: 'johndoe@example.com',
-      password: 'password123',
       name: 'John Doe',
       phone: '(303) 555-0199',
       createdAt: new Date().toISOString(),
@@ -723,7 +760,6 @@ export function getDefaultSeedPatientAccounts(): PatientAccount[] {
     {
       id: 'acc-emily-watson',
       email: 'emily.w@example.com',
-      password: 'password123',
       name: 'Emily Watson',
       phone: '(303) 555-0194',
       createdAt: new Date().toISOString(),
@@ -754,12 +790,12 @@ export function getStoredPatientAccounts(): PatientAccount[] {
 export function registerPatientAccount(
   name: string,
   email: string,
-  password: string,
+  _password?: string,
   phone?: string
 ): { success: boolean; account?: PatientAccount; message: string } {
   const cleanEmail = email.trim().toLowerCase();
-  if (!cleanEmail || !password || !name) {
-    return { success: false, message: 'Please provide full name, email, and password.' };
+  if (!cleanEmail || !name) {
+    return { success: false, message: 'Please provide full name and email.' };
   }
 
   const accounts = getStoredPatientAccounts();
@@ -767,11 +803,11 @@ export function registerPatientAccount(
     return { success: false, message: 'An account with this email address already exists. Please log in.' };
   }
 
+  // Never store plaintext passwords in browser storage
   const newAccount: PatientAccount = {
     id: `acc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     name: name.trim(),
     email: cleanEmail,
-    password: password.trim(),
     phone: phone?.trim() || '',
     createdAt: new Date().toISOString(),
   };
@@ -783,13 +819,20 @@ export function registerPatientAccount(
     // Ignore
   }
 
-  return { success: true, account: newAccount, message: 'Account created successfully!' };
+  return { success: true, account: newAccount, message: 'Account registered successfully.' };
 }
 
 export function authenticatePatientAccount(
   email: string,
-  password: string
+  password?: string
 ): { success: boolean; account?: PatientAccount; message: string } {
+  if (!isDemoMode()) {
+    return {
+      success: false,
+      message: 'Client-side fallback authentication is prohibited in production mode. Please log in with your verified Firebase credentials.',
+    };
+  }
+
   const cleanEmail = email.trim().toLowerCase();
   const accounts = getStoredPatientAccounts();
   const match = accounts.find((a) => a.email.toLowerCase() === cleanEmail);
@@ -798,11 +841,7 @@ export function authenticatePatientAccount(
     return { success: false, message: 'No patient account found with that email. Please check your spelling or sign up.' };
   }
 
-  if (match.password && match.password !== password.trim()) {
-    return { success: false, message: 'Incorrect password. Please try again.' };
-  }
-
-  return { success: true, account: match, message: 'Login successful.' };
+  return { success: true, account: match, message: 'Demo login successful.' };
 }
 
 export function findPatientAppointmentsByEmail(email: string): PatientLead[] {
@@ -874,6 +913,17 @@ export function requestPatientReschedule(
   leads[targetIndex] = updatedLead;
 
   try {
+    if (isDemoMode()) {
+      sandbox.update('appointments', leadId, {
+        date: newDate,
+        time: newTime,
+        status: 'new',
+        notes: updatedLead.notes,
+      });
+    } else {
+      syncAppointmentToFirestore(updatedLead).catch(() => {});
+    }
+
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
     dispatchSafeEvent('leads_updated', leads );
 
@@ -942,6 +992,16 @@ export function requestPatientCancellation(
   leads[targetIndex] = updatedLead;
 
   try {
+    if (isDemoMode()) {
+      sandbox.update('appointments', leadId, {
+        status: 'cancelled',
+        cancellationReason: reason,
+        notes: updatedLead.notes,
+      });
+    } else {
+      syncAppointmentToFirestore(updatedLead).catch(() => {});
+    }
+
     localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
     dispatchSafeEvent('leads_updated', leads );
 
@@ -1001,11 +1061,13 @@ export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['i
 
   if (updatedLead) {
     try {
+      if (isDemoMode()) {
+        sandbox.update('appointments', (updatedLead as PatientLead).id, { intakeForm: intakeData });
+      } else {
+        syncAppointmentToFirestore(updatedLead).catch(() => {});
+      }
       localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLeads));
       dispatchSafeEvent('leads_updated', updatedLeads );
-
-      // Sync directly to Firestore cloud database
-      syncAppointmentToFirestore(updatedLead);
 
       // Create staff notification
       const newNotif: DispatchedNotification = {

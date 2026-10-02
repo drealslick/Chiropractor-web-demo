@@ -31,7 +31,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData, PublicTeamMember, ClinicSchedulingRules, PricingFeeItem } from '../types';
 import { useClinic } from '../data/ClinicContext';
-import { saveLead, getStoredLeads } from '../data/leadsStore';
+import { saveLead, saveLeadAsync, getStoredLeads } from '../data/leadsStore';
 import { defaultPublicTeamMembers } from '../data/defaultTeamData';
 import { defaultSchedulingRules, defaultPaymentPolicy } from '../data/clinicData';
 import { StripeElementsCheckout } from './StripeElementsCheckout';
@@ -525,21 +525,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const taken = new Set<string>();
 
     try {
-      const stored = localStorage.getItem('agency_patient_leads_v1');
-      if (stored) {
-        const leads = JSON.parse(stored);
-        leads.forEach((l: { date?: string; time?: string; status?: string; practitionerId?: string }) => {
-          if (l.date === currentDay.dateString && l.time && l.status !== 'archived' && l.status !== 'cancelled') {
-            if (selectedPractitionerId) {
-              if (l.practitionerId === selectedPractitionerId) {
-                taken.add(l.time);
-              }
-            } else {
+      const leads = getStoredLeads();
+      leads.forEach((l) => {
+        if (l.date === currentDay.dateString && l.time && l.status !== 'archived' && l.status !== 'cancelled') {
+          if (selectedPractitionerId) {
+            if (l.practitionerId === selectedPractitionerId || !l.practitionerId) {
               taken.add(l.time);
             }
+          } else {
+            taken.add(l.time);
           }
-        });
-      }
+        }
+      });
     } catch {
       // ignore
     }
@@ -664,7 +661,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   }, [clinic.externalBookingUrl, formData]);
 
-  const handleSubmitStep3 = (e: React.FormEvent) => {
+  const handleSubmitStep3 = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (honeypot) {
@@ -682,50 +679,38 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCardHolder(formData.name);
     }
 
+    const bookingPayload = {
+      source: 'booking' as const,
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      condition: formData.condition || activeServiceDetails.title,
+      serviceType: activeServiceDetails.type,
+      serviceTitle: activeServiceDetails.title,
+      practitionerId: formData.preferredPractitionerId,
+      practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
+      date: formData.date,
+      time: formData.time,
+      durationMinutes: activeServiceDetails.durationMinutes,
+      clinicName: clinic.name,
+      locationId: clinic.id,
+      locationName: clinic.name,
+      locationAddress: clinic.address,
+      notes: `Service: ${activeServiceDetails.title} (${activeServiceDetails.price}, ${activeServiceDetails.durationMinutes} min). Practitioner: ${formData.preferredPractitionerName || 'First Available'}. Slot: ${formData.date} at ${formData.time}. ${formData.notes || ''}`,
+      status: 'new' as const,
+      paymentStatus: 'unpaid' as const,
+    };
+
     if (isPaymentEnabled) {
       if (!createdBookingRefId) {
-        const saved = saveLead({
-          source: 'booking',
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          condition: formData.condition || activeServiceDetails.title,
-          serviceType: activeServiceDetails.type,
-          serviceTitle: activeServiceDetails.title,
-          practitionerId: formData.preferredPractitionerId,
-          practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
-          date: formData.date,
-          time: formData.time,
-          durationMinutes: activeServiceDetails.durationMinutes,
-          clinicName: clinic.name,
-          notes: `Booking slot selected. Pending payment authorization. Service: ${activeServiceDetails.title}. Slot: ${formData.date} at ${formData.time}.`,
-          status: 'new',
-          paymentStatus: 'unpaid',
-        });
-        setCreatedBookingRefId(saved.id);
+        const res = await saveLeadAsync(bookingPayload);
+        setCreatedBookingRefId(res.lead.id);
       }
       setStep(4);
     } else {
-      // Direct booking without payment
-      const saved = saveLead({
-        source: 'booking',
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email,
-        condition: formData.condition || activeServiceDetails.title,
-        serviceType: activeServiceDetails.type,
-        serviceTitle: activeServiceDetails.title,
-        practitionerId: formData.preferredPractitionerId,
-        practitionerName: formData.preferredPractitionerName || 'First Available Practitioner',
-        date: formData.date,
-        time: formData.time,
-        durationMinutes: activeServiceDetails.durationMinutes,
-        clinicName: clinic.name,
-        notes: `Service: ${activeServiceDetails.title} (${activeServiceDetails.price}, ${activeServiceDetails.durationMinutes} min). Practitioner: ${formData.preferredPractitionerName || 'First Available'}. Slot: ${formData.date} at ${formData.time}. ${formData.notes || ''}`,
-        status: 'new',
-        paymentStatus: 'unpaid',
-      });
-      setCreatedBookingRefId(saved.id);
+      // Direct booking without upfront payment
+      const res = await saveLeadAsync(bookingPayload);
+      setCreatedBookingRefId(res.lead.id);
       setStep(4);
     }
   };
