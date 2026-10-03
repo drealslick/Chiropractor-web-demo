@@ -1,19 +1,49 @@
+# Dependencies
 node_modules/
-build/
-dist/
-coverage/
-.DS_Store
-*.log
 
-# Environment variables
+# Build / output
+dist/
+build/
+functions/lib/
+.vite/
+coverage/
+test-output/
+*.js.map
+server.js
+
+# Firebase local
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+
+# Environment & secrets
 .env
 .env.local
 .env.*.local
 .env*
 !.env.example
-
-# Sensitive credentials & keys
 firebase-applet-config.json
 serviceAccountKey.json
 *.pem
 *.key
+*.p12
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime-*
+
+# Test / tooling artifacts
+playwright-report/
+test-results/
+.nyc_output/
+
+# Optional local overrides
+*.local
+!*.example
