@@ -1,9 +1,7 @@
-import heroImg from '../assets/images/clinic_hero_care_1789573961612.jpg';
-import doctorImg from '../assets/images/doctor_portrait_1789573972470.jpg';
-import clinicRoomImg from '../assets/images/clinic_interior_room_1789573983752.jpg';
-import michaelImg from '../assets/images/patient_michael_tennis_1789573994707.jpg';
-
-export { heroImg, doctorImg, clinicRoomImg, michaelImg };
+export const heroImg = '/images/clinic_hero_care.webp';
+export const doctorImg = '/images/doctor_portrait.webp';
+export const clinicRoomImg = '/images/clinic_interior_room.webp';
+export const michaelImg = '/images/patient_michael_tennis.webp';
 
 import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption, ClinicSchedulingRules, ClinicPaymentPolicy, ClinicLocation } from '../types';
 
@@ -62,7 +60,7 @@ export const defaultPaymentPolicy: ClinicPaymentPolicy = {
   statementDescriptor: 'COLUMBUS CHIROPRACTIC',
   stripeMode: 'test',
   requireCardForOnlineBookings: true,
-  customExplanation: "A small $25 deposit reserves Dr. Vance's treatment suite exclusively for your scheduled hour and is fully credited toward your first consultation. 100% refundable if rescheduled or cancelled with at least 24 hours notice.",
+  customExplanation: "A small $25 deposit reserves Dr. Reed's treatment suite exclusively for your scheduled hour and is fully credited toward your first consultation. 100% refundable if rescheduled or cancelled with at least 24 hours notice.",
 };
 
 export const defaultSchedulingRules: ClinicSchedulingRules = {
@@ -85,7 +83,7 @@ export const defaultSchedulingRules: ClinicSchedulingRules = {
   practitionerOverrides: [
     {
       practitionerId: 'team-1',
-      practitionerName: 'Dr. Alistair Vance',
+      practitionerName: 'Dr. Marcus Reed',
       role: 'Lead Chiropractic Physician',
       isOnHoliday: false,
       holidayDates: [],
@@ -116,7 +114,7 @@ export const defaultSchedulingRules: ClinicSchedulingRules = {
   ],
   notifications: {
     clinicEmailAlert: true,
-    clinicAlertRecipient: 'reception@vancehealth.co.uk',
+    clinicAlertRecipient: 'care@columbuschiropractic.com',
     patientAutoResponder: true,
     autoResponderSubject: "We've received your appointment request - Columbus Chiropractic Care",
     autoResponderMessage: `Hello {patient_name},
@@ -181,7 +179,7 @@ export const defaultClinic: ClinicInfo = {
   hoursWeekday: "Mon–Fri: 8:00am–6:30pm",
   hoursSaturday: "Sat: 9:00am–2:00pm",
   parkingNote: "Dedicated patient parking in rear lot. Metered street parking on N High St.",
-  doctorName: "Dr. Alistair Vance",
+  doctorName: "Dr. Marcus Reed",
   doctorCredentials: "D.C., CCSP, MSc",
   doctorYears: "15",
   doctorQuote: "My vision for Columbus Chiropractic Care is simple: deliver precise, root-cause care without guesswork, so our patients regain total freedom of movement.",

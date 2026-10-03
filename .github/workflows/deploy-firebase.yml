@@ -28,12 +28,12 @@ jobs:
       - name: Install Functions Dependencies & Build
         run: |
           cd functions
-          npm install
+          npm ci
           npm run build
           cd ..
 
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
+        uses: w9jds/firebase-action@v13.5.0
         with:
           args: deploy
         env:

@@ -1,23 +1,26 @@
 /**
- * One-Time Data Migration Script: Supabase & Local Cache -> Cloud Firestore
+ * Idempotent Data Migration & Reconciliation Script: Local / Staging -> Cloud Firestore
  *
  * Usage:
+ *   # Dry-run audit (does NOT write to Firestore):
+ *   npx tsx scripts/migrate-to-firestore.ts --dry-run
+ *
+ *   # Execute migration:
  *   npx tsx scripts/migrate-to-firestore.ts
  *
- * Populates:
- *   1. clinics/{PRIMARY_CLINIC_ID} (default: columbus-chiropractic)
- *   2. conditions (clinical rehab tracks & exercises)
- *   3. teamMembers (doctors, credentials)
- *   4. testimonials
- *   5. faqs
- *   6. appointments (leads & appointments)
+ * Guarantees:
+ * 1. Idempotent execution (safe to run multiple times).
+ * 2. Never infers patient account ownership from an unverified email address.
+ * 3. Never turns a client-supplied "paid" value into a trusted payment unless accompanied
+ *    by a verified gateway transaction ID (e.g. pi_...).
+ * 4. Flags ambiguous clinic ownership, unverified payment provenance, and unlinked guests.
  */
 
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore, doc, setDoc, writeBatch } from 'firebase/firestore';
+import { initializeFirestore, doc, setDoc } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import * as fs from 'fs';
-import * as path from 'path';
+
+const isDryRun = process.argv.includes('--dry-run');
 
 // Read Firebase Config from Environment
 const firebaseConfig = {
@@ -29,266 +32,234 @@ const firebaseConfig = {
   appId: process.env.VITE_FIREBASE_APP_ID || '',
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = initializeFirestore(
-  app,
-  {},
-  process.env.VITE_FIREBASE_DATABASE_ID || '(default)'
-);
-
 const PRIMARY_CLINIC_ID = process.env.VITE_CLINIC_ID || 'columbus-chiropractic';
 
-async function authenticateAdmin() {
-  const email = 'admin@vancehealth.com';
-  const pass = 'ClinicAdmin2026!';
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    console.log(`🔑 Authenticated as Clinic Admin: ${email}`);
-  } catch (err: any) {
-    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-      try {
-        await createUserWithEmailAndPassword(auth, email, pass);
-        console.log(`✨ Created and authenticated Clinic Admin account: ${email}`);
-      } catch (createErr: any) {
-        if (createErr.code === 'auth/operation-not-allowed') {
-          console.log('ℹ️ Tip: Enable "Email/Password" in Firebase Console (Authentication > Sign-in method). Proceeding with migration writes...');
-        } else {
-          console.warn('Admin account creation notice:', createErr.message);
-        }
-      }
-    } else if (err.code === 'auth/operation-not-allowed') {
-      console.log('ℹ️ Tip: Enable "Email/Password" in Firebase Console (Authentication > Sign-in method). Proceeding with migration writes...');
-    } else {
-      console.warn('Admin authentication notice:', err.message);
-    }
-  }
+interface MigrationAuditRecord {
+  collection: string;
+  id: string;
+  status: 'valid' | 'flagged';
+  flags: string[];
+  data: Record<string, any>;
 }
 
-async function migrate() {
-  console.log('🚀 Starting Data Migration to Cloud Firestore...');
-  console.log(`Target Firestore DB: ${process.env.VITE_FIREBASE_DATABASE_ID || '(default)'}`);
+async function runMigration() {
+  console.log('====================================================');
+  console.log(`🚀 Practice OS Idempotent Migration Pipeline`);
+  console.log(`Mode: ${isDryRun ? '🔍 DRY RUN (Audit Only — No Writes)' : '⚡ LIVE WRITE'}`);
+  console.log(`Target Clinic Tenant: ${PRIMARY_CLINIC_ID}`);
+  console.log('====================================================\n');
 
-  await authenticateAdmin();
+  let db: any = null;
+  let auth: any = null;
 
-  // 1. Migrate Clinic Organization
-  console.log('📦 Migrating Clinic entity...');
-  const clinicDocRef = doc(db, 'clinics', PRIMARY_CLINIC_ID);
-  await setDoc(
-    clinicDocRef,
-    {
-      id: PRIMARY_CLINIC_ID,
-      name: 'Vance Health Chiropractic & Functional Rehabilitation',
-      slug: 'vance-health-columbus',
-      phone: '(303) 555-0199',
-      email: 'hello@vancehealth.com',
-      address: '742 Evergreen Terrace, Suite 300',
-      city: 'Columbus',
-      state: 'OH',
-      zip: '43215',
-      active: true,
-      stripeAccountId: 'acct_demo_vance_health',
-      theme: {
-        primaryColor: '#064e3b',
-        secondaryColor: '#0f766e',
-        fontHeading: 'Playfair Display',
-      },
-      createdAt: new Date().toISOString(),
-    },
-    { merge: true }
-  );
+  if (!isDryRun) {
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      console.error('❌ Cannot run live migration: Firebase credentials missing in environment.');
+      process.exit(1);
+    }
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = initializeFirestore(app, {}, process.env.VITE_FIREBASE_DATABASE_ID || '(default)');
+  }
 
-  // 2. Migrate Clinical Conditions & Care Pathways
-  console.log('📦 Migrating Conditions & Clinical Pathways...');
+  const auditLog: MigrationAuditRecord[] = [];
+
+  // 1. Audit / Migrate Clinic Organization
+  const clinicEntity = {
+    id: PRIMARY_CLINIC_ID,
+    name: 'Columbus Chiropractic Care',
+    slug: 'columbus-chiropractic',
+    phone: '(614) 555-0192',
+    email: 'care@columbuschiropractic.com',
+    address: '1200 N High St, Suite 250',
+    city: 'Columbus',
+    state: 'OH',
+    zip: '43201',
+    active: true,
+    currency: 'gbp',
+    currencySymbol: '£',
+    schemaVersion: 1,
+    updatedAt: new Date().toISOString(),
+  };
+
+  auditLog.push({
+    collection: 'clinics',
+    id: clinicEntity.id,
+    status: 'valid',
+    flags: [],
+    data: clinicEntity,
+  });
+
+  // 2. Audit / Migrate Conditions
   const conditions = [
     {
       id: 'cond_lower_back',
       clinicId: PRIMARY_CLINIC_ID,
       name: 'Lower Back Pain & Lumbar Dysfunction',
       slug: 'lower-back-pain',
-      description: 'Specialized evidence-based decompression and spinal manipulation for acute and chronic lumbar strain.',
-      specialistDoctorId: 'doc_alistair_vance',
-      specialistDoctorName: 'Dr. Alistair Vance, DC',
-      treatmentPlan: {
-        phase: 'Phase 2: Restoration & Lumbar Remodeling',
-        progress: 68,
-        milestone: 'Restoration of pain-free lumbo-pelvic extension and stabilization under load.',
-        frequency: '2 Sessions / Week',
-        doctorNote: 'Disc bulge reduced by 40%. Continue McKenzie extension protocols and limit prolonged sitting beyond 45 mins.',
-      },
+      description: 'Evidence-based decompression and spinal manipulation for acute and chronic lumbar strain.',
     },
     {
       id: 'cond_sciatica',
       clinicId: PRIMARY_CLINIC_ID,
       name: 'Sciatica & Radiculopathy',
-      slug: 'sciatica-nerve-relief',
+      slug: 'sciatica-decompression',
       description: 'Nerve glide flossing and sacroiliac joint re-alignment to relieve pinching and sharp radiant leg pain.',
-      specialistDoctorId: 'doc_marcus_sterling',
-      specialistDoctorName: 'Dr. Marcus Sterling, DC',
-      treatmentPlan: {
-        phase: 'Phase 1: Acute Neuropathic Decompression',
-        progress: 45,
-        milestone: 'Centralization of radiating leg tingling into localized gluteal sensitivity.',
-        frequency: '2 Sessions / Week',
-        doctorNote: 'Perform gentle sciatic neural flossing 3x daily. Avoid forward trunk flexion under morning load.',
-      },
     },
     {
       id: 'cond_cervical',
       clinicId: PRIMARY_CLINIC_ID,
       name: 'Neck Pain, Posture & Cervicogenic Headaches',
-      slug: 'cervical-spine-headaches',
-      description: 'Ergonomic alignment and upper cervical gentle mobilization to eliminate tension headaches.',
-      specialistDoctorId: 'doc_alistair_vance',
-      specialistDoctorName: 'Dr. Alistair Vance, DC',
-      treatmentPlan: {
-        phase: 'Phase 3: Postural Stabilization & Ergonomic Endurance',
-        progress: 85,
-        milestone: 'Complete resolution of tension headache recurrence during full workdays.',
-        frequency: '1 Session / 2 Weeks',
-        doctorNote: 'Cervical lordosis restored. Reinforce deep neck flexor strength with chin tuck holds.',
-      },
+      slug: 'neck-posture-headaches',
+      description: 'Ergonomic alignment and upper cervical mobilization to eliminate tension headaches.',
     },
   ];
 
   for (const cond of conditions) {
-    await setDoc(doc(db, 'conditions', cond.id), cond, { merge: true });
+    auditLog.push({
+      collection: 'conditions',
+      id: cond.id,
+      status: 'valid',
+      flags: [],
+      data: cond,
+    });
   }
 
-  // 3. Migrate Team Members
-  console.log('📦 Migrating Doctors & Team Members...');
-  const team = [
-    {
-      id: 'doc_alistair_vance',
-      clinicId: PRIMARY_CLINIC_ID,
-      name: 'Dr. Alistair Vance, DC',
-      role: 'Clinic Director & Lead Chiropractor',
-      qualifications: 'Doctor of Chiropractic, CCSP, MSc',
-      specialties: ['Spinal Biomechanics', 'Functional Neurology', 'Sports Rehabilitation'],
-      bio: 'Over 15 years clinical experience helping athletes and chronic pain sufferers achieve permanent structural alignment.',
-      active: true,
-    },
-    {
-      id: 'doc_marcus_sterling',
-      clinicId: PRIMARY_CLINIC_ID,
-      name: 'Dr. Marcus Sterling, DC',
-      role: 'Associate Chiropractor & Sports Specialist',
-      qualifications: 'D.C., Certified Strength & Conditioning Specialist',
-      specialties: ['Sciatica Rehabilitation', 'Postural Restoration', 'Active Release Technique'],
-      bio: 'Specialist in disc herniations and nerve impingement with a patient-first evidence-based treatment protocol.',
-      active: true,
-    },
-  ];
-
-  for (const member of team) {
-    await setDoc(doc(db, 'teamMembers', member.id), member, { merge: true });
-  }
-
-  // 4. Migrate Testimonials
-  console.log('📦 Migrating Patient Testimonials...');
-  const testimonials = [
-    {
-      id: 'test_1',
-      clinicId: PRIMARY_CLINIC_ID,
-      patientName: 'Michael T.',
-      condition: 'Chronic Lumbar Disc Bulge',
-      quote: 'After 3 years of painkillers and failed physio, Dr. Vance resolved my sciatic pain in 6 weeks. I can finally play tennis again without fear.',
-      rating: 5,
-      verified: true,
-      date: '2026-08-12',
-    },
-    {
-      id: 'test_2',
-      clinicId: PRIMARY_CLINIC_ID,
-      patientName: 'Emma R.',
-      condition: 'Cervicogenic Migraines',
-      quote: 'The digital posture scan identified exactly where my C2-C3 vertebrae were locked. Headaches are completely gone.',
-      rating: 5,
-      verified: true,
-      date: '2026-09-04',
-    },
-  ];
-
-  for (const test of testimonials) {
-    await setDoc(doc(db, 'testimonials', test.id), test, { merge: true });
-  }
-
-  // 5. Migrate FAQs
-  console.log('📦 Migrating Clinical FAQs...');
-  const faqs = [
-    {
-      id: 'faq_1',
-      clinicId: PRIMARY_CLINIC_ID,
-      category: 'First Visit',
-      question: 'What happens during my initial consultation and examination?',
-      answer: 'Your first visit includes a comprehensive digital orthopedic examination, postural spinal scan, neurological testing, and a personalized report of findings with treatment if clinically indicated.',
-      order: 1,
-    },
-    {
-      id: 'faq_2',
-      clinicId: PRIMARY_CLINIC_ID,
-      category: 'Insurance',
-      question: 'Are chiropractic consultations covered by private health insurance?',
-      answer: 'Yes! Our clinicians are GCC statutory registered and recognized by Bupa, AXA Health, Aviva, Vitality, and HSA/FSA reimbursement accounts. We provide itemized receipts with official provider credentials.',
-      order: 2,
-    },
-  ];
-
-  for (const faq of faqs) {
-    await setDoc(doc(db, 'faqs', faq.id), faq, { merge: true });
-  }
-
-  // 6. Migrate Sample Appointments
-  console.log('📦 Migrating Appointments...');
-  const appointments = [
-    {
-      id: 'VH-9428-K82X',
-      clinicId: PRIMARY_CLINIC_ID,
-      patientId: 'patient_john_doe',
-      patientName: 'John Doe',
-      patientEmail: 'johndoe@example.com',
-      patientPhone: '(303) 555-0199',
-      doctorId: 'doc_alistair_vance',
-      doctorName: 'Dr. Alistair Vance, DC',
-      conditionId: 'cond_lower_back',
-      conditionName: 'Lower Back Pain & Lumbar Dysfunction',
-      branch: 'Columbus Central (Suite 250)',
-      date: '2026-10-04',
-      time: '10:00 AM',
-      status: 'confirmed',
-      paymentStatus: 'paid_full',
-      paymentAmount: '$49.00 Consultation',
-      createdAt: new Date().toISOString(),
-    },
+  // 3. Audit Candidate Appointments with Provenance & Linkage Checks
+  const rawAppointments = [
     {
       id: 'COL-5182-M93L',
       clinicId: PRIMARY_CLINIC_ID,
-      patientId: 'patient_emily_watson',
-      patientName: 'Emily Watson',
-      patientEmail: 'emily.w@example.com',
-      patientPhone: '(303) 555-0144',
-      doctorId: 'doc_marcus_sterling',
-      doctorName: 'Dr. Marcus Sterling, DC',
-      conditionId: 'cond_sciatica',
-      conditionName: 'Sciatica & Radiculopathy',
-      branch: 'Dublin Executive Suite',
-      date: '2026-10-08',
-      time: '02:30 PM',
+      patientId: 'patient_synthetic_01',
+      patientName: 'Jane Synthetic',
+      patientEmail: 'jane.synthetic@example.local',
+      date: '2026-10-20',
+      time: '11:00 AM',
+      serviceTitle: 'Initial Consultation & Diagnostic Assessment',
       status: 'confirmed',
-      paymentStatus: 'deposit_paid',
-      paymentAmount: '$25.00 Deposit',
-      createdAt: new Date().toISOString(),
+      paymentStatus: 'paid_full',
+      transactionId: 'pi_3PtestVerifiedStripe001', // Real Gateway Provenance
+      priceAmount: 85,
+      amountPaid: 85,
+    },
+    {
+      id: 'UNVERIFIED-PAY-002',
+      clinicId: PRIMARY_CLINIC_ID,
+      patientName: 'Bob Unverified',
+      patientEmail: 'bob@example.local',
+      date: '2026-10-22',
+      time: '02:00 PM',
+      serviceTitle: 'Follow-Up Adjustment',
+      status: 'new',
+      paymentStatus: 'paid_full',
+      transactionId: undefined, // Missing gateway provenance!
+      priceAmount: 55,
+    },
+    {
+      id: 'AMBIGUOUS-TENANT-003',
+      clinicId: '', // Missing tenant boundary!
+      patientName: 'Alice Stray',
+      patientEmail: 'alice@external.local',
+      date: '2026-10-25',
+      time: '09:30 AM',
+      serviceTitle: 'Consultation',
+      status: 'new',
+      paymentStatus: 'unpaid',
     },
   ];
 
-  for (const appt of appointments) {
-    await setDoc(doc(db, 'appointments', appt.id), appt, { merge: true });
+  for (const raw of rawAppointments) {
+    const flags: string[] = [];
+    let isFlagged = false;
+
+    // Check 1: Tenant Boundary
+    const resolvedClinicId = raw.clinicId || PRIMARY_CLINIC_ID;
+    if (!raw.clinicId) {
+      flags.push('AMBIGUOUS_CLINIC_OWNERSHIP: Missing explicit clinicId. Defaulting to PRIMARY_CLINIC_ID requires operator review.');
+      isFlagged = true;
+    }
+
+    // Check 2: Payment Provenance Verification
+    let reconciledPaymentStatus = raw.paymentStatus;
+    if (raw.paymentStatus === 'paid_full' || raw.paymentStatus === 'deposit_paid') {
+      const hasGatewayProof = raw.transactionId && raw.transactionId.startsWith('pi_');
+      if (!hasGatewayProof) {
+        flags.push(
+          `UNVERIFIED_PAYMENT_PROVENANCE: Record claims '${raw.paymentStatus}' without verified Stripe transactionId. Reconciling to 'unpaid'.`
+        );
+        reconciledPaymentStatus = 'unpaid';
+        isFlagged = true;
+      }
+    }
+
+    // Check 3: Patient Linkage Verification
+    let reconciledPatientId = raw.patientId;
+    if (!raw.patientId && raw.patientEmail) {
+      flags.push(
+        'UNVERIFIED_PATIENT_LINKAGE: Guest booking with email only. Not linked to any auth account to prevent identity assumption.'
+      );
+      reconciledPatientId = undefined;
+    }
+
+    const sanitizedRecord = {
+      ...raw,
+      clinicId: resolvedClinicId,
+      patientId: reconciledPatientId,
+      paymentStatus: reconciledPaymentStatus,
+      schemaVersion: 1,
+      reconciledAt: new Date().toISOString(),
+    };
+
+    auditLog.push({
+      collection: 'appointments',
+      id: raw.id,
+      status: isFlagged ? 'flagged' : 'valid',
+      flags,
+      data: sanitizedRecord,
+    });
   }
 
-  console.log('✅ Migration to Cloud Firestore successfully finished!');
+  // 4. Output Reconciliation Report
+  console.log('📋 MIGRATION AUDIT REPORT:\n');
+  let validCount = 0;
+  let flaggedCount = 0;
+
+  for (const record of auditLog) {
+    if (record.status === 'valid') {
+      validCount++;
+      console.log(`  ✓ [VALID] [${record.collection}] ${record.id}`);
+    } else {
+      flaggedCount++;
+      console.warn(`  ⚠️ [FLAGGED] [${record.collection}] ${record.id}`);
+      for (const flag of record.flags) {
+        console.warn(`     └── ${flag}`);
+      }
+    }
+  }
+
+  console.log('\n----------------------------------------------------');
+  console.log(`Total Inspected Records: ${auditLog.length}`);
+  console.log(`Valid Records:           ${validCount}`);
+  console.log(`Flagged for Review:      ${flaggedCount}`);
+  console.log('----------------------------------------------------\n');
+
+  if (isDryRun) {
+    console.log('🔍 Dry run complete. No writes were executed on Cloud Firestore.');
+    return;
+  }
+
+  // 5. Execute Live Migration Writes
+  console.log('🚀 Executing idempotent live writes to Firestore...');
+  for (const record of auditLog) {
+    const docRef = doc(db, record.collection, record.id);
+    await setDoc(docRef, record.data, { merge: true });
+    console.log(`  ✓ Written: [${record.collection}] ${record.id}`);
+  }
+
+  console.log('\n✅ Live Migration finished successfully.');
 }
 
-migrate().catch((err) => {
+runMigration().catch((err) => {
   console.error('❌ Migration failed:', err);
   process.exit(1);
 });

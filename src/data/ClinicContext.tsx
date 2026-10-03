@@ -127,13 +127,27 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, []);
 
-  // 2. Safety timeout so app never blocks indefinitely if offline / network stalled
   useEffect(() => {
+    const handleOpen = () => setIsBookingModalOpen(true);
+    if (typeof window !== 'undefined') {
+      (window as any).__OPEN_BOOKING__ = () => setIsBookingModalOpen(true);
+      (window as any).__CLOSE_BOOKING__ = () => setIsBookingModalOpen(false);
+      window.addEventListener('open-booking-modal', handleOpen);
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('book') === 'true') {
+        setIsBookingModalOpen(true);
+      }
+    }
     const timer = setTimeout(() => {
       setIsConfigLoaded(true);
       setIsAuthReady(true);
     }, 1500);
-    return () => clearTimeout(timer);
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('open-booking-modal', handleOpen);
+      }
+      clearTimeout(timer);
+    };
   }, []);
 
   // Patient Self-Service Portal State
@@ -307,8 +321,8 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           ...payload,
           id: activeId,
           name: clinic.name || 'Columbus Chiropractic & Wellness',
-          doctorName: clinic.doctorName || 'Dr. Vance',
-          ownerEmail: clinic.ownerEmail || clinic.email || 'admin@vancechiro.com',
+          doctorName: clinic.doctorName || 'Dr. Marcus Reed',
+          ownerEmail: clinic.ownerEmail || clinic.email || 'care@columbuschiropractic.com',
           phone: clinic.phone || '(614) 555-0192',
           city: clinic.city || 'Columbus',
           state: clinic.state || 'OH',

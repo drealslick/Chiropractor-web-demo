@@ -148,7 +148,7 @@ Clinical case histories, orthopedic examination notes, and radiographic reports 
 Under UK data protection law, you have the right to request access to your personal data (Subject Access Request), request rectification of inaccurate records, request restriction of processing, and object to direct communications.
 
 5. Data Protection Officer & Regulatory Authority
-If you have questions regarding your data privacy, contact our Data Protection Officer at ${email || 'dpo@vancehealth.co.uk'} or by phone at ${phone}. You also have the right to lodge a complaint with the UK Information Commissioner's Office (ICO) at ico.org.uk.
+If you have questions regarding your data privacy, contact our Data Protection Officer at ${email || 'care@columbuschiropractic.com'} or by phone at ${phone}. You also have the right to lodge a complaint with the UK Information Commissioner's Office (ICO) at ico.org.uk.
 `.trim();
 }
 

@@ -51,8 +51,8 @@ export interface GatewayLogEntry {
   errorMessage?: string;
 }
 
-const GATEWAY_SETTINGS_KEY = 'vance_gateway_settings_v1';
-const GATEWAY_LOGS_KEY = 'vance_gateway_logs_v1';
+const GATEWAY_SETTINGS_KEY = 'clinic_gateway_settings_v1';
+const GATEWAY_LOGS_KEY = 'clinic_gateway_logs_v1';
 
 export const DEFAULT_GATEWAY_SETTINGS: GatewaySettings = {
   smsProvider: 'simulator',
@@ -61,8 +61,8 @@ export const DEFAULT_GATEWAY_SETTINGS: GatewaySettings = {
   twilioPhoneNumber: '+44 7700 900192',
   emailProvider: 'simulator',
   sendgridApiKey: '',
-  sendgridFromEmail: 'care@columbuschiropractic.co.uk',
-  sendgridFromName: 'Columbus Chiropractic Reception',
+  sendgridFromEmail: 'care@columbuschiropractic.com',
+  sendgridFromName: 'Clinic Reception',
   resendApiKey: '',
   webhookUrl: '',
   webhookSecret: '',
@@ -79,7 +79,7 @@ export const DEFAULT_GATEWAY_SETTINGS: GatewaySettings = {
   customSmsIntakeNudgeTemplate: '{{clinic_name}}: Hi {{patient_name}}, please take 2 minutes to map your spinal pain points and complete your pre-visit health intake before arrival: {{portal_url}}',
   customSmsRescheduleTemplate: '{{clinic_name}}: Your appointment has been updated to {{date}} at {{time}} with {{doctor_name}}. Need to change? Reply or visit {{portal_url}}',
   customSmsCancellationTemplate: '{{clinic_name}}: Your booking for {{date}} has been cancelled. If you need further care, rebook anytime at {{portal_url}}',
-  customSmsReviewTemplate: '{{clinic_name}}: Thank you for visiting today, {{patient_name}}! How is your spine feeling? We would love your 5-star review: {{review_url}}',
+  customSmsReviewTemplate: '{{clinic_name}}: Thank you for visiting today, {{patient_name}}! How is your recovery progressing? We would love your 5-star review: {{review_url}}',
   customEmailBookingSubject: 'Appointment Confirmed: {{clinic_name}} - {{date}} at {{time}}',
   customEmailIntakeSubject: 'Action Required: Pre-Visit Digital Pain Map for {{date}} at {{time}}',
   customEmailIntakeBody: 'Hi {{patient_name}},\n\nTo save you 15 minutes of paperwork in our reception lounge and allow {{doctor_name}} to review your case prior to arrival, please complete your interactive 2D anatomical pain map and medical history questionnaire here:\n\n{{portal_url}}\n\nThank you,\n{{clinic_name}} Reception Team',

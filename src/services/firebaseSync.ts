@@ -23,21 +23,26 @@ import { db, auth, isFirebaseConfigured } from '../lib/firebase';
 import { PatientLead, PatientAccount, DispatchedNotification } from '../data/leadsStore';
 import { sandbox } from '../lib/sandbox';
 import { notifyDemoAction } from '../lib/data-provider';
+import { isExplicitDemo } from '../lib/mode';
 
 // Collection References
 const APPOINTMENTS_COLLECTION = 'appointments';
 const PATIENTS_COLLECTION = 'patients';
 const SETTINGS_COLLECTION = 'clinic_settings';
 
-const isSandboxMode = () => import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
+const isSandboxMode = () => isExplicitDemo();
 
 /**
  * Real-time Firestore sync for Appointments
  */
-export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boolean> {
+export async function syncAppointmentToFirestore(lead: PatientLead): Promise<{ success: boolean; error?: string }> {
   if (isSandboxMode()) {
     sandbox.create('appointments', lead.clinicName || 'columbus-chiropractic', lead);
-    return true;
+    return { success: true };
+  }
+
+  if (!isFirebaseConfigured) {
+    return { success: false, error: 'Firebase is unconfigured on this live deployment.' };
   }
 
   try {
@@ -50,10 +55,53 @@ export async function syncAppointmentToFirestore(lead: PatientLead): Promise<boo
       },
       { merge: true }
     );
-    return true;
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error('Failed to sync appointment to Firestore:', error);
+    return { success: false, error: error?.message || 'Firestore write failed.' };
+  }
+}
+
+/**
+ * Update an appointment in Firestore
+ */
+export async function updateAppointmentInFirestore(
+  appointmentId: string,
+  patch: Partial<PatientLead>
+): Promise<boolean> {
+  if (isSandboxMode()) {
+    sandbox.update('appointments', appointmentId, patch);
+    return true;
+  }
+  if (!isFirebaseConfigured) return false;
+  try {
+    const docRef = doc(db, APPOINTMENTS_COLLECTION, appointmentId);
+    await setDoc(docRef, { ...patch, updatedAt: serverTimestamp() }, { merge: true });
+    return true;
+  } catch (err) {
+    console.error('Failed to update appointment in Firestore:', err);
     return false;
+  }
+}
+
+/**
+ * Fetch appointments by clinic ID
+ */
+export async function fetchAppointmentsByClinicFromFirestore(clinicId: string): Promise<PatientLead[]> {
+  if (isSandboxMode()) {
+    return sandbox.list<PatientLead>('appointments', clinicId);
+  }
+  if (!isFirebaseConfigured) return [];
+  try {
+    const activeClinicId = clinicId || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    const q = query(collection(db, APPOINTMENTS_COLLECTION), where('clinicId', '==', activeClinicId));
+    const snap = await getDocs(q);
+    const appts: PatientLead[] = [];
+    snap.forEach((d) => appts.push(d.data() as PatientLead));
+    return appts;
+  } catch (err) {
+    console.error('Failed to fetch clinic appointments:', err);
+    return [];
   }
 }
 
@@ -133,13 +181,15 @@ export async function fetchAppointmentsByEmailFromFirestore(email: string): Prom
 /**
  * Fetch single appointment by booking ID from Cloud Firestore
  */
-export async function fetchAppointmentByIdFromFirestore(id: string): Promise<PatientLead | null> {
-  if (isSandboxMode()) {
+export async function fetchAppointmentByIdFromFirestore(id: string, customDb?: any): Promise<PatientLead | null> {
+  const isSandbox = isSandboxMode() && !process.env.FIRESTORE_EMULATOR_HOST && !isFirebaseConfigured;
+  if (isSandbox && !customDb) {
     return sandbox.getById<PatientLead>('appointments', id);
   }
 
   try {
-    const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
+    const targetDb = customDb || db;
+    const docRef = doc(targetDb, APPOINTMENTS_COLLECTION, id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return docSnap.data() as PatientLead;
@@ -335,6 +385,10 @@ export async function sendRealPasswordReset(
 export async function logoutPatientFromFirebase(): Promise<void> {
   try {
     await signOut(auth);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('clinic_patient_portal_session_v2');
+      sessionStorage.removeItem('vance_patient_portal_session_v2');
+    }
   } catch (err) {
     console.error('Logout error:', err);
   }
@@ -372,7 +426,8 @@ export async function syncInquiryToFirestore(inquiry: {
   createdAt?: string;
 }): Promise<boolean> {
   const activeClinicId = inquiry.clinicId || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
-  if (isSandboxMode()) {
+  const isSandbox = isSandboxMode() && !process.env.FIRESTORE_EMULATOR_HOST && !isFirebaseConfigured;
+  if (isSandbox) {
     sandbox.create('inquiries', activeClinicId, inquiry);
     return true;
   }
@@ -406,5 +461,44 @@ export async function deleteAppointmentFromFirestore(appointmentId: string): Pro
   } catch (error) {
     console.error('Failed to delete appointment from Firestore:', error);
     return false;
+  }
+}
+
+/**
+ * Sanitize appointment data to strip private clinical fields (notes, intakeForm, cancellationReason, payment metadata) for unauthenticated guest viewing.
+ */
+export function sanitizeAppointmentForGuest(lead: PatientLead): Partial<PatientLead> {
+  const { notes, intakeForm, cancellationReason, paymentMethod, cardLast4, cardBrand, transactionId, ...publicData } = lead;
+  return publicData;
+}
+
+/**
+ * Callable Cloud Function / Server-side Secure Lookup (`lookupAppointmentSecurely`).
+ * Calls the deployed Firebase Cloud Function via HTTPS httpsCallable, verifying referenceKey + last4Phone server-side via Admin SDK.
+ */
+export async function lookupAppointmentSecurely(referenceKey: string, last4Phone: string, customDb?: any): Promise<Partial<PatientLead> | null> {
+  const isSandbox = isSandboxMode() && !process.env.FIRESTORE_EMULATOR_HOST && !isFirebaseConfigured;
+  if (isSandbox && !customDb) {
+    const leads = sandbox.list<PatientLead>('appointments');
+    const match = leads.find(l => (l.id === referenceKey || (l as any).referenceKey === referenceKey || l.id?.toUpperCase() === referenceKey.toUpperCase()));
+    if (!match) return null;
+    const rawDigits = (match.phone || '').replace(/\D/g, '');
+    const leadLast4 = rawDigits.slice(-4);
+    const queryLast4 = last4Phone.trim().replace(/\D/g, '').slice(-4);
+    if (leadLast4.length === 4 && queryLast4.length === 4 && leadLast4 === queryLast4) {
+      return sanitizeAppointmentForGuest(match);
+    }
+    return null;
+  }
+
+  try {
+    const { getFunctions, httpsCallable } = await import('firebase/functions');
+    const fnInstance = getFunctions();
+    const secureLookupFn = httpsCallable(fnInstance, 'lookupAppointmentSecurely');
+    const res = await secureLookupFn({ referenceKey, last4Phone });
+    return (res.data as Partial<PatientLead>) || null;
+  } catch (error) {
+    console.error('Secure guest lookup callable error:', error);
+    return null;
   }
 }

@@ -609,7 +609,7 @@ export const FirstVisitManager: React.FC<FirstVisitManagerProps> = ({
             <input
               type="text"
               value={clinic.doctorName || ''}
-              placeholder="Dr. Alistair Vance, D.C., DACBSP"
+              placeholder="Dr. Marcus Reed, D.C., DACBSP"
               onChange={(e) => onUpdateClinic({ ...clinic, doctorName: e.target.value })}
               className="w-full px-3.5 py-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:outline-none focus:border-emerald-500"
             />
@@ -636,7 +636,7 @@ export const FirstVisitManager: React.FC<FirstVisitManagerProps> = ({
           <textarea
             rows={2}
             value={clinic.firstVisitDoctorNote || ''}
-            placeholder={`You'll be seen directly by ${clinic.doctorName || 'Dr. Vance'}, who brings over 12 years of clinical experience in advanced spinal mechanics. We never pass you off to junior assistants.`}
+            placeholder={`You'll be seen directly by ${clinic.doctorName || 'Dr. Marcus Reed'}, who brings over 12 years of clinical experience in advanced spinal mechanics. We never pass you off to junior assistants.`}
             onChange={(e) => onUpdateClinic({ ...clinic, firstVisitDoctorNote: e.target.value })}
             className="w-full px-3.5 py-2 rounded-xl bg-stone-900 border border-stone-800 text-stone-100 text-xs focus:outline-none focus:border-emerald-500"
           />

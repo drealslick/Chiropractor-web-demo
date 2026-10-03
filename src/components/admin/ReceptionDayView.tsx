@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -40,6 +40,9 @@ import { BodyPainLocator } from '../BodyPainLocator';
 import { IntakeQuestionnaireModal } from '../IntakeQuestionnaireModal';
 import { ClinicalChartPrintExport } from './ClinicalChartPrintExport';
 import { sendLiveOrSimulatedSms, getGatewaySettings, interpolateTemplate } from '../../data/gatewayStore';
+import { rescheduleAppointmentServer, cancelAppointmentServer } from '../../lib/booking-client';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db, isFirebaseConfigured } from '../../lib/firebase';
 
 interface ReceptionDayViewProps {
   leads: PatientLead[];
@@ -85,6 +88,56 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().split('T')[0];
   });
+
+  // Authoritative real-time Firestore appointments subscription
+  const [firestoreAppointments, setFirestoreAppointments] = useState<PatientLead[]>([]);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+
+    const sanitizedClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    const appointmentsQuery = query(
+      collection(db, 'appointments'),
+      where('clinicId', '==', sanitizedClinicId)
+    );
+
+    const unsubscribe = onSnapshot(
+      appointmentsQuery,
+      (snapshot) => {
+        const liveList: PatientLead[] = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          liveList.push({
+            id: docSnap.id,
+            source: 'booking',
+            name: d.patientName || d.name || 'Anonymous Patient',
+            email: d.patientEmail || d.email || '',
+            phone: d.patientPhone || d.phone || '',
+            date: d.date || '',
+            time: d.time || '',
+            practitionerId: d.practitionerId,
+            practitionerName: d.practitionerName,
+            serviceTitle: d.serviceTitle || 'Diagnostic Assessment',
+            condition: d.condition || 'Consultation',
+            notes: d.notes || '',
+            clinicName: d.clinicId || sanitizedClinicId,
+            status: d.status || 'confirmed',
+            paymentStatus: d.paymentStatus || 'unpaid',
+            priceAmount: d.priceAmount,
+            depositAmount: d.depositAmount,
+            currency: d.currency || '£',
+            createdAt: d.createdAt?.toDate ? d.createdAt.toDate().toISOString() : (d.createdAt || new Date().toISOString()),
+          } as PatientLead);
+        });
+        setFirestoreAppointments(liveList);
+      },
+      (err) => {
+        console.warn('Real-time Firestore appointments subscription error:', err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [clinicName]);
 
   // Selected appointment for patient profile slide-out panel
   const [selectedPatient, setSelectedPatient] = useState<PatientLead | null>(null);
@@ -216,11 +269,28 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     const leadToMove = leads.find((l) => l.id === leadId);
     if (!leadToMove) return;
 
+    const targetPractitioner = practitioners.find((p) => p.name === targetDoctor);
+
+    // Call server reschedule operation
+    rescheduleAppointmentServer({
+      appointmentId: leadId,
+      newDate: selectedDate,
+      newTime: targetTime,
+      newPractitionerId: targetPractitioner?.id || leadToMove.practitionerId,
+      reason: 'Reception calendar drag-and-drop reschedule',
+    }).then((res) => {
+      if (!res.success) {
+        setRescheduleToast(`⚠️ Reschedule Error: ${res.error}`);
+        setTimeout(() => setRescheduleToast(null), 5000);
+      }
+    });
+
     // Update appointment with new time, doctor, and date
     updateLeadDetails(leadId, {
       date: selectedDate,
       time: targetTime,
       practitionerName: targetDoctor,
+      practitionerId: targetPractitioner?.id || leadToMove.practitionerId,
     });
 
     setRescheduleToast(
@@ -248,6 +318,10 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
   const handleCancelPatient = (lead: PatientLead) => {
     if (confirm(`Cancel appointment for ${lead.name}?`)) {
       updateLeadStatus(lead.id, 'cancelled', 'Cancelled by front desk via calendar profile');
+      cancelAppointmentServer({
+        appointmentId: lead.id,
+        reason: 'Cancelled by front desk via calendar profile',
+      }).catch((err) => console.warn('Cancel server sync:', err));
       setSelectedPatient(null);
     }
   };
@@ -299,8 +373,9 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     }
   };
 
-  // Day's active appointments
-  const dayBookings = leads.filter(
+  // Day's active appointments: prioritize live Firestore subscription over local leads
+  const authoritativeLeads = firestoreAppointments.length > 0 ? firestoreAppointments : leads;
+  const dayBookings = authoritativeLeads.filter(
     (l) =>
       l.source === 'booking' &&
       l.date === selectedDate &&

@@ -1,0 +1,86 @@
+{
+  "desktop:/": {
+    "viewport": "desktop",
+    "url": "/",
+    "violationsCount": 0,
+    "passesCount": 38,
+    "violations": []
+  },
+  "desktop:/pricing/": {
+    "viewport": "desktop",
+    "url": "/pricing/",
+    "violationsCount": 0,
+    "passesCount": 34,
+    "violations": []
+  },
+  "desktop:/first-visit/": {
+    "viewport": "desktop",
+    "url": "/first-visit/",
+    "violationsCount": 0,
+    "passesCount": 40,
+    "violations": []
+  },
+  "desktop:/contact/": {
+    "viewport": "desktop",
+    "url": "/contact/",
+    "violationsCount": 0,
+    "passesCount": 47,
+    "violations": []
+  },
+  "desktop:/conditions/": {
+    "viewport": "desktop",
+    "url": "/conditions/",
+    "violationsCount": 0,
+    "passesCount": 34,
+    "violations": []
+  },
+  "desktop:/portal/": {
+    "viewport": "desktop",
+    "url": "/portal/",
+    "violationsCount": 0,
+    "passesCount": 35,
+    "violations": []
+  },
+  "mobile:/": {
+    "viewport": "mobile",
+    "url": "/",
+    "violationsCount": 0,
+    "passesCount": 39,
+    "violations": []
+  },
+  "mobile:/pricing/": {
+    "viewport": "mobile",
+    "url": "/pricing/",
+    "violationsCount": 0,
+    "passesCount": 33,
+    "violations": []
+  },
+  "mobile:/first-visit/": {
+    "viewport": "mobile",
+    "url": "/first-visit/",
+    "violationsCount": 0,
+    "passesCount": 38,
+    "violations": []
+  },
+  "mobile:/contact/": {
+    "viewport": "mobile",
+    "url": "/contact/",
+    "violationsCount": 0,
+    "passesCount": 37,
+    "violations": []
+  },
+  "mobile:/conditions/": {
+    "viewport": "mobile",
+    "url": "/conditions/",
+    "violationsCount": 0,
+    "passesCount": 34,
+    "violations": []
+  },
+  "mobile:/portal/": {
+    "viewport": "mobile",
+    "url": "/portal/",
+    "violationsCount": 0,
+    "passesCount": 34,
+    "violations": []
+  }
+}

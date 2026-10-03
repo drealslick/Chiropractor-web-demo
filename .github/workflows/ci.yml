@@ -1,0 +1,67 @@
+name: CI Test & Build Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-and-build:
+    name: Verify Types, Tests & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          npm --prefix functions ci
+
+      - name: Typecheck Root & Functions
+        run: |
+          npm run typecheck
+          npm --prefix functions run build
+
+      - name: Run Test Suites
+        run: |
+          npm run test:handlers
+          npm run test:security
+
+      - name: Build Production Bundle & Prerender
+        run: |
+          npm run build
+
+      - name: Enforce Performance Budget (< 600kB Initial Gzipped Load)
+        run: |
+          TOTAL_GZIP=0
+          for f in dist/assets/index-*.js dist/assets/vendor-firebase-*.js dist/assets/vendor-icons-*.js dist/assets/index-*.css; do
+            SIZE=$(gzip -c "$f" | wc -c)
+            TOTAL_GZIP=$((TOTAL_GZIP + SIZE))
+          done
+          TOTAL_KB=$((TOTAL_GZIP / 1024))
+          echo "Total Initial Gzipped Transfer: ${TOTAL_KB} kB"
+          if [ $TOTAL_KB -gt 600 ]; then
+            echo "ERROR: Initial gzipped transfer (${TOTAL_KB} kB) exceeds 600 kB budget!"
+            exit 1
+          fi
+
+      - name: Enforce Image Budget (< 300kB per image in public/images/)
+        run: |
+          MAX_IMG_BYTES=$(find public/images -type f -exec stat -c %s {} + | sort -n | tail -1)
+          MAX_IMG_KB=$((MAX_IMG_BYTES / 1024))
+          echo "Max Image Size: ${MAX_IMG_KB} kB"
+          if [ $MAX_IMG_KB -gt 300 ]; then
+            echo "ERROR: Image size (${MAX_IMG_KB} kB) exceeds 300 kB budget!"
+            exit 1
+          fi

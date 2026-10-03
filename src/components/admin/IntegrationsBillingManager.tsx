@@ -66,7 +66,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
     allowPayAtClinic: true,
     statementDescriptor: 'VANCE HEALTH CLINIC',
     stripeMode: 'test',
-    stripeAccountId: 'acct_1NxVanceHealth77',
+    stripeAccountId: 'acct_1NxColumbusChiropractic77',
     stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
     stripeConnectedEmail: '',
     stripeConnectedAt: '',
@@ -380,7 +380,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
               <div>
                 <span className="text-stone-500 block text-[11px]">Connected Account ID</span>
                 <span className="font-mono text-stone-200 font-medium">
-                  {paymentPolicy.stripeAccountId || 'acct_1NxVanceHealth77'}
+                  {paymentPolicy.stripeAccountId || 'acct_1NxColumbusChiropractic77'}
                 </span>
               </div>
               <div>

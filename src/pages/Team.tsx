@@ -61,7 +61,7 @@ export default function Team() {
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs text-stone-600">
             <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-stone-200 shadow-2xs">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>GCC Registered Practitioners</span>
+              <span>Board Licensed Practitioners</span>
             </div>
             <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-stone-200 shadow-2xs">
               <Clock className="w-4 h-4 text-emerald-600" />

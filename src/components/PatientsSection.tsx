@@ -90,7 +90,7 @@ export const PatientsSection: React.FC<PatientsSectionProps> = ({ clinic }) => {
 
               <blockquote className="text-xl sm:text-2xl font-serif italic text-stone-100 leading-snug">
                 "{clinic?.patientStoryQuote ||
-                  "I was told I might need spinal injections. Within three weeks of Dr. Vance’s protocol, the sharp nerve radiating down my leg was gone. I'm back on court twice a week."}"
+                  "I was told I might need spinal injections. Within three weeks of Dr. Reed's protocol, the sharp nerve radiating down my leg was gone. I'm back on court twice a week."}"
               </blockquote>
 
               <div className="grid sm:grid-cols-3 gap-3 pt-3 border-t border-stone-800 text-xs">

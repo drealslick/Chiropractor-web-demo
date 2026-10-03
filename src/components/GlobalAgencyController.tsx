@@ -54,7 +54,7 @@ export function GlobalAgencyController() {
       if (isDemo || window.location.search.includes('admin=true') || window.location.search.includes('admin=1')) {
         return true;
       }
-      return localStorage.getItem('vance_show_admin_button') === 'true';
+      return localStorage.getItem('clinic_show_admin_button') === 'true';
     } catch {
       return false;
     }
@@ -133,10 +133,10 @@ export function GlobalAgencyController() {
       if (hasAdminParam) {
         setIsOpen(true);
         setShowAdminButton(true);
-        localStorage.setItem('vance_show_admin_button', 'true');
+        localStorage.setItem('clinic_show_admin_button', 'true');
       } else if (urlParams.get('admin') === 'false') {
         setShowAdminButton(false);
-        localStorage.setItem('vance_show_admin_button', 'false');
+        localStorage.setItem('clinic_show_admin_button', 'false');
       }
     } catch {
       // Ignore
@@ -408,7 +408,7 @@ export function GlobalAgencyController() {
                     type="button"
                     onClick={() => {
                       setIsAdminOrStaff(true);
-                      setCurrentUser({ email: 'demo-admin@vancehealth.co.uk', uid: 'demo-admin-uid' } as any);
+                      setCurrentUser({ email: 'demo-admin@columbuschiropractic.com', uid: 'demo-admin-uid' } as any);
                     }}
                     className="mt-1 w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-[11px] transition text-center cursor-pointer shadow active:scale-95"
                   >
@@ -457,14 +457,14 @@ export function GlobalAgencyController() {
                 /* First-Run Claim Form */
                 <form onSubmit={handleClaimClinic} className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Clinic ID (e.g. clinic_london_01)</label>
+                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Clinic ID (e.g. clinic_columbus_01)</label>
                     <div className="relative">
                       <Building2 className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
                       <input
                         type="text"
                         autoFocus
                         required
-                        placeholder="clinic_london_01"
+                        placeholder="clinic_columbus_01"
                         value={newClinicId}
                         onChange={(e) => setNewClinicId(e.target.value)}
                         className="w-full rounded-xl border border-stone-750 bg-stone-950 pl-9 pr-3 py-2 text-xs text-white placeholder:text-stone-600 focus:border-emerald-500 focus:outline-none"
@@ -578,7 +578,7 @@ export function GlobalAgencyController() {
                       <input
                         type="email"
                         autoFocus
-                        placeholder="admin@vancehealth.com"
+                        placeholder="admin@columbuschiropractic.com"
                         value={adminEmail}
                         onChange={(e) => setAdminEmail(e.target.value)}
                         className="w-full rounded-xl border border-stone-750 bg-stone-950 pl-9 pr-3 py-2 text-xs text-white placeholder:text-stone-600 focus:border-emerald-500 focus:outline-none"

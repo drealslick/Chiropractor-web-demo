@@ -429,7 +429,7 @@ export function ClientOnboardingWizard({
                   type="text"
                   value={clinic.offerHeadline || ''}
                   onChange={(e) => onUpdateClinic({ ...clinic, offerHeadline: e.target.value })}
-                  placeholder="e.g. New Patients: $39 Complete Spinal Assessment"
+                  placeholder="e.g. New Patients: $49 Complete Spinal Assessment"
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
                 />
               </div>
@@ -479,7 +479,7 @@ export function ClientOnboardingWizard({
                 type="button"
                 className="bg-amber-500 text-stone-950 font-bold text-xs px-4 py-2.5 rounded-xl shrink-0 shadow-lg"
               >
-                {clinic.offerCtaText || 'CLAIM $39 SPECIAL →'}
+                {clinic.offerCtaText || 'CLAIM $49 SPECIAL →'}
               </button>
             </div>
           </div>

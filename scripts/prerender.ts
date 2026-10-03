@@ -1,16 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { defaultClinic, defaultPaymentPolicy } from '../src/data/clinicData.ts';
+import { defaultPricingFees } from '../src/data/defaultPricingFees.ts';
 
 /**
  * Static Multi-Route Prerenderer & SEO Authority Pipeline
- * Vance Health Practice Architecture (London, UK)
- *
- * Implements:
- * 1. Real prerendered DOM markup in #root (instant LCP & hydrateRoot DOM reuse)
- * 2. Unified Schema.org Graph (Single primary MedicalClinic entity + Physicians + Procedures + Breadcrumbs + FAQs)
- * 3. E-E-A-T Medical Review metadata (reviewedBy, lastReviewed, NICE/Cochrane citations)
- * 4. Single-source-of-truth server rewrite configs (vercel.json with trailingSlash: true, .htaccess, _redirects)
- * 5. Clean sitemap.xml with lastmod dates & private route exclusion
+ * Single Source of Truth for Static HTML, Schema.org Graph, Sitemap & Rewrite Configs
  */
 
 interface RouteMetadata {
@@ -37,21 +32,25 @@ interface RouteMetadata {
 }
 
 const BASE_URL = (process.env.VITE_APP_URL || 'https://your-clinic.vercel.app').replace(/\/$/, '');
-const CLINIC_NAME = process.env.VITE_CLINIC_NAME || 'Columbus Chiropractic Care';
-const CLINIC_PHONE = process.env.VITE_CLINIC_PHONE || '(614) 555-0192';
+const CLINIC_NAME = process.env.VITE_CLINIC_NAME || defaultClinic.name || 'Columbus Chiropractic Care';
+const CLINIC_PHONE = process.env.VITE_CLINIC_PHONE || defaultClinic.phone || '(614) 555-0192';
 const CLINIC_EMAIL = process.env.VITE_CLINIC_EMAIL || 'care@columbuschiropractic.com';
-const CLINIC_ADDRESS_STREET = process.env.VITE_CLINIC_ADDRESS || '1200 N High St, Suite 250';
-const CLINIC_LOCALITY = process.env.VITE_CLINIC_CITY || 'Columbus';
-const CLINIC_POSTAL = process.env.VITE_CLINIC_ZIP || '43201';
+const CLINIC_ADDRESS_STREET = process.env.VITE_CLINIC_ADDRESS || defaultClinic.address || '1200 N High St, Suite 250';
+const CLINIC_LOCALITY = process.env.VITE_CLINIC_CITY || defaultClinic.city || 'Columbus';
+const CLINIC_STATE = defaultClinic.state || 'OH';
+const CLINIC_POSTAL = process.env.VITE_CLINIC_ZIP || defaultClinic.zip || '43201';
 const CLINIC_COUNTRY = process.env.VITE_CLINIC_COUNTRY || 'US';
 
+const EXAM_FEE = `$${defaultPaymentPolicy.fullFeeAmount || 49}`;
+const FOLLOWUP_FEE = defaultPricingFees[1]?.price || '$50';
+
 const PRIMARY_CLINIC_ID = `${BASE_URL}/#clinic`;
-const DR_VANCE_ID = `${BASE_URL}/#dr-marcus-reed`;
+const DR_REED_ID = `${BASE_URL}/#dr-marcus-reed`;
 const DR_ROSTOVA_ID = `${BASE_URL}/#dr-elena-rostova`;
 const DR_STERLING_ID = `${BASE_URL}/#dr-marcus-sterling`;
 
 const DEFAULT_REVIEWER = {
-  name: 'Dr. Alistair Vance, D.C.',
+  name: 'Dr. Marcus Reed, D.C.',
   role: 'Clinical Director & Lead Chiropractor',
   regNumber: 'OH-DC-4182',
   regBody: 'State Chiropractic Board of Ohio',
@@ -61,31 +60,31 @@ const ROUTES: RouteMetadata[] = [
   {
     path: '',
     title: `${CLINIC_NAME} | Evidence-Based Chiropractic & Spinal Care`,
-    description: `Specialized chiropractic care, lumbar disc decompression, and cervical rehabilitation in ${CLINIC_LOCALITY}. Evidence-based protocols with transparent booking.`,
+    description: `Specialized chiropractic care, lumbar disc decompression, and cervical rehabilitation in ${CLINIC_LOCALITY}, ${CLINIC_STATE}. Evidence-based protocols with transparent booking.`,
     ogImage: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'home',
     h1: 'Get Back to What Pain Took Away.',
-    h2Subtitle: 'Evidence-Based Chiropractic Care in Central London (W1W)',
+    h2Subtitle: `Evidence-Based Chiropractic Care in ${CLINIC_LOCALITY}, ${CLINIC_STATE}`,
     bodyContent: [
-      'Vance Health delivers specialized, root-cause chiropractic care designed around your symptoms, mechanical restrictions, and spinal health.',
+      `${CLINIC_NAME} delivers specialized, root-cause chiropractic care designed around your symptoms, mechanical restrictions, and spinal health.`,
       'Our clinical practice specializes in computer-assisted spinal decompression, cervical realignment, athletic sports rehabilitation, and ergonomic postural correction.',
-      'Consultation & comprehensive physical assessment from £49. Online booking with transparent fees and instant digital health insurance receipts.'
+      `Consultation & comprehensive physical assessment from ${EXAM_FEE}. Online booking with transparent fees and instant digital receipts.`
     ],
     faqs: [
       {
-        question: 'Is chiropractic treatment safe and regulated in the UK?',
-        answer: 'Yes. Chiropractic in the UK is a statutory regulated healthcare profession under the Chiropractors Act 1994. All chiropractors at Vance Health are registered with the General Chiropractic Council (GCC).'
+        question: `Is chiropractic treatment safe and licensed in ${CLINIC_STATE}?`,
+        answer: `Yes. Chiropractic is a licensed healthcare profession regulated by the State Chiropractic Board of Ohio. All doctors at ${CLINIC_NAME} hold active state licenses.`
       },
       {
-        question: 'Do you accept private health insurance (Bupa, AXA, Aviva, Vitality)?',
-        answer: 'Yes. We provide official itemized invoices with our GCC registration and provider numbers for reimbursement through major private medical insurers.'
+        question: 'Do you accept health insurance and provide itemized receipts?',
+        answer: 'Yes. We provide official itemized invoices with diagnostic codes for direct reimbursement through major health insurers and health savings accounts (HSA/FSA).'
       }
     ]
   },
   {
     path: 'conditions',
     title: `Conditions We Treat | Evidence-Based Protocols | ${CLINIC_NAME}`,
-    description: 'Explore targeted chiropractic pathways for acute lower back pain, sciatica, herniated discs, cervical posture strain, and sports injuries in London.',
+    description: `Explore targeted chiropractic pathways for acute lower back pain, sciatica, herniated discs, cervical posture strain, and sports injuries in ${CLINIC_LOCALITY}.`,
     ogImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'conditions',
     breadcrumbs: [
@@ -102,8 +101,8 @@ const ROUTES: RouteMetadata[] = [
   },
   {
     path: 'conditions/lower-back-pain',
-    title: `Lower Back Pain & Lumbar Disc Care London | ${CLINIC_NAME}`,
-    description: 'Evidence-based chiropractic adjustments, spinal mobilization, and lumbar stabilization exercises for lower back pain in Central London.',
+    title: `Lower Back Pain & Lumbar Disc Care | ${CLINIC_NAME}`,
+    description: `Evidence-based chiropractic adjustments, spinal mobilization, and lumbar stabilization exercises for lower back pain in ${CLINIC_LOCALITY}, ${CLINIC_STATE}.`,
     ogImage: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'condition-detail',
     conditionKey: 'lower-back-pain',
@@ -115,7 +114,7 @@ const ROUTES: RouteMetadata[] = [
     reviewer: DEFAULT_REVIEWER,
     lastReviewedDate: '2026-09-25',
     citations: [
-      'National Institute for Health and Care Excellence (NICE) Guideline [NG59]: Low back pain and sciatica in over 16s: assessment and management.',
+      'National Institute for Health and Care Excellence (NICE) Guideline: Low back pain and sciatica in over 16s: assessment and management.',
       'Cochrane Database of Systematic Reviews: Spinal manipulative therapy for chronic low-back pain.'
     ],
     h1: 'Lower Back Pain & Lumbar Spine Care',
@@ -128,8 +127,8 @@ const ROUTES: RouteMetadata[] = [
   },
   {
     path: 'conditions/sciatica-decompression',
-    title: `Sciatica & Disc Decompression Protocol London | ${CLINIC_NAME}`,
-    description: 'Non-surgical spinal decompression and nerve root pressure relief for radiating leg pain and lumbar disc bulges in Central London.',
+    title: `Sciatica & Disc Decompression Protocol | ${CLINIC_NAME}`,
+    description: `Non-surgical spinal decompression and nerve root pressure relief for radiating leg pain and lumbar disc bulges in ${CLINIC_LOCALITY}.`,
     ogImage: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'condition-detail',
     conditionKey: 'sciatica-decompression',
@@ -141,7 +140,7 @@ const ROUTES: RouteMetadata[] = [
     reviewer: DEFAULT_REVIEWER,
     lastReviewedDate: '2026-09-25',
     citations: [
-      'NICE Guideline [NG59]: Non-invasive treatments for low back pain and sciatica.',
+      'NICE Guideline: Non-invasive treatments for low back pain and sciatica.',
       'Journal of Orthopaedic & Sports Physical Therapy: Clinical practice guidelines for lumbar spine disorders.'
     ],
     h1: 'Sciatica & Disc Decompression Care',
@@ -154,8 +153,8 @@ const ROUTES: RouteMetadata[] = [
   },
   {
     path: 'conditions/neck-posture-headaches',
-    title: `Neck Pain, Posture & Tension Headaches London | ${CLINIC_NAME}`,
-    description: 'Upper cervical adjustments and desk-worker postural ergonomics for chronic neck stiffness, tech neck, and cervicogenic headaches in London.',
+    title: `Neck Pain, Posture & Tension Headaches | ${CLINIC_NAME}`,
+    description: `Upper cervical adjustments and desk-worker postural ergonomics for chronic neck stiffness, tech neck, and cervicogenic headaches in ${CLINIC_LOCALITY}.`,
     ogImage: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'condition-detail',
     conditionKey: 'neck-posture-headaches',
@@ -180,8 +179,8 @@ const ROUTES: RouteMetadata[] = [
   },
   {
     path: 'conditions/sports-rehab-performance',
-    title: `Sports Chiropractic & Athletic Injury Recovery London | ${CLINIC_NAME}`,
-    description: 'Sports medicine chiropractic, joint mechanics optimization, and kinetic chain rehab for runners, athletes, and fitness enthusiasts in London.',
+    title: `Sports Chiropractic & Athletic Injury Recovery | ${CLINIC_NAME}`,
+    description: `Sports medicine chiropractic, joint mechanics optimization, and kinetic chain rehab for runners, athletes, and fitness enthusiasts in ${CLINIC_LOCALITY}.`,
     ogImage: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'condition-detail',
     conditionKey: 'sports-rehab-performance',
@@ -206,7 +205,7 @@ const ROUTES: RouteMetadata[] = [
   {
     path: 'first-visit',
     title: `Your First Visit Guide | What to Expect | ${CLINIC_NAME}`,
-    description: 'Step-by-step walkthrough of your initial chiropractic consultation, orthopedic physical exam, diagnostic review, and first adjustment in London.',
+    description: `Step-by-step walkthrough of your initial chiropractic consultation, orthopedic physical exam, diagnostic review, and first adjustment in ${CLINIC_LOCALITY}.`,
     ogImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'first-visit',
     breadcrumbs: [
@@ -238,7 +237,7 @@ const ROUTES: RouteMetadata[] = [
   {
     path: 'pricing',
     title: `Transparent Fees & Insurance Plans | ${CLINIC_NAME}`,
-    description: 'Clear, transparent chiropractic pricing in London. Initial consultation from £49, follow-up adjustments from £65. Private insurance receipts provided.',
+    description: `Clear, transparent chiropractic pricing in ${CLINIC_LOCALITY}. Initial consultation ${EXAM_FEE}, follow-up adjustments ${FOLLOWUP_FEE}. Direct health insurance receipts provided.`,
     ogImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'pricing',
     breadcrumbs: [
@@ -248,15 +247,14 @@ const ROUTES: RouteMetadata[] = [
     h1: 'Clear, Honest Chiropractic Fees',
     h2Subtitle: 'No Hidden Charges, No High-Pressure Long-Term Packages',
     bodyContent: [
-      'Initial Diagnostic Consultation & Treatment: £49 (Reduced from £95 for new patients).',
-      'Standard Follow-up Adjustment & Rehab Session: £65.',
-      'Non-Surgical Spinal Decompression Session: £85.',
-      'Itemized insurance receipts with GCC registration details provided immediately after each appointment.'
+      `Initial Diagnostic Consultation & Treatment: ${EXAM_FEE} for new patients.`,
+      `Standard Follow-up Adjustment & Rehab Session: ${FOLLOWUP_FEE}.`,
+      'Itemized insurance receipts with practitioner registration details provided immediately after each appointment.'
     ],
     faqs: [
       {
-        question: 'How much does a chiropractor cost in Central London?',
-        answer: 'At Vance Health, an initial 45-minute diagnostic consultation and exam is £49. Subsequent follow-up adjustment sessions are £65.'
+        question: `How much does a consultation cost at ${CLINIC_NAME}?`,
+        answer: `At ${CLINIC_NAME}, an initial 45-minute diagnostic consultation and exam is ${EXAM_FEE}. Subsequent follow-up adjustment sessions are ${FOLLOWUP_FEE}.`
       },
       {
         question: 'What is your cancellation and deposit policy?',
@@ -266,8 +264,8 @@ const ROUTES: RouteMetadata[] = [
   },
   {
     path: 'team',
-    title: `Our GCC-Registered Chiropractors & Clinicians | ${CLINIC_NAME}`,
-    description: 'Meet Dr. Alistair Vance, Dr. Elena Rostova, and Dr. Marcus Sterling. Master of Chiropractic graduates registered with the General Chiropractic Council (UK).',
+    title: `Licensed Chiropractors & Clinicians | ${CLINIC_NAME}`,
+    description: `Meet Dr. Marcus Reed, Dr. Elena Rostova, and Dr. Marcus Sterling at ${CLINIC_NAME}. Licensed chiropractic doctors specializing in spinal rehabilitation.`,
     ogImage: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'team',
     breadcrumbs: [
@@ -275,17 +273,17 @@ const ROUTES: RouteMetadata[] = [
       { name: 'Our Team', path: 'team' }
     ],
     h1: 'Our Registered Clinical Team',
-    h2Subtitle: 'General Chiropractic Council (GCC) Registered Doctors',
+    h2Subtitle: 'Board Licensed Doctors of Chiropractic',
     bodyContent: [
-      'Dr. Alistair Vance, MChiro, DC (GCC 04182) — Clinical Director specializing in lumbar disc decompression and complex spinal rehabilitation.',
-      'Dr. Elena Rostova, MChiro, DC (GCC 05831) — Specialist in cervical spine biomechanics, postural ergonomics, and cervicogenic headache relief.',
-      'Dr. Marcus Sterling, MChiro, DC (GCC 06119) — Sports injury rehabilitation specialist and kinetic chain optimization.'
+      'Dr. Marcus Reed, D.C. — Clinical Director specializing in lumbar disc decompression and complex spinal rehabilitation.',
+      'Dr. Elena Rostova, D.C. — Specialist in cervical spine biomechanics, postural ergonomics, and cervicogenic headache relief.',
+      'Dr. Marcus Sterling, D.C. — Sports injury rehabilitation specialist and kinetic chain optimization.'
     ]
   },
   {
     path: 'about',
-    title: `About Vance Health | Clinical Philosophy & Standards | London`,
-    description: 'Founded on evidence-based musculoskeletal care, patient autonomy, and modern spinal rehabilitation standards in Central London.',
+    title: `About ${CLINIC_NAME} | Clinical Philosophy & Standards`,
+    description: `Founded on evidence-based musculoskeletal care, patient autonomy, and modern spinal rehabilitation standards in ${CLINIC_LOCALITY}, ${CLINIC_STATE}.`,
     ogImage: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'about',
     breadcrumbs: [
@@ -293,29 +291,29 @@ const ROUTES: RouteMetadata[] = [
       { name: 'About the Practice', path: 'about' }
     ],
     h1: 'Evidence-Based Musculoskeletal Care',
-    h2Subtitle: 'Root-Cause Spinal Rehabilitation in Central London',
+    h2Subtitle: `Root-Cause Spinal Rehabilitation in ${CLINIC_LOCALITY}, ${CLINIC_STATE}`,
     bodyContent: [
       'We believe in objective testing, personalized treatment pathways, and measurable outcomes.',
       'Our practice is equipped with modern motorized decompression tables, digital posture mapping, and myofascial release modalities.',
-      'Located on Central Practice Avenue in London, serving the West End, Fitzrovia, and City professionals.'
+      `Located at ${CLINIC_ADDRESS_STREET} in ${CLINIC_LOCALITY}, serving patients across the metropolitan region.`
     ]
   },
   {
     path: 'contact',
-    title: `Contact & Clinic Location London W1 | ${CLINIC_NAME}`,
-    description: 'Find Vance Health Practice Architecture at 742 Central Practice Ave, London W1W 7LT. Phone: +44 20 7946 0192. Near Oxford Circus & Goodge Street stations.',
+    title: `Contact & Practice Location | ${CLINIC_NAME}`,
+    description: `Find ${CLINIC_NAME} at ${CLINIC_ADDRESS_STREET}, ${CLINIC_LOCALITY}, ${CLINIC_STATE} ${CLINIC_POSTAL}. Phone: ${CLINIC_PHONE}. Dedicated patient parking available.`,
     ogImage: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'contact',
     breadcrumbs: [
       { name: 'Home', path: '' },
       { name: 'Contact & Location', path: 'contact' }
     ],
-    h1: 'Visit Our Central London Practice',
-    h2Subtitle: 'Convenient Transit Access Near Oxford Circus & Tottenham Court Road',
+    h1: 'Visit Our Practice Location',
+    h2Subtitle: `Convenient Access in ${CLINIC_LOCALITY}, ${CLINIC_STATE}`,
     bodyContent: [
-      'Address: 742 Central Practice Ave, Suite 300, London W1W 7LT, United Kingdom.',
-      'Telephone: +44 20 7946 0192 | Email: reception@vancehealth.co.uk.',
-      'Opening Hours: Monday–Friday 08:00–19:30, Saturday 09:00–16:00.'
+      `Address: ${CLINIC_ADDRESS_STREET}, ${CLINIC_LOCALITY}, ${CLINIC_STATE} ${CLINIC_POSTAL}.`,
+      `Telephone: ${CLINIC_PHONE} | Email: ${CLINIC_EMAIL}`,
+      'Opening Hours: Monday–Friday 08:00–18:30, Saturday 09:00–14:00.'
     ]
   },
   {
@@ -334,8 +332,8 @@ const ROUTES: RouteMetadata[] = [
   },
   {
     path: 'privacy',
-    title: `Privacy Notice & UK GDPR Compliance | ${CLINIC_NAME}`,
-    description: 'Comprehensive Privacy Policy under the UK General Data Protection Regulation (UK GDPR), Data Protection Act 2018, and Information Commissioner’s Office (ICO) guidelines.',
+    title: `Privacy Notice & Patient Data Protection | ${CLINIC_NAME}`,
+    description: `Comprehensive Privacy Policy and patient health data protection policies for ${CLINIC_NAME}.`,
     ogImage: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'legal',
     breadcrumbs: [
@@ -343,17 +341,17 @@ const ROUTES: RouteMetadata[] = [
       { name: 'Privacy Notice', path: 'privacy' }
     ],
     h1: 'Privacy Notice & Data Protection Policy',
-    h2Subtitle: 'Compliance with UK GDPR, Data Protection Act 2018 & PECR',
+    h2Subtitle: 'Compliance with Patient Health Data Privacy Standards',
     bodyContent: [
-      'We process patient health data under UK GDPR Article 6(1)(b) (Contract) and Article 9(2)(h) (Provision of Healthcare).',
-      'Clinical records are securely maintained in compliance with the General Chiropractic Council (GCC) retention guidelines (minimum 8 years for adults).',
-      'Registered with the Information Commissioner’s Office (ICO). Data Protection Officer: dpo@vancehealth.co.uk.'
+      'We process patient health data under strict healthcare privacy standards to provide clinical care and manage bookings.',
+      'Clinical records are securely maintained in compliance with state medical board retention guidelines.',
+      'Your private health information is never sold or transferred to third-party advertisers.'
     ]
   },
   {
     path: 'terms',
     title: `Terms of Service & Cancellation Policy | ${CLINIC_NAME}`,
-    description: 'Clinical consultation agreements, payment terms, and 24-hour appointment cancellation policies for Vance Health.',
+    description: `Clinical consultation agreements, payment terms, and 24-hour appointment cancellation policies for ${CLINIC_NAME}.`,
     ogImage: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1200&h=630&q=80',
     pageType: 'legal',
     breadcrumbs: [
@@ -365,7 +363,7 @@ const ROUTES: RouteMetadata[] = [
     bodyContent: [
       'Appointments may be cancelled or rescheduled without charge up to 24 hours prior to the scheduled time.',
       'Consultation deposits are fully credited toward your first visit on arrival.',
-      'All care is delivered in accordance with General Chiropractic Council professional code of practice.'
+      'All care is delivered in accordance with state licensing board professional standards.'
     ]
   }
 ];
@@ -388,32 +386,33 @@ function buildSchemaGraph(route: RouteMetadata): string {
     description: 'Evidence-based chiropractic clinic specializing in lumbar decompression, cervical posture rehabilitation, and sports medicine.',
     telephone: CLINIC_PHONE,
     email: CLINIC_EMAIL,
-    priceRange: '££',
+    priceRange: '$$',
     medicalSpecialty: ['Chiropractic', 'MusculoskeletalMedicine', 'SportsMedicine'],
     address: {
       '@type': 'PostalAddress',
       streetAddress: CLINIC_ADDRESS_STREET,
       addressLocality: CLINIC_LOCALITY,
+      addressRegion: CLINIC_STATE,
       postalCode: CLINIC_POSTAL,
       addressCountry: CLINIC_COUNTRY,
     },
     geo: {
       '@type': 'GeoCoordinates',
-      latitude: 51.5173,
-      longitude: -0.1415,
+      latitude: 39.9862,
+      longitude: -83.0065,
     },
     openingHoursSpecification: [
       {
         '@type': 'OpeningHoursSpecification',
         dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         opens: '08:00',
-        closes: '19:30',
+        closes: '18:30',
       },
       {
         '@type': 'OpeningHoursSpecification',
         dayOfWeek: ['Saturday'],
         opens: '09:00',
-        closes: '16:00',
+        closes: '14:00',
       },
     ],
   };
@@ -422,33 +421,33 @@ function buildSchemaGraph(route: RouteMetadata): string {
   const physicians: any[] = [
     {
       '@type': 'Physician',
-      '@id': DR_VANCE_ID,
-      name: 'Dr. Alistair Vance, MChiro, DC',
+      '@id': DR_REED_ID,
+      name: 'Dr. Marcus Reed, D.C.',
       jobTitle: 'Clinical Director & Doctor of Chiropractic',
-      description: 'Master of Chiropractic specialist in non-surgical lumbar disc decompression and spinal rehabilitation.',
+      description: 'Doctor of Chiropractic specialist in non-surgical lumbar disc decompression and spinal rehabilitation.',
       medicalSpecialty: 'Chiropractic',
-      alumniOf: 'Anglo-European College of Chiropractic (AECC)',
-      identifier: 'GCC 04182',
+      alumniOf: 'Palmer College of Chiropractic',
+      identifier: 'OH-DC-4182',
       worksFor: { '@id': PRIMARY_CLINIC_ID },
     },
     {
       '@type': 'Physician',
       '@id': DR_ROSTOVA_ID,
-      name: 'Dr. Elena Rostova, MChiro, DC',
+      name: 'Dr. Elena Rostova, D.C.',
       jobTitle: 'Senior Chiropractic Physician',
       description: 'Cervical spine biomechanics, postural ergonomics, and cervicogenic headache specialist.',
       medicalSpecialty: 'Chiropractic',
-      identifier: 'GCC 05831',
+      identifier: 'OH-DC-05831',
       worksFor: { '@id': PRIMARY_CLINIC_ID },
     },
     {
       '@type': 'Physician',
       '@id': DR_STERLING_ID,
-      name: 'Dr. Marcus Sterling, MChiro, DC',
+      name: 'Dr. Marcus Sterling, D.C.',
       jobTitle: 'Sports Chiropractic & Kinetic Rehab Specialist',
       description: 'Athletic injury rehabilitation and sports joint mechanics optimization.',
       medicalSpecialty: 'SportsMedicine',
-      identifier: 'GCC 06119',
+      identifier: 'OH-DC-06119',
       worksFor: { '@id': PRIMARY_CLINIC_ID },
     },
   ];
@@ -486,10 +485,10 @@ function buildSchemaGraph(route: RouteMetadata): string {
         '@type': 'AnatomicalStructure',
         name: 'Spine & Vertebral Column',
       },
-      reviewedBy: { '@id': DR_VANCE_ID },
+      reviewedBy: { '@id': DR_REED_ID },
       lastReviewed: route.lastReviewedDate || '2026-09-25',
       citation: route.citations || [
-        'NICE Guideline [NG59]: Low back pain and sciatica in over 16s: assessment and management.',
+        'NICE Guideline: Low back pain and sciatica in over 16s: assessment and management.',
       ],
       mainEntityOfPage: fullCanonicalUrl,
     });
@@ -534,18 +533,16 @@ function buildSchemaGraph(route: RouteMetadata): string {
  * React 19 hydrates this via hydrateRoot without clearing the container.
  */
 function buildPreRenderedDOM(route: RouteMetadata): string {
-  const fullCanonicalUrl = route.path ? `${BASE_URL}/${route.path}/` : `${BASE_URL}/`;
-
   return `
     <div class="min-h-screen bg-stone-50 text-stone-900 font-sans flex flex-col justify-between">
       <!-- Prerendered Semantic Navigation Header -->
       <header class="border-b border-stone-200 bg-stone-50/95 sticky top-0 z-40">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
           <a href="/" class="flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-xl bg-stone-900 text-stone-50 flex items-center justify-center font-serif text-xl font-bold">V</div>
+            <div class="w-10 h-10 rounded-xl bg-stone-900 text-stone-50 flex items-center justify-center font-serif text-xl font-bold">C</div>
             <div>
               <span class="font-serif font-bold text-base sm:text-lg block leading-tight text-stone-900">${CLINIC_NAME}</span>
-              <span class="text-xs text-stone-500 uppercase tracking-wider font-medium">London, UK • GCC Registered</span>
+              <span class="text-xs text-stone-500 uppercase tracking-wider font-medium">${CLINIC_LOCALITY}, ${CLINIC_STATE} • Board Licensed</span>
             </div>
           </a>
           <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-stone-600">
@@ -557,6 +554,7 @@ function buildPreRenderedDOM(route: RouteMetadata): string {
             <a href="/about/" class="hover:text-stone-900">About</a>
             <a href="/contact/" class="hover:text-stone-900">Contact</a>
             <a href="/portal/" class="text-emerald-800 font-semibold">Patient Portal</a>
+            <button id="nav-book-now-button" class="px-4 py-2 bg-stone-900 text-white rounded-md text-xs font-semibold">BOOK NOW</button>
           </nav>
         </div>
       </header>
@@ -605,6 +603,18 @@ function buildPreRenderedDOM(route: RouteMetadata): string {
           ${route.bodyContent.map((p) => `<p>${p}</p>`).join('')}
         </article>
 
+        ${
+          route.pageType === 'pricing'
+            ? `
+          <div class="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-800">Initial Consultation & Diagnostic Exam</span>
+            <h2 class="text-4xl font-serif font-bold text-stone-900" data-testid="exam-fee">${EXAM_FEE}</h2>
+            <p class="text-xs text-stone-500">Comprehensive examination, digital posture analysis, and first treatment if indicated.</p>
+          </div>
+        `
+            : ''
+        }
+
         <!-- Peer-Reviewed Citations / E-E-A-T Evidence Section -->
         ${
           route.citations && route.citations.length > 0
@@ -646,7 +656,7 @@ function buildPreRenderedDOM(route: RouteMetadata): string {
         <div class="mt-10 p-6 sm:p-8 rounded-2xl bg-emerald-900 text-stone-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl">
           <div class="space-y-1">
             <h3 class="text-xl font-bold font-serif">Reserve Your Consultation</h3>
-            <p class="text-xs sm:text-sm text-emerald-100">Direct booking with GCC-registered doctors in Central London.</p>
+            <p class="text-xs sm:text-sm text-emerald-100">Direct booking with board-licensed doctors in ${CLINIC_LOCALITY}.</p>
             <p class="text-xs text-emerald-200 mt-1">Telephone: ${CLINIC_PHONE} • ${CLINIC_ADDRESS_STREET}, ${CLINIC_LOCALITY} ${CLINIC_POSTAL}</p>
           </div>
           <a href="/first-visit/" class="px-5 py-3 rounded-xl bg-white text-emerald-950 font-bold text-xs uppercase tracking-wider hover:bg-emerald-50 transition shrink-0 shadow-md">
@@ -658,9 +668,9 @@ function buildPreRenderedDOM(route: RouteMetadata): string {
       <!-- Semantic Footer -->
       <footer class="border-t border-stone-200 bg-stone-900 text-stone-300 py-8 mt-16">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <p>© ${new Date().getFullYear()} ${CLINIC_NAME}. Regulated by the General Chiropractic Council (UK).</p>
+          <p>© ${new Date().getFullYear()} ${CLINIC_NAME}. All rights reserved.</p>
           <div class="flex items-center gap-4">
-            <a href="/privacy/" class="hover:text-white">UK GDPR & Privacy</a>
+            <a href="/privacy/" class="hover:text-white">Privacy Notice</a>
             <a href="/terms/" class="hover:text-white">Terms of Care</a>
             <a href="/portal/" class="hover:text-white">Patient Portal</a>
           </div>
@@ -799,16 +809,36 @@ Sitemap: ${BASE_URL}/sitemap.xml
 
 function generateServerConfigs(distDir: string) {
   // 1. Netlify / Cloudflare Pages _redirects
-  const redirects = `# Single Source of Truth: Netlify & Cloudflare Pages Rewrite
+  const redirects = `# Single Source of Truth: Netlify & Cloudflare Pages Redirects
+/conditions/back-lower-back-pain /conditions/lower-back-pain/ 301
+/conditions/neck-shoulder-pain /conditions/neck-posture-headaches/ 301
+/conditions/sports-activity /conditions/sports-rehab-performance/ 301
 /* /index.html 200
 `;
   fs.writeFileSync(path.join(distDir, '_redirects'), redirects.trim(), 'utf-8');
 
-  // 2. Vercel vercel.json with EXPLICIT trailingSlash: true
+  // 2. Vercel vercel.json with EXPLICIT redirects and trailingSlash: true
   const vercelJson = JSON.stringify(
     {
       trailingSlash: true,
       cleanUrls: true,
+      redirects: [
+        {
+          source: '/conditions/back-lower-back-pain',
+          destination: '/conditions/lower-back-pain/',
+          permanent: true,
+        },
+        {
+          source: '/conditions/neck-shoulder-pain',
+          destination: '/conditions/neck-posture-headaches/',
+          permanent: true,
+        },
+        {
+          source: '/conditions/sports-activity',
+          destination: '/conditions/sports-rehab-performance/',
+          permanent: true,
+        },
+      ],
       headers: [
         {
           source: '/(.*)',

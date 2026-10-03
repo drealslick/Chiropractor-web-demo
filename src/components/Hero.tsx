@@ -182,13 +182,16 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             className="lg:col-span-5 relative"
           >
             <div className="relative rounded-3xl overflow-hidden shadow-xl border border-stone-200/90 bg-stone-100">
-              <img
-                src={clinic.heroImage}
-                alt={`Treatment studio at ${clinic.name}`}
-                className="w-full h-[280px] sm:h-[380px] lg:h-[440px] object-cover object-center"
-                loading="eager"
-                referrerPolicy="no-referrer"
-              />
+              <picture>
+                <source srcSet={'/images/hero-placeholder.svg'} type="image/svg+xml" />
+                <img
+                  src={'/images/hero-placeholder.svg'}
+                  alt={`Treatment studio at ${clinic.name}`}
+                  className="w-full h-[280px] sm:h-[380px] lg:h-[440px] object-cover object-center"
+                  loading="eager"
+                  referrerPolicy="no-referrer"
+                />
+              </picture>
               
               {/* Subtle bottom gradient scrim */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none" />
@@ -199,7 +202,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-emerald-400 flex items-center gap-1.5 truncate">
                       <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                      {clinic.doctorName || 'Dr. Alistair Vance'}
+                      {clinic.doctorName || 'Dr. Marcus Reed'}
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-stone-300 font-mono shrink-0 ml-2">
                       {clinic.doctorCredentials || 'D.C., CCSP'}

@@ -43,7 +43,7 @@ export const defaultAboutGallery: AboutGalleryImage[] = [
   {
     id: 'gal-2',
     url: heroImg,
-    caption: 'Gentle Biomechanical Care: Dr. Vance conducting targeted kinetic movement screening and joint mobilization.',
+    caption: 'Gentle Biomechanical Care: Dr. Reed conducting targeted kinetic movement screening and joint mobilization.',
     alt: 'Clinician examining patient spine and shoulder',
     tag: 'Clinical Care',
   },
@@ -60,7 +60,7 @@ export const defaultAboutAssociations: AboutAssociation[] = [
   {
     id: 'assoc-1',
     name: 'General Chiropractic Council',
-    abbreviation: 'GCC Registered',
+    abbreviation: 'Board Licensed',
     role: 'UK Statutory Healthcare Regulatory Body (Reg #04821)',
     verified: true,
   },

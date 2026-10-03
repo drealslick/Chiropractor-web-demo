@@ -43,7 +43,7 @@ export const LegalPolicyManager: React.FC<LegalPolicyManagerProps> = ({ clinic, 
 
   const clinicName = clinic.name || 'Columbus Chiropractic Care';
   const clinicPhone = clinic.phone || '+44 20 7946 0192';
-  const clinicEmail = clinic.email || 'reception@vancehealth.co.uk';
+  const clinicEmail = clinic.email || 'care@columbuschiropractic.com';
 
   const currentPrivacy = clinic.privacyPolicyText || generateMarketPrivacyPolicy(clinicName, clinicPhone, clinicEmail, marketRegion);
   const currentTerms = clinic.termsOfServiceText || generateMarketTerms(clinicName, marketRegion);
@@ -153,7 +153,7 @@ export const LegalPolicyManager: React.FC<LegalPolicyManagerProps> = ({ clinic, 
                 <strong>Framework:</strong> UK GDPR, DPA 2018 & PECR
               </p>
               <p className="text-[10px] text-stone-500 mt-0.5">
-                Regulator: General Chiropractic Council (GCC) • NICE Guidelines • £ GBP
+                Regulator: State Chiropractic Board • Clinical Guidelines • $ USD
               </p>
             </div>
             {marketRegion === 'UK' && (

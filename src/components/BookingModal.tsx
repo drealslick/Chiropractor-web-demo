@@ -31,11 +31,16 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData, PublicTeamMember, ClinicSchedulingRules, PricingFeeItem } from '../types';
 import { useClinic } from '../data/ClinicContext';
-import { saveLead, saveLeadAsync, getStoredLeads } from '../data/leadsStore';
+import { saveLead, getStoredLeads } from '../data/leadsStore';
 import { defaultPublicTeamMembers } from '../data/defaultTeamData';
 import { defaultSchedulingRules, defaultPaymentPolicy } from '../data/clinicData';
 import { StripeElementsCheckout } from './StripeElementsCheckout';
 import { IntakeQuestionnaireModal } from './IntakeQuestionnaireModal';
+import {
+  bookAppointmentServer,
+  confirmAppointmentHoldServer,
+  generateClientRequestId,
+} from '../lib/booking-client';
 
 interface BookingModalProps {
   isOpen?: boolean;
@@ -64,6 +69,30 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   const [step, setStep] = useState<number>(1);
   const [serviceType, setServiceType] = useState<'initial' | 'followup' | 'custom'>('initial');
+
+  useEffect(() => {
+    if (isOpen) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      const timer = setTimeout(() => {
+        const dialog = document.querySelector('[role="dialog"], [aria-modal="true"]');
+        if (dialog) {
+          const focusable = dialog.querySelector<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusable) focusable.focus();
+        }
+      }, 100);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+        clearTimeout(timer);
+      };
+    }
+  }, [isOpen, onClose]);
   const [selectedCustomServiceId, setSelectedCustomServiceId] = useState<string>('');
   const [selectedPractitionerId, setSelectedPractitionerId] = useState<string>('');
   const [honeypot, setHoneypot] = useState<string>('');
@@ -122,6 +151,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [elementsFallbackNotice, setElementsFallbackNotice] = useState<string | null>(null);
   const [showIntakeModal, setShowIntakeModal] = useState<boolean>(false);
   const [intakeDone, setIntakeDone] = useState<boolean>(false);
+  const [clientRequestId] = useState<string>(() => generateClientRequestId());
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState<boolean>(false);
 
   const detectedBrand = useMemo(() => {
     const clean = cardNumber.replace(/\s+/g, '');
@@ -216,13 +248,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (isOpen) {
       // Check for active logged-in patient session in portal to auto-fill details!
       try {
-        const savedSession = sessionStorage.getItem('vance_patient_portal_session_v2');
+        const savedSession = sessionStorage.getItem('clinic_patient_portal_session_v2');
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
           if (parsed?.name || parsed?.email) {
             let matchedPhone = '';
             try {
-              const allLeads = JSON.parse(localStorage.getItem('vance_leads_v1') || '[]');
+              const allLeads = JSON.parse(localStorage.getItem('clinic_leads_v1') || '[]');
               if (Array.isArray(allLeads)) {
                 const match = allLeads.find(
                   (l: any) =>
@@ -703,15 +735,104 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     if (isPaymentEnabled) {
       if (!createdBookingRefId) {
-        const res = await saveLeadAsync(bookingPayload);
-        setCreatedBookingRefId(res.lead.id);
+        setBookingError(null);
+        setIsSubmittingBooking(true);
+
+        try {
+          const serverResult = await bookAppointmentServer({
+            clinicId: clinic.id || 'columbus-chiropractic',
+            serviceId: selectedCustomServiceId || (activeServiceDetails.type === 'initial' ? 'initial-consultation' : 'followup-adjustment'),
+            serviceTitle: activeServiceDetails.title,
+            practitionerId: formData.preferredPractitionerId,
+            date: formData.date,
+            time: formData.time,
+            patientName: formData.name,
+            patientEmail: formData.email,
+            patientPhone: formData.phone,
+            notes: formData.notes,
+            condition: formData.condition,
+            clientRequestId,
+            isHold: true,
+          });
+
+          if (!serverResult.success) {
+            setBookingError(serverResult.error || 'This slot is no longer available. Please choose another time.');
+            setIsSubmittingBooking(false);
+            return;
+          }
+
+          const assignedId = serverResult.appointmentId || serverResult.bookingReference || 'COL-CONFIRMED';
+          setCreatedBookingRefId(assignedId);
+
+          saveLead({
+            ...bookingPayload,
+            id: assignedId,
+            practitionerId: serverResult.practitionerId || formData.preferredPractitionerId,
+            practitionerName: serverResult.practitionerName || formData.preferredPractitionerName,
+            priceAmount: serverResult.priceAmount,
+            depositAmount: serverResult.depositAmount,
+            currency: serverResult.currency,
+            status: 'new',
+          });
+
+          setIsSubmittingBooking(false);
+          setStep(4);
+        } catch (err: any) {
+          setIsSubmittingBooking(false);
+          setBookingError(err?.message || 'Booking submission error. Please try again.');
+          return;
+        }
+      } else {
+        setStep(4);
       }
-      setStep(4);
     } else {
       // Direct booking without upfront payment
-      const res = await saveLeadAsync(bookingPayload);
-      setCreatedBookingRefId(res.lead.id);
-      setStep(4);
+      setBookingError(null);
+      setIsSubmittingBooking(true);
+
+      try {
+        const serverResult = await bookAppointmentServer({
+          clinicId: clinic.id || 'columbus-chiropractic',
+          serviceId: selectedCustomServiceId || (activeServiceDetails.type === 'initial' ? 'initial-consultation' : 'followup-adjustment'),
+          serviceTitle: activeServiceDetails.title,
+          practitionerId: formData.preferredPractitionerId,
+          date: formData.date,
+          time: formData.time,
+          patientName: formData.name,
+          patientEmail: formData.email,
+          patientPhone: formData.phone,
+          notes: formData.notes,
+          condition: formData.condition,
+          clientRequestId,
+          isHold: false,
+        });
+
+        if (!serverResult.success) {
+          setBookingError(serverResult.error || 'This slot is no longer available. Please choose another time.');
+          setIsSubmittingBooking(false);
+          return;
+        }
+
+        const assignedId = serverResult.appointmentId || serverResult.bookingReference || 'COL-CONFIRMED';
+        setCreatedBookingRefId(assignedId);
+
+        saveLead({
+          ...bookingPayload,
+          id: assignedId,
+          practitionerId: serverResult.practitionerId || formData.preferredPractitionerId,
+          practitionerName: serverResult.practitionerName || formData.preferredPractitionerName,
+          priceAmount: serverResult.priceAmount,
+          depositAmount: serverResult.depositAmount,
+          currency: serverResult.currency,
+          status: 'confirmed',
+        });
+
+        setIsSubmittingBooking(false);
+        setStep(4);
+      } catch (err: any) {
+        setIsSubmittingBooking(false);
+        setBookingError(err?.message || 'Booking submission error. Please try again.');
+      }
     }
   };
 
@@ -739,6 +860,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     setConfirmedPaymentDetails(paymentDetail);
+
+    // Authoritatively confirm hold on server
+    if (createdBookingRefId) {
+      confirmAppointmentHoldServer({
+        appointmentId: createdBookingRefId,
+        paymentIntentId: details.paymentIntentId,
+        paymentChoice: paymentChoice === 'full' ? 'full' : 'deposit',
+      }).catch((err) => console.warn('Async server hold confirmation:', err));
+    }
 
     // Save lead with full payment & multi-service tracking
     const saved = saveLead({
@@ -1426,6 +1556,27 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                       </div>
 
+                      {/* Scheduling conflict or validation error banner */}
+                      {bookingError && (
+                        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-800">
+                          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold text-red-900">Unable to Reserve Time Slot</p>
+                            <p className="mt-0.5 leading-relaxed">{bookingError}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBookingError(null);
+                                setStep(2);
+                              }}
+                              className="mt-2 text-emerald-800 font-bold underline cursor-pointer block"
+                            >
+                              Choose an alternate time slot →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Honeypot field for bot spam prevention */}
                       <input
                         type="text"
@@ -1510,19 +1661,29 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <div className="pt-2">
                         <button
                           type="submit"
+                          disabled={isSubmittingBooking}
                           id="submit-booking-request-btn"
-                          className="w-full py-3.5 px-4 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm tracking-wide rounded-lg shadow-md transition-all active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
+                          className="w-full py-3.5 px-4 bg-emerald-800 hover:bg-emerald-900 disabled:opacity-60 text-white font-bold text-sm tracking-wide rounded-lg shadow-md transition-all active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
                         >
-                          <span>
-                            {isPaymentEnabled
-                              ? `Continue to Slot Protection (${currency}${paymentChoice === 'full' ? effectiveFullAmt : effectiveDepositAmt})`
-                              : `Request Appointment (${activeServiceDetails.price})`}
-                          </span>
-                          <ArrowRight className="w-4 h-4" />
+                          {isSubmittingBooking ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <span>Securing Practitioner Schedule...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>
+                                {isPaymentEnabled
+                                  ? `Continue to Slot Protection (${currency}${paymentChoice === 'full' ? effectiveFullAmt : effectiveDepositAmt})`
+                                  : `Request Appointment (${activeServiceDetails.price})`}
+                              </span>
+                              <ArrowRight className="w-4 h-4" />
+                            </>
+                          )}
                         </button>
                         <p className="text-xs text-stone-500 text-center mt-2.5 leading-snug">
                           {isPaymentEnabled
-                            ? `Secures Dr. ${doctorDisplayName.split(' ')[1] || 'Vance'}'s suite. 100% refundable with ${cancelNotice}h notice.`
+                            ? `Secures Dr. ${doctorDisplayName.split(' ')[1] || 'Reed'}'s suite. 100% refundable with ${cancelNotice}h notice.`
                             : `You will receive an instant confirmation once registered.`}
                         </p>
                       </div>
@@ -1830,7 +1991,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                   ⚡ Autofill Demo Card
                                 </button>
                                 <span className="text-[10px] text-stone-400">
-                                  Descriptor: {paymentPolicy.statementDescriptor || clinic.name || 'VANCE HEALTH'}
+                                  Descriptor: {paymentPolicy.statementDescriptor || clinic.name || 'COLUMBUS CHIROPRACTIC'}
                                 </span>
                               </div>
                             </div>

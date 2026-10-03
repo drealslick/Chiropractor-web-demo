@@ -50,7 +50,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 
-const PATIENT_SESSION_KEY = 'vance_patient_portal_session_v2';
+const PATIENT_SESSION_KEY = 'clinic_patient_portal_session_v2';
 
 export default function PatientPortalPage() {
   const { clinicData: clinic, openBookingModal } = useClinic();
@@ -68,7 +68,7 @@ export default function PatientPortalPage() {
     allowReceiptDownload: clinic.portalSettings?.allowReceiptDownload !== false,
     allowExerciseGuides: clinic.portalSettings?.allowExerciseGuides !== false,
     supportPhone: clinic.portalSettings?.supportPhone || clinic.phone || '+44 20 7946 0192',
-    supportEmail: clinic.portalSettings?.supportEmail || clinic.email || 'reception@vancehealth.co.uk',
+    supportEmail: clinic.portalSettings?.supportEmail || clinic.email || 'care@columbuschiropractic.com',
   };
 
   // Auth Mode: 'account' (Email/Password) vs 'quickRef' (Booking ID)
@@ -1093,7 +1093,7 @@ export default function PatientPortalPage() {
                         {selectedAppt.practitionerName || clinic.leadPractitionerName || 'Doctor of Chiropractic'}
                       </p>
                       <p className="text-xs text-emerald-800 font-medium">
-                        GCC Registered Practitioner
+                        Board Licensed Practitioner
                       </p>
                     </div>
 
@@ -1285,10 +1285,10 @@ export default function PatientPortalPage() {
 
                   {/* Before You Arrive */}
                   <div className="p-5 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-                    <h4 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-800" />
                       <span>Before You Arrive Checklist</span>
-                    </h4>
+                    </h3>
                     <ul className="text-xs text-stone-600 space-y-2">
                       <li className="flex items-start gap-2">
                         <span className="text-emerald-700 font-bold">•</span>

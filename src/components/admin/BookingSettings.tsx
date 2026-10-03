@@ -1563,7 +1563,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
                   Upfront Payments, Deposits & Slot Guarantees
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-400 max-w-2xl leading-relaxed">
-                  Protect Dr. Vance and your associates from ghost bookings. Requiring a nominal deposit or holding a card on file reduces practice no-show rates from 18% down to under 2%.
+                  Protect Dr. Reed and your associates from ghost bookings. Requiring a nominal deposit or holding a card on file reduces practice no-show rates from 18% down to under 2%.
                 </p>
               </div>
 
@@ -1836,7 +1836,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
                 rows={2}
                 value={
                   paymentPolicyState.customExplanation ||
-                  `A small ${paymentPolicyState.currencySymbol || '£'}${paymentPolicyState.depositAmount || 25} deposit reserves Dr. Vance's suite and is fully credited toward your first visit. 100% refundable if cancelled or rescheduled with ${paymentPolicyState.cancellationNoticeHours || 24} hours notice.`
+                  `A small ${paymentPolicyState.currencySymbol || '$'}${paymentPolicyState.depositAmount || 25} deposit reserves Dr. Reed's suite and is fully credited toward your first visit. 100% refundable if cancelled or rescheduled with ${paymentPolicyState.cancellationNoticeHours || 24} hours notice.`
                 }
                 onChange={(e) =>
                   handleSavePaymentPolicy({

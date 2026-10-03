@@ -402,7 +402,7 @@ export default function FirstVisit() {
               </div>
 
               <h3 className="text-xl sm:text-2xl font-serif font-bold text-stone-900">
-                You'll be seen directly by {clinic.doctorName || 'Dr. Alistair Vance'}
+                You'll be seen directly by {clinic.doctorName || 'Dr. Marcus Reed'}
               </h3>
 
               <div className="text-xs font-semibold text-emerald-700">
@@ -411,7 +411,7 @@ export default function FirstVisit() {
 
               <p className="text-sm sm:text-base text-stone-600 leading-relaxed pt-1">
                 {clinic.firstVisitDoctorNote ||
-                  `You'll be seen directly by ${clinic.doctorName || 'Dr. Vance'}, who brings over 12 years of clinical experience in advanced spinal mechanics and disc decompression. We never pass you off to junior assistants or rush your appointment.`}
+                  `You'll be seen directly by ${clinic.doctorName || 'Dr. Marcus Reed'}, who brings over 12 years of clinical experience in advanced spinal mechanics and disc decompression. We never pass you off to junior assistants or rush your appointment.`}
               </p>
 
               {clinic.doctorQuote && (

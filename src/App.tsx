@@ -5,7 +5,9 @@ import { ClinicSchema } from './components/ClinicSchema';
 import { Navbar } from './components/Navbar';
 import { ClinicProvider, useClinic } from './data/ClinicContext';
 import { GlobalAnnouncementBanner } from './components/GlobalAnnouncementBanner';
-import { GlobalAgencyController } from './components/GlobalAgencyController';
+const GlobalAgencyController = React.lazy(() =>
+  import('./components/GlobalAgencyController').then((m) => ({ default: m.GlobalAgencyController }))
+);
 import { GlobalThemeApplier } from './components/GlobalThemeApplier';
 import { Footer } from './components/Footer';
 import { BookingModal } from './components/BookingModal';
@@ -42,7 +44,7 @@ function AppShell() {
       <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
         <ClinicSchema />
         <GlobalAnnouncementBanner banner={clinic.announcementBanner} />
-        <div className="bg-stone-900 text-stone-400 text-[11px] py-1.5 px-3 border-b border-stone-800">
+        <header className="bg-stone-900 text-stone-400 text-[11px] py-1.5 px-3 border-b border-stone-800">
           <div className="max-w-7xl mx-auto flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 truncate">
               <MapPin className="w-3 h-3 text-emerald-400 shrink-0" />
@@ -57,7 +59,7 @@ function AppShell() {
               </span>
             </div>
           </div>
-        </div>
+        </header>
 
         <Navbar onBookClick={() => setMobileMenuOpen(false)} />
 
@@ -87,7 +89,9 @@ function AppShell() {
         <Footer clinic={clinic} />
 
         <DemoModeBanner />
-        <GlobalAgencyController />
+        <React.Suspense fallback={null}>
+          <GlobalAgencyController />
+        </React.Suspense>
         <BookingModal />
         <PatientPortalModal
           isOpen={isPatientPortalOpen}

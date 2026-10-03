@@ -7,26 +7,37 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isSuperAdmin() {
+      return isAuthenticated() && ('superAdmin' in request.auth.token && request.auth.token.superAdmin == true);
+    }
+
     // Pure cryptographic JWT custom claims (Zero client document fallback, zero extra reads)
     function hasRole(role) {
-      return isAuthenticated() && request.auth.token.role == role;
+      return isAuthenticated() && ('role' in request.auth.token && request.auth.token.role == role);
     }
 
     function getUserClinicId() {
-      return request.auth.token.clinicId;
+      return 'clinicId' in request.auth.token ? request.auth.token.clinicId : null;
     }
 
     function isClinicAdmin(clinicId) {
       return isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
+        isSuperAdmin() ||
         (hasRole('admin') && getUserClinicId() == clinicId)
       );
     }
 
     function isClinicStaff(clinicId) {
       return isAuthenticated() && (
-        request.auth.token.superAdmin == true ||
-        ((hasRole('admin') || hasRole('staff')) && getUserClinicId() == clinicId)
+        isSuperAdmin() ||
+        ((hasRole('admin') || hasRole('staff') || hasRole('practitioner')) && getUserClinicId() == clinicId)
+      );
+    }
+
+    function isContentEditor(clinicId) {
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        ((hasRole('admin') || hasRole('staff') || hasRole('editor') || hasRole('content_editor')) && getUserClinicId() == clinicId)
       );
     }
 
@@ -41,6 +52,17 @@ service cloud.firestore {
       allow update: if isClinicAdmin(clinicId);
       allow create: if isClinicAdmin(clinicId);
       allow delete: if isAuthenticated() && request.auth.token.superAdmin == true;
+
+      // Staff membership subcollection
+      match /members/{memberId} {
+        allow read: if isClinicStaff(clinicId);
+        allow write: if isClinicAdmin(clinicId);
+      }
+
+      // Staff invitations subcollection
+      match /invitations/{inviteId} {
+        allow read, write: if isClinicAdmin(clinicId);
+      }
     }
 
     // 1.5. Clinic Settings (Sensitive integrations, Stripe keys, webhook secrets)
@@ -112,18 +134,32 @@ service cloud.firestore {
     // - Public web booking creation allowed
     // - Payment status, amountPaid, and tenant/owner identities are IMMUTABLE to patient clients
     match /appointments/{appointmentId} {
-      allow read: if (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
-                     (isAuthenticated() && isClinicStaff(resource.data.clinicId));
+      allow read: if resource != null && (
+        (isAuthenticated() && resource.data.patientId == request.auth.uid) ||
+        (isAuthenticated() && isClinicStaff(resource.data.clinicId))
+      );
       
-      allow create: if true;
+      // Direct client create: Staff can create, OR guest/patient can create strictly as 'unpaid' without payment fields
+      allow create: if (
+        (isAuthenticated() && isClinicStaff(request.resource.data.clinicId)) ||
+        (
+          request.resource.data.keys().hasAll(['clinicId', 'patientName', 'patientEmail', 'date', 'time']) &&
+          (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus == 'unpaid') &&
+          (!('amountPaid' in request.resource.data) || request.resource.data.amountPaid == 0) &&
+          (!('transactionId' in request.resource.data) || request.resource.data.transactionId == null) &&
+          (!('stripePaymentIntentId' in request.resource.data))
+        )
+      );
 
       allow update: if (
-        // Patient update: can edit notes/intake/reschedule, but CANNOT touch payment, owner, or clinic tenant
+        // Patient update: can edit notes/intake/reschedule, but CANNOT touch payment, price, owner, or clinic tenant
         isAuthenticated() && resource.data.patientId == request.auth.uid &&
         request.resource.data.patientId == resource.data.patientId &&
         request.resource.data.clinicId == resource.data.clinicId &&
+        (!('priceAmount' in request.resource.data) || request.resource.data.priceAmount == resource.data.priceAmount) &&
         (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus == resource.data.paymentStatus) &&
         (!('amountPaid' in request.resource.data) || request.resource.data.amountPaid == resource.data.amountPaid) &&
+        (!('transactionId' in request.resource.data) || request.resource.data.transactionId == resource.data.transactionId) &&
         (!('stripePaymentIntentId' in request.resource.data) || request.resource.data.stripePaymentIntentId == resource.data.stripePaymentIntentId)
       ) || (
         // Staff update: clinic tenant remains immutable
@@ -150,8 +186,9 @@ service cloud.firestore {
     // Public can create (website contact form), but only clinic staff can read/manage
     match /inquiries/{inquiryId} {
       allow create: if true;
-      allow read, update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
-                             request.resource.data.clinicId == resource.data.clinicId;
+      allow read: if isAuthenticated() && isClinicStaff(resource.data.clinicId);
+      allow update: if isAuthenticated() && isClinicStaff(resource.data.clinicId) &&
+                       request.resource.data.clinicId == resource.data.clinicId;
       allow delete: if isAuthenticated() && isClinicAdmin(resource.data.clinicId);
     }
 
@@ -242,7 +279,26 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // 9.2. Practitioner Day Schedules (Staff read for calendar; modifications strictly via server functions)
+    match /schedules/{scheduleId} {
+      allow read: if isAuthenticated() && (
+        request.auth.token.superAdmin == true ||
+        isClinicStaff(resource.data.clinicId)
+      );
+      allow write: if false;
+    }
+
+    // 9.3. Retry Idempotency Keys (Server-authoritative only)
+    match /idempotency_keys/{keyId} {
+      allow read, write: if false;
+    }
+
     match /clinic_notifications_ratelimit/{clinicId} {
+      allow read, write: if false;
+    }
+
+    // 9.4. Rate limits collection (Server-only via Admin SDK)
+    match /rate_limits/{limitId} {
       allow read, write: if false;
     }
 

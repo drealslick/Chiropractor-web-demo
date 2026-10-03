@@ -1,6 +1,91 @@
 import { ColorPaletteId } from './data/colorPalettes';
 
-export type UserRole = 'admin' | 'editor' | 'staff';
+export type UserRole = 'admin' | 'staff' | 'practitioner' | 'content_editor' | 'editor';
+
+/**
+ * Canonical Membership Schema
+ */
+export interface ClinicMembership {
+  userId: string;
+  clinicId: string;
+  role: UserRole;
+  email: string;
+  displayName?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/**
+ * Canonical Clinic Service Schema
+ */
+export interface ClinicService {
+  id: string;
+  clinicId: string;
+  title: string;
+  description?: string;
+  durationMinutes: number;
+  price: number; // Integer minor units (e.g. 8500 = £85.00)
+  deposit: number; // Integer minor units (e.g. 2500 = £25.00)
+  currency: string; // ISO lower (e.g. 'gbp', 'usd')
+  active: boolean;
+  serviceType: 'initial' | 'followup' | 'custom';
+}
+
+/**
+ * Canonical Patient Inquiry Schema
+ */
+export interface PatientInquiry {
+  id: string;
+  clinicId: string;
+  patientName: string;
+  patientEmail: string;
+  patientPhone?: string;
+  message: string;
+  source: 'contact' | 'lead' | 'website';
+  status: 'new' | 'contacted' | 'resolved' | 'archived';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/**
+ * Canonical Appointment Record Schema (v1)
+ */
+export interface AppointmentRecord {
+  schemaVersion: 1;
+  id: string;
+  clinicId: string; // Required organization/tenant boundary
+  locationId?: string; // Physical practice branch
+  practitionerId?: string; // Clinical provider ID
+  practitionerName?: string;
+  serviceId?: string;
+  serviceTitle: string;
+  serviceType: 'initial' | 'followup' | 'custom';
+  durationMinutes: number;
+  date: string; // ISO YYYY-MM-DD
+  time: string; // HH:MM AM/PM
+  patientId?: string;
+  patientName: string;
+  patientEmail: string;
+  patientPhone: string;
+  condition?: string;
+  notes?: string;
+  // Separate Appointment & Payment States
+  status: 'new' | 'confirmed' | 'checked_in' | 'cancelled' | 'completed';
+  paymentStatus: 'unpaid' | 'deposit_paid' | 'paid_full' | 'card_hold' | 'refunded';
+  // Financial Tracking
+  currency: string; // ISO 4217, e.g. 'gbp', 'usd'
+  priceAmount?: number; // Major or minor integer representation
+  depositAmount?: number;
+  amountPaid?: number;
+  paymentMethod?: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash';
+  transactionId?: string;
+  cardLast4?: string;
+  cardBrand?: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface ClinicLocation {
   id: string;
@@ -67,7 +152,7 @@ export interface ClinicPaymentPolicy {
   noShowFee: number; // e.g. 35
   cancellationNoticeHours: number; // e.g. 24
   allowPayAtClinic: boolean; // if true, patients can opt to pay on arrival
-  statementDescriptor: string; // e.g. "VANCE HEALTH"
+  statementDescriptor: string; // e.g. "COLUMBUS CHIROPRACTIC"
   stripeMode: 'test' | 'live';
   stripeAccountId?: string; // Connected Stripe Account ID, e.g. "acct_1NzABC..."
   stripePublishableKey?: string; // pk_live_... or pk_test_...

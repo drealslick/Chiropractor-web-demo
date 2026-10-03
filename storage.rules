@@ -7,9 +7,20 @@ service firebase.storage {
     }
 
     function isClinicStaff(clinicId) {
-      return isAuthenticated() &&
-        request.auth.token.clinicId == clinicId &&
-        (request.auth.token.role in ['staff', 'admin'] || request.auth.token.admin == true);
+      return isAuthenticated() && (
+        ('superAdmin' in request.auth.token && request.auth.token.superAdmin == true) ||
+        ('clinicId' in request.auth.token && request.auth.token.clinicId == clinicId &&
+         'role' in request.auth.token && request.auth.token.role in ['staff', 'admin', 'practitioner'])
+      );
+    }
+
+    function isClinicAdmin(clinicId) {
+      return isAuthenticated() && (
+        ('superAdmin' in request.auth.token && request.auth.token.superAdmin == true) ||
+        ('clinicId' in request.auth.token && request.auth.token.clinicId == clinicId &&
+         (('role' in request.auth.token && request.auth.token.role == 'admin') ||
+          ('admin' in request.auth.token && request.auth.token.admin == true)))
+      );
     }
 
     function isValidImage() {
@@ -22,10 +33,16 @@ service firebase.storage {
         && request.resource.size < 10 * 1024 * 1024; // 10MB limit
     }
 
-    // Clinic media (headshots, hero images, blog thumbnails, clinic photos)
-    match /clinics/{clinicId}/{allPaths=**} {
+    // Public clinic media (headshots, hero images, blog thumbnails, clinic photos)
+    match /clinics/{clinicId}/public/{allPaths=**} {
       allow read: if true;
       allow write: if isClinicStaff(clinicId) && isValidImage();
+    }
+
+    // Private clinic staff documents (staff credentials, licenses, private contracts - Admin-only)
+    match /clinics/{clinicId}/staff/{allPaths=**} {
+      allow read: if isClinicAdmin(clinicId);
+      allow write: if isClinicAdmin(clinicId) && isValidDocument();
     }
 
     // Patient records / intake uploads (strictly private to patient and staff of same clinic)

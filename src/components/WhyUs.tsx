@@ -9,28 +9,28 @@ interface WhyUsProps {
 
 export const WhyUs: React.FC<WhyUsProps> = ({ clinic }) => {
   const sectionTitle = clinic?.whyUsTitle || "A Deliberate Departure from Assembly-Line Healthcare.";
-  const sectionSubtitle = clinic?.whyUsSubtitle || "The Vance Philosophy";
+  const sectionSubtitle = clinic?.whyUsSubtitle || "Clinical Care Philosophy";
 
   const comparisonRows = [
     {
       metric: "Initial Evaluation",
       standard: "5–10 min rushed intake, immediate generic cracking",
-      vance: "45 min orthopedic, neurological & posture mapping",
+      ourClinic: "45 min orthopedic, neurological & posture mapping",
     },
     {
       metric: "Treatment Strategy",
       standard: "Same repetitive routine for every patient regardless of root cause",
-      vance: "Custom blend of gentle adjusting, myofascial release & active rehab",
+      ourClinic: "Custom blend of gentle adjusting, myofascial release & active rehab",
     },
     {
       metric: "Contracts & Pricing",
       standard: "High-pressure upfront 36-visit packages & locked plans",
-      vance: "Zero contracts. Transparent per-visit pricing with prompt discharge",
+      ourClinic: "Zero contracts. Transparent per-visit pricing with prompt discharge",
     },
     {
       metric: "Long-term Outcome",
       standard: "Dependent on clinic visits forever with recurring flare-ups",
-      vance: "Empowered with home biomechanics & movement resilience for life",
+      ourClinic: "Empowered with home biomechanics & movement resilience for life",
     },
   ];
 
@@ -77,7 +77,7 @@ export const WhyUs: React.FC<WhyUsProps> = ({ clinic }) => {
                 </div>
                 <div className="p-4 sm:p-5 col-span-4 border-l border-stone-200 text-stone-900 font-medium bg-emerald-50/30 flex items-start gap-2">
                   <span className="text-emerald-600 font-bold shrink-0 mt-0.5">✓</span>
-                  <span>{row.vance}</span>
+                  <span>{row.ourClinic}</span>
                 </div>
               </div>
             ))}
@@ -107,7 +107,7 @@ export const WhyUs: React.FC<WhyUsProps> = ({ clinic }) => {
                   <span className="text-emerald-700 font-bold shrink-0">✓</span>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-emerald-800 block">Our Protocol:</span>
-                    <span>{row.vance}</span>
+                    <span>{row.ourClinic}</span>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
+import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const rawApiKey = (import.meta.env.VITE_FIREBASE_API_KEY || '').trim();
 const rawProjectId = (import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim();
@@ -27,7 +27,7 @@ const firebaseConfig = {
   appId: (import.meta.env.VITE_FIREBASE_APP_ID || '1:000000000000:web:0000000000000000000000').trim(),
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 export const functions = getFunctions(app);
@@ -39,5 +39,19 @@ export const db = initializeFirestore(
   {},
   databaseId && databaseId !== '(default)' ? databaseId : undefined
 );
+
+if (typeof process !== 'undefined' && process.env.FIRESTORE_EMULATOR_HOST) {
+  const [host, port] = process.env.FIRESTORE_EMULATOR_HOST.split(':');
+  try {
+    connectFirestoreEmulator(db, host, parseInt(port || '8085', 10));
+  } catch {
+    // Already connected
+  }
+  try {
+    connectFunctionsEmulator(functions, host, 5001);
+  } catch {
+    // Already connected
+  }
+}
 
 export default app;

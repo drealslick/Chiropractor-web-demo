@@ -59,9 +59,9 @@ const STORAGE_PROJECTS_KEY = 'agency_client_projects_v2';
 // Starter presets ready to load as client projects
 const defaultProjects: ClientProject[] = [
   {
-    id: 'columbus-vance',
+    id: 'columbus-chiropractic',
     name: 'Columbus Chiropractic Care',
-    doctorName: 'Dr. Marcus Vance',
+    doctorName: 'Dr. Marcus Reed',
     city: 'Columbus',
     state: 'OH',
     colorPalette: 'ivory-forest',
@@ -95,9 +95,9 @@ const defaultProjects: ClientProject[] = [
       doctorCredentials: "D.C., DACBSP",
       doctorYears: "12",
       doctorQuote: "Our mission is simple: get athletes and active professionals out of acute pain and back to peak performance without surgery.",
-      offerHeadline: "New Patients: $39 Spinal Exam & Movement Assessment",
+      offerHeadline: "New Patients: $49 Spinal Exam & Movement Assessment",
       offerSubtext: "Includes orthopedic exam & personalized treatment plan.",
-      offerCtaText: "CLAIM $39 SPECIAL →",
+      offerCtaText: "CLAIM $49 SPECIAL →",
       colorPalette: "bone-charcoal",
       googleRating: 5.0,
       googleReviewsCount: 184,

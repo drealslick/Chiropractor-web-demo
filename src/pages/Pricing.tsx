@@ -184,7 +184,10 @@ export default function Pricing() {
                       {getFeeIcon(item.icon || (isInitialExam ? 'user' : 'refresh'))}
                     </span>
                     <div className="flex items-baseline gap-1.5">
-                      <h2 className="text-4xl sm:text-5xl font-serif font-bold text-stone-900 tracking-tight">
+                      <h2
+                        className="text-4xl sm:text-5xl font-serif font-bold text-stone-900 tracking-tight"
+                        data-testid={isInitialExam ? 'exam-fee' : `fee-${item.id}`}
+                      >
                         {item.price}
                       </h2>
                       <span className="text-xs font-medium text-stone-500">

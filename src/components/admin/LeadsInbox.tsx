@@ -32,6 +32,8 @@ import {
 } from '../../data/leadsStore';
 import { UserRole } from '../../types';
 import { ClinicalChartPrintExport } from './ClinicalChartPrintExport';
+import { db, isFirebaseConfigured } from '../../lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface LeadsInboxProps {
   clinicName: string;
@@ -76,6 +78,48 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
     window.addEventListener('leads_updated', handleUpdate);
     return () => window.removeEventListener('leads_updated', handleUpdate);
   }, []);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+
+    const activeClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    const inquiriesQuery = query(
+      collection(db, 'inquiries'),
+      where('clinicId', '==', activeClinicId)
+    );
+
+    const unsubscribe = onSnapshot(
+      inquiriesQuery,
+      (snapshot) => {
+        const liveItems: PatientLead[] = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          liveItems.push({
+            id: docSnap.id,
+            source: d.source || 'contact',
+            name: d.name || 'Visitor',
+            email: d.email || '',
+            phone: d.phone || '',
+            condition: d.condition || 'Contact Inquiry',
+            notes: d.message || d.notes || '',
+            date: d.date || '',
+            time: d.time || '',
+            status: d.status || 'new',
+            createdAt: d.createdAt?.toDate ? d.createdAt.toDate().toISOString() : (d.createdAt || new Date().toISOString()),
+            clinicName: d.clinicName || clinicName,
+          });
+        });
+        if (liveItems.length > 0) {
+          setLeads(liveItems);
+        }
+      },
+      (err) => {
+        console.warn('Real-time inquiries subscription warning:', err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [clinicName]);
 
   const handleStatusChange = (id: string, status: PatientLead['status']) => {
     const targetLead = leads.find((l) => l.id === id);

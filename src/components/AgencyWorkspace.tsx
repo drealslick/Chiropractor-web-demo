@@ -542,7 +542,7 @@ export function AgencyWorkspace({
           </aside>
 
           {/* Right Content Area */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-6 bg-stone-900">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-6 bg-stone-900">
             {/* Mobile Tab Dropdown Selector */}
             <div className="md:hidden pb-3 border-b border-stone-800 space-y-2">
               <div className="flex items-center justify-between">
@@ -1255,12 +1255,12 @@ export function AgencyWorkspace({
                         onClick={() =>
                           onUpdateClinic({
                             ...clinic,
-                            instagram: 'https://instagram.com/vancehealth',
-                            facebook: 'https://facebook.com/vancehealth',
-                            googleBusiness: 'https://maps.google.com/?q=Vance+Health+Central+Practice+London',
-                            youtube: 'https://youtube.com/@vancehealth',
-                            linkedin: 'https://linkedin.com/company/vancehealth',
-                            twitter: 'https://x.com/vancehealth',
+                            instagram: 'https://instagram.com/columbuschiropractic',
+                            facebook: 'https://facebook.com/columbuschiropractic',
+                            googleBusiness: 'https://maps.google.com/?q=Columbus+Chiropractic+Care',
+                            youtube: 'https://youtube.com/@columbuschiropractic',
+                            linkedin: 'https://linkedin.com/company/columbuschiropractic',
+                            twitter: 'https://x.com/columbuschiro',
                           })
                         }
                         className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition cursor-pointer"
@@ -2059,7 +2059,7 @@ export function AgencyWorkspace({
             {activeTab === 'presets' && (
               <PresetBackupManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
-          </main>
+          </div>
         </div>
 
         {/* Footer */}

@@ -7,9 +7,10 @@ import { syncAppointmentToFirestore } from '../services/firebaseSync';
 import { sandbox } from '../lib/sandbox';
 import { dispatchSafeEvent } from '../utils/customEvents';
 import { isFirebaseConfigured } from '../lib/firebase';
+import { isExplicitDemo } from '../lib/mode';
 
 export function isDemoMode(): boolean {
-  return import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured;
+  return isExplicitDemo();
 }
 
 export interface PatientLead {
@@ -114,7 +115,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       email: 'johndoe@example.com',
       phone: '(303) 555-0199',
       condition: 'Lower Back & Sciatica Pain',
-      practitionerName: 'Dr. Alistair Vance',
+      practitionerName: 'Dr. Marcus Reed',
       date: tomorrow,
       time: '12:00 PM',
       durationMinutes: 45,
@@ -160,7 +161,7 @@ export function getDefaultSeedLeads(): PatientLead[] {
       email: 'sjenkins@example.com',
       phone: '(303) 555-0188',
       condition: 'Sports Shoulder Impingement',
-      practitionerName: 'Dr. Alistair Vance',
+      practitionerName: 'Dr. Marcus Reed',
       date: today,
       time: '3:00 PM',
       durationMinutes: 45,
@@ -282,20 +283,28 @@ export function getDefaultReceptionNotifications(): DispatchedNotification[] {
 
 export function getStoredLeads(): PatientLead[] {
   let leads: PatientLead[];
-  if (isDemoMode()) {
+  if (isDemoMode() || (typeof process !== 'undefined' && process.env.NODE_ENV === 'test')) {
     leads = sandbox.list<PatientLead>('appointments');
+    if (leads.length === 0) {
+      try {
+        const raw = localStorage.getItem(LEADS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          leads = Array.isArray(parsed) ? parsed : [];
+        }
+      } catch {}
+    }
   } else {
     try {
       const raw = localStorage.getItem(LEADS_STORAGE_KEY);
       if (!raw) {
-        const seeds = getDefaultSeedLeads();
-        localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(seeds));
-        return seeds;
+        // In live mode: Never fabricate seeded patients in live storage!
+        return [];
       }
       const parsed = JSON.parse(raw);
-      leads = Array.isArray(parsed) && parsed.length > 0 ? parsed : getDefaultSeedLeads();
+      leads = Array.isArray(parsed) ? parsed : [];
     } catch {
-      leads = getDefaultSeedLeads();
+      leads = [];
     }
   }
 
@@ -364,7 +373,7 @@ export function saveLead(
   leadInput: Omit<PatientLead, 'id' | 'createdAt' | 'status'> & Partial<PatientLead>
 ): PatientLead {
   const currentLeads = getStoredLeads();
-  const activeClinicId = leadInput.clinicName?.toLowerCase().replace(/\s+/g, '-') || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+  const activeClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
   const newLead: PatientLead = {
     id: leadInput.id || generateSecureBookingReference('VH'),
     patientId: leadInput.patientId,
@@ -432,7 +441,7 @@ export function saveLead(
     // 1. Alert to Clinic Front Desk
     logNotification({
       type: 'clinic_alert',
-      recipient: 'reception@vancehealth.co.uk',
+      recipient: 'care@columbuschiropractic.com',
       channel: 'email',
       subject: `[New Appointment Request] ${newLead.name} (${newLead.condition})`,
       message: `A new appointment request was submitted by ${newLead.name} (${newLead.phone}, ${newLead.email}) for ${newLead.date} at ${newLead.time} with ${newLead.practitionerName}. Status: Pending review.`,
@@ -476,13 +485,6 @@ export function saveLead(
     }
   }
 
-  // Sync lead asynchronously to Cloud Firestore for real-time multi-device access
-  try {
-    syncAppointmentToFirestore(newLead).catch(() => {});
-  } catch {
-    // Ignore background network failure
-  }
-
   return newLead;
 }
 
@@ -492,7 +494,7 @@ export async function saveLeadAsync(
   const lead = saveLead(leadInput);
   try {
     const synced = await syncAppointmentToFirestore(lead);
-    return { success: synced, lead };
+    return { success: synced.success, lead, error: synced.error };
   } catch (err: any) {
     console.error('Error awaiting appointment persistence:', err);
     return { success: false, lead, error: err?.message || 'Persistence failed' };
@@ -863,8 +865,22 @@ export function findPatientAppointmentsByEmail(email: string): PatientLead[] {
  * STRICT SECURITY: Access is strictly locked to the cryptographically unique Booking Reference Key
  * or Transaction ID to prevent unauthorized access via guessing names/phones.
  */
-export function findPatientAppointments(searchQuery: string): PatientLead[] {
-  const query = searchQuery.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+/**
+ * Patient Self-Service Portal Helpers (Search, Reschedule, Cancellation)
+ * STRICT SECURITY: Access is strictly locked to the cryptographically unique Booking Reference Key
+ * or Transaction ID AND verified last-4 phone digits to prevent unauthorized access.
+ */
+export function findPatientAppointments(referenceKey: string, last4Phone?: string): PatientLead[] {
+  const query = referenceKey.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
   if (!query || query.length < 4) return [];
 
   const leads = getStoredLeads();
@@ -873,7 +889,19 @@ export function findPatientAppointments(searchQuery: string): PatientLead[] {
     const leadIdClean = lead.id.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     const txIdClean = (lead.transactionId || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
 
-    return leadIdClean === query || txIdClean === query;
+    const keyMatches = leadIdClean === query || txIdClean === query;
+    if (!keyMatches) return false;
+
+    if (last4Phone !== undefined && last4Phone !== null && last4Phone !== '') {
+      const rawDigits = (lead.phone || '').replace(/\D/g, '');
+      const leadLast4 = rawDigits.slice(-4);
+      const queryLast4 = last4Phone.trim().replace(/\D/g, '').slice(-4);
+      if (leadLast4.length !== 4 || queryLast4.length !== 4 || !constantTimeEqual(leadLast4, queryLast4)) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   const seen = new Set<string>();

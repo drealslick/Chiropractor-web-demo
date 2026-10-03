@@ -7,7 +7,7 @@ export const defaultBlogPosts: ClinicPost[] = [
     category: 'Ergonomics & Spine',
     readTime: '4 min read',
     date: 'Sep 18, 2026',
-    author: 'Dr. Alistair Vance',
+    author: 'Dr. Marcus Reed',
     excerpt: 'Prolonged sitting compresses lumbar spinal discs by up to 140% compared to standing. Here are 5 practical micro-habits to decompress your spine daily.',
     body: `Prolonged sitting places approximately 40% to 90% more mechanical pressure on your lumbar discs than standing upright. Over months and years, this constant axial load contributes to disc dehydration, facet joint stiffness, and compensatory muscle spasms in the glutes and lower back.
 
@@ -34,7 +34,7 @@ If you experience persistent lower back stiffness or shooting discomfort, an in-
     category: 'Diagnostics & Pain Relief',
     readTime: '5 min read',
     date: 'Sep 12, 2026',
-    author: 'Dr. Alistair Vance',
+    author: 'Dr. Marcus Reed',
     excerpt: 'Radiating pain down the leg is commonly labelled sciatica, but the root cause may be spinal disc impingement or deep piriformis muscle entrapment.',
     body: `One of the most frequent clinical presentations in private practice is sharp, aching, or tingling pain traveling down the glute, hamstring, and into the calf or foot. While patients often arrive saying they have 'sciatica', precise diagnosis is essential because treatment depends entirely on where the nerve is being compromised.
 
@@ -63,7 +63,7 @@ During your comprehensive first visit, we perform specific neurological, orthope
     category: 'Patient Care',
     readTime: '3 min read',
     date: 'Aug 28, 2026',
-    author: 'Dr. Alistair Vance',
+    author: 'Dr. Marcus Reed',
     excerpt: 'Unsure of what to expect? Here is a transparent breakdown of our 45-minute clinical consultation, orthopedic assessment, and treatment philosophy.',
     body: `For many new patients, booking an initial consultation comes with understandable uncertainty—especially if previous experiences at high-volume clinics felt rushed or impersonal.
 
@@ -94,7 +94,7 @@ If treatment is clinically indicated and safe on day one, gentle first-visit the
     category: 'Spinal Health',
     readTime: '4 min read',
     date: 'Aug 14, 2026',
-    author: 'Dr. Alistair Vance',
+    author: 'Dr. Marcus Reed',
     excerpt: 'Up to 20% of all recurrent headaches stem from biomechanical dysfunction in the upper cervical spine. Learn the symptoms and non-pharmaceutical relief paths.',
     body: `Frequent headaches are frequently misdiagnosed as classic vascular migraines or generic stress headaches when the true anatomical source is the upper cervical spine (C1–C3 vertebrae). This condition is termed a cervicogenic headache.
 

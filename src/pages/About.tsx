@@ -32,7 +32,7 @@ export default function About() {
   const { clinicData: clinic, openBookingModal } = useClinic();
   usePageMeta(
     `About ${clinic.name || 'Our Practice'} | Doctor Bio & Clinical Philosophy`,
-    clinic.aboutDoctorBio || 'Meet Dr. Alistair Vance and discover our evidence-based, unhurried approach to restorative chiropractic care.'
+    clinic.aboutDoctorBio || 'Meet our clinical team and discover our evidence-based, unhurried approach to restorative chiropractic care.'
   );
 
   // Safe fallback data
@@ -52,7 +52,7 @@ export default function About() {
       : defaultAboutAssociations;
 
   const doctorPhoto = clinic.doctorImage || doctorImg;
-  const doctorName = clinic.doctorName || 'Dr. Alistair Vance';
+  const doctorName = clinic.doctorName || 'Dr. Marcus Reed';
   const doctorCredentials = clinic.doctorCredentials || 'D.C., CCSP, MSc';
   const doctorTitle = clinic.doctorTitle || 'Lead Practitioner & Biomechanist';
   const doctorQuote =
@@ -109,10 +109,10 @@ export default function About() {
                 <div className="absolute bottom-3 left-3 right-3 p-2.5 rounded-xl bg-white/95 backdrop-blur-md border border-stone-200/80 shadow-xs flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5 font-bold text-stone-900">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>GCC Statutory Registered</span>
+                    <span>Board Licensed Practitioner</span>
                   </div>
                   <span className="font-mono text-[10px] text-stone-500">
-                    Reg #04821
+                    Reg #OH-4182
                   </span>
                 </div>
               </div>
@@ -138,7 +138,7 @@ export default function About() {
               <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
                 {clinic.aboutDoctorBio ||
                   clinic.aboutApproach ||
-                  `Specializing in complex spine kinematics, disc decompression, and athletic rehabilitation. With over ${clinic.doctorYears || '12'} years of clinical practice in ${clinic.cityState || clinic.city || 'central London'}, Dr. Vance works with patients seeking root-cause answers rather than temporary symptom management.`}
+                  `Specializing in complex spine kinematics, disc decompression, and athletic rehabilitation. With over ${clinic.doctorYears || '12'} years of clinical practice in ${clinic.cityState || clinic.city || 'Columbus, OH'}, ${doctorName} works with patients seeking root-cause answers rather than temporary symptom management.`}
               </p>
 
               {/* Personal Doctor Pull Quote (Builds Instant Trust) */}

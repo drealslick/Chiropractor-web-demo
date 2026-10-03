@@ -1,20 +1,20 @@
 import { PublicTeamMember, SupportStaffMember } from '../types';
-import doctorImg from '../assets/images/doctor_portrait_1789573972470.jpg';
+const doctorImg = '/images/doctor_portrait.webp';
 
 export const defaultPublicTeamMembers: PublicTeamMember[] = [
   {
     id: 'team-1',
-    slug: 'dr-alistair-vance',
-    name: 'Dr. Alistair Vance',
+    slug: 'dr-marcus-reed',
+    name: 'Dr. Marcus Reed',
     credentials: 'D.C., CCSP, MSc (Sports Biomechanics)',
     role: 'Lead Chiropractic Physician & Practice Director',
     photoUrl: doctorImg,
-    photoAlt: 'Dr. Alistair Vance Lead Chiropractic Physician portrait',
+    photoAlt: 'Dr. Marcus Reed Lead Chiropractic Physician portrait',
     shortSummary: 'Specializing in complex lumbar spine kinematics, intervertebral disc decompression, and restorative rehabilitation.',
     quote: 'I built this practice because patients deserve unhurried, root-cause diagnosis rather than fifteen-minute symptom band-aids.',
     education: 'Doctor of Chiropractic (AECC University College), MSc Sports & Exercise Biomechanics',
-    registrationNumber: 'GCC Statutory Reg #04821',
-    email: 'dr.vance@vancechiro.com',
+    registrationNumber: 'State Reg #OH-04821',
+    email: 'dr.reed@columbuschiropractic.com',
     phone: '+44 20 7946 0912',
     showOnWebsite: true,
     order: 1,
@@ -36,13 +36,13 @@ export const defaultPublicTeamMembers: PublicTeamMember[] = [
       {
         id: 'block_vance_1',
         type: 'paragraph',
-        content: 'With over 12 years of specialized clinical experience, Dr. Alistair Vance leads our clinical team with a relentless commitment to evidence-based biomechanics. Having worked extensively with endurance athletes, post-surgical spine patients, and desk-bound executives suffering from repetitive strain, he advocates for precision diagnosis before any intervention begins.'
+        content: 'With over 12 years of specialized clinical experience, Dr. Marcus Reed leads our clinical team with a relentless commitment to evidence-based biomechanics. Having worked extensively with endurance athletes, post-surgical spine patients, and desk-bound executives suffering from repetitive strain, he advocates for precision diagnosis before any intervention begins.'
       },
       {
         id: 'block_vance_2',
         type: 'quote',
         quoteText: 'Pain is rarely an isolated event. When we restore proper joint motion and decompress irritated nerve roots, the body\'s natural resilience takes over.',
-        quoteAuthor: 'Dr. Alistair Vance, D.C.'
+        quoteAuthor: 'Dr. Marcus Reed, D.C.'
       },
       {
         id: 'block_vance_3',
@@ -53,13 +53,13 @@ export const defaultPublicTeamMembers: PublicTeamMember[] = [
       {
         id: 'block_vance_4',
         type: 'paragraph',
-        content: 'Dr. Vance completed his postgraduate Master of Science in Sports Biomechanics, with research focused on lumbar flexion-distraction loading and asymmetrical SI joint mechanics. Every patient consultation begins with a 45-minute comprehensive orthopedic and neurological evaluation, ensuring that individual anatomical nuances guide every adjustment.'
+        content: 'Dr. Reed completed his postgraduate Master of Science in Sports Biomechanics, with research focused on lumbar flexion-distraction loading and asymmetrical SI joint mechanics. Every patient consultation begins with a 45-minute comprehensive orthopedic and neurological evaluation, ensuring that individual anatomical nuances guide every adjustment.'
       },
       {
         id: 'block_vance_5',
         type: 'callout',
         calloutVariant: 'takeaway',
-        calloutTitle: 'Dr. Vance\'s 3-Rule Practice Commitment',
+        calloutTitle: 'Dr. Reed\'s 3-Rule Practice Commitment',
         calloutText: '1. No high-pressure long-term packages. 2. Clear diagnostic clarity on your first visit. 3. Active rehabilitation drills tailored to keep you independent of clinic visits.'
       }
     ]
@@ -75,8 +75,8 @@ export const defaultPublicTeamMembers: PublicTeamMember[] = [
     shortSummary: 'Specializing in cervical motion restoration, tension headaches, vertigo relief, and perinatal chiropractic care.',
     quote: 'Restoring cervical alignment transforms not just physical neck mobility, but cognitive clarity and daily energy.',
     education: 'Doctor of Chiropractic (WIOC), Postgrad Perinatal & Pediatric Certification (CACCP)',
-    registrationNumber: 'GCC Statutory Reg #06194',
-    email: 'dr.rostova@vancechiro.com',
+    registrationNumber: 'State Reg #OH-06194',
+    email: 'dr.rostova@columbuschiropractic.com',
     showOnWebsite: true,
     order: 2,
     areasOfFocus: [
@@ -125,8 +125,8 @@ export const defaultPublicTeamMembers: PublicTeamMember[] = [
     shortSummary: 'Specializing in athletic performance kinematics, running gait correction, and kinetic chain extremity adjusting.',
     quote: 'Our goal isn\'t just to get you out of pain—it\'s to make your musculoskeletal system more robust than it was before.',
     education: 'Master of Chiropractic (Bournemouth University), Certified Strength & Conditioning Specialist (NSCA)',
-    registrationNumber: 'GCC Statutory Reg #07382',
-    email: 'dr.sterling@vancechiro.com',
+    registrationNumber: 'State Reg #OH-07382',
+    email: 'dr.sterling@columbuschiropractic.com',
     showOnWebsite: true,
     order: 3,
     areasOfFocus: [

@@ -23,6 +23,44 @@ export default function Contact() {
   const mapQuery = encodeURIComponent(fullAddressString);
   const googleMapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${mapQuery}`;
   const [sent, setSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubmitInquiry = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const name = String(data.get('name') || '');
+    const phone = String(data.get('phone') || '');
+    const email = String(data.get('email') || '');
+    const message = String(data.get('message') || '');
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const success = await syncInquiryToFirestore({
+        name: name || 'Website Visitor',
+        phone,
+        email,
+        message,
+        condition: 'Contact Inquiry',
+        clinicName: clinic.name,
+        clinicId: clinic.id,
+      });
+
+      setIsSubmitting(false);
+      if (success) {
+        setSent(true);
+        form.reset();
+      } else {
+        setErrorMessage('Failed to store inquiry. Please check your connection and retry.');
+      }
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setErrorMessage(err.message || 'An error occurred. Please retry.');
+    }
+  };
 
   return (
     <div className="space-y-10 py-8 px-4 max-w-5xl mx-auto">
@@ -182,30 +220,7 @@ export default function Contact() {
 
       <form
         className="bg-white p-6 border border-stone-200 rounded-2xl space-y-4 max-w-xl mx-auto"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const data = new FormData(e.currentTarget);
-          const name = String(data.get('name') || '');
-          const phone = String(data.get('phone') || '');
-          const email = String(data.get('email') || '');
-          const message = String(data.get('message') || '');
-
-          syncInquiryToFirestore({
-            name: name || 'Website Visitor',
-            phone,
-            email,
-            message,
-            condition: 'Contact Inquiry',
-            clinicName: clinic.name,
-            clinicId: clinic.id,
-          });
-
-          const subject = encodeURIComponent(`Website enquiry — ${clinic.name}`);
-          const body = encodeURIComponent(`${name}\n${phone}\n${email}\n\n${message}`);
-          const to = extra.email || '';
-          if (to) window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
-          setSent(true);
-        }}
+        onSubmit={handleSubmitInquiry}
       >
         <h2 className="text-xl font-bold text-stone-900">Send a message</h2>
         <p className="text-xs text-stone-500">No health details. Name and how to reach you is enough.</p>
@@ -215,12 +230,28 @@ export default function Contact() {
             <span>Thank you! Your message was received and logged. Our team will get back to you shortly.</span>
           </div>
         ) : null}
+        {errorMessage ? (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 text-sm flex items-center justify-between gap-2">
+            <span className="text-xs">{errorMessage}</span>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-3 py-1 rounded bg-rose-800 text-white text-xs font-semibold hover:bg-rose-900 cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        ) : null}
         <input name="name" required placeholder="Name" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
         <input name="phone" placeholder="Phone" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
         <input name="email" type="email" placeholder="Email" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
         <textarea name="message" rows={4} placeholder="How can we help?" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
-        <button type="submit" className="bg-stone-900 hover:bg-stone-800 transition text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer">
-          {sent ? 'Message Sent ✓' : 'Send Message'}
+        <button
+          type="submit"
+          disabled={isSubmitting || sent}
+          className="bg-stone-900 hover:bg-stone-800 transition text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer disabled:opacity-55"
+        >
+          {isSubmitting ? 'Sending...' : sent ? 'Message Sent ✓' : 'Send Message'}
         </button>
       </form>
     </div>

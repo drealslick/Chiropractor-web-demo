@@ -23,7 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
   const [logoImageError, setLogoImageError] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
+    <nav aria-label="Main Navigation" className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
       {/* Top Multi-Location Utility Ribbon */}
       {allLocations && allLocations.length > 1 && (
         <div className="bg-stone-900 text-stone-300 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between border-b border-stone-800">
@@ -33,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
                 <span>📍 Active Clinic Branch:</span>
               </span>
               <select
+                aria-label="Select active clinic location branch"
                 value={activeLocation.id}
                 onChange={(e) => setActiveLocationId(e.target.value)}
                 className="bg-stone-800 border border-stone-700 text-stone-100 text-xs rounded-md px-2.5 py-0.5 font-semibold cursor-pointer focus:outline-none focus:border-emerald-500"
@@ -168,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
 
       {/* Mobile Slide-down Multi-Page Dropdown Menu */}
       {mobileMenuOpen && (
-        <nav className="md:hidden bg-stone-50 border-t border-stone-200/80 px-4 pt-3 pb-5 space-y-2 shadow-lg">
+        <div className="md:hidden bg-stone-50 border-t border-stone-200/80 px-4 pt-3 pb-5 space-y-2 shadow-lg">
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}
@@ -272,8 +273,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
               <span>{clinic.phone}</span>
             </a>
           </div>
-        </nav>
+        </div>
       )}
-    </header>
+    </nav>
   );
 };

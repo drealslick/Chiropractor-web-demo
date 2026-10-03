@@ -29,7 +29,7 @@ export const TheDoctor: React.FC<TheDoctorProps> = ({ clinic }) => {
               <div className="absolute bottom-4 left-4 right-4 text-white">
                 <div className="p-3 rounded-2xl bg-stone-900/80 backdrop-blur-md border border-white/10 text-left space-y-1">
                   <div className="font-bold text-sm text-emerald-400">
-                    {clinic.doctorName || 'Dr. Alistair Vance'}
+                    {clinic.doctorName || 'Dr. Marcus Reed'}
                   </div>
                   <div className="text-[11px] text-stone-300">
                     {clinic.doctorCredentials || 'D.C., CCSP, MSc'} · {clinic.doctorYears || '15'} Years Experience
@@ -64,7 +64,7 @@ export const TheDoctor: React.FC<TheDoctorProps> = ({ clinic }) => {
 
             <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
               {clinic.doctorBio ||
-                "After years working alongside orthopedic surgeons and physical therapists, Dr. Vance established our private practice to deliver what traditional volume clinics couldn't: unhurried, evidence-based manual care where the patient always comes first."}
+                `After years working alongside orthopedic surgeons and physical therapists, ${clinic.doctorName || 'Dr. Reed'} established our private practice to deliver what traditional volume clinics couldn't: unhurried, evidence-based manual care where the patient always comes first.`}
             </p>
 
             <div className="grid sm:grid-cols-2 gap-3 pt-2">
@@ -84,7 +84,7 @@ export const TheDoctor: React.FC<TheDoctorProps> = ({ clinic }) => {
                 <div className="text-xs text-stone-500 font-mono mt-0.5">{clinic.doctorCredentials} · {clinic.cityState}</div>
               </div>
               <div className="font-serif italic text-xl text-stone-400 select-none">
-                {clinic.doctorName?.split(' ')[1] || 'Vance'}
+                {clinic.doctorName?.split(' ')[1] || 'Reed'}
               </div>
             </div>
           </div>

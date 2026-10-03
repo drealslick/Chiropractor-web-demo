@@ -149,9 +149,9 @@ export default function Conditions() {
                   <HelpCircle className="w-3.5 h-3.5" />
                   <span>Diagnostic Discovery</span>
                 </div>
-                <h3 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
+                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
                   Not sure which condition applies?
-                </h3>
+                </h2>
                 <p className="text-stone-300 text-sm sm:text-base leading-relaxed">
                   You don't need to self-diagnose before arriving. We evaluate your entire kinetic chain and spinal biomechanics during your comprehensive consultation before recommending any care.
                 </p>

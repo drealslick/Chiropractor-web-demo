@@ -32,7 +32,7 @@ export default function Home() {
         />
       )}
 
-      <main className="flex-1">
+      <div className="flex-1">
         {clinic.showSectionHero !== false && (
           <Hero
             clinic={clinic}
@@ -73,7 +73,7 @@ export default function Home() {
             onBookClick={() => openBookingModal()}
           />
         )}
-      </main>
+      </div>
 
       {clinic.showMobileStickyBar !== false && (
         <MobileStickyBar

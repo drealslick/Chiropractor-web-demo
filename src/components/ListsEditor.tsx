@@ -732,7 +732,7 @@ export function ListsEditor({
           <Field
             label="Section Subtitle / Eyebrow"
             value={clinic.whyUsSubtitle || ''}
-            placeholder="The Vance Philosophy"
+            placeholder="The Clinic Philosophy"
             helperText="Brand or doctor philosophy label."
             onChange={(v) => onUpdateClinic({ ...clinic, whyUsSubtitle: v })}
           />
@@ -856,7 +856,7 @@ export function ListsEditor({
             </div>
             <Field
               label="Patient Name"
-              value={clinic.patientStoryName || 'Michael Vance'}
+              value={clinic.patientStoryName || 'Michael Miller'}
               helperText="Patient's first name."
               onChange={(v) => onUpdateClinic({ ...clinic, patientStoryName: v })}
             />

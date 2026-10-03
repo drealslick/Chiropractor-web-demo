@@ -13,7 +13,7 @@ export default function Privacy() {
     generateMarketPrivacyPolicy(
       clinic.name || 'Private Practice',
       clinic.phone || '+44 20 7946 0192',
-      clinic.email || 'reception@vancehealth.co.uk',
+      clinic.email || 'care@columbuschiropractic.com',
       clinic.marketRegion || 'UK'
     );
 
