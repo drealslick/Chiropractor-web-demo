@@ -1,0 +1,34 @@
+name: Bug report
+description: Something in the template does not behave as documented
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Booking
+        - Patient portal
+        - Admin
+        - Stripe / payments
+        - Firestore rules
+        - Cloud Functions
+        - Setup / deploy
+        - Demo mode
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Actual behavior, expected behavior, and the route.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Demo mode or live Firebase? Include env flags, not secrets.
+    validations:
+      required: true

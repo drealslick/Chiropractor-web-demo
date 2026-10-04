@@ -1817,7 +1817,7 @@ export function AgencyWorkspace({
                       <div className="w-full max-w-sm bg-stone-900 border border-stone-750 rounded-2xl overflow-hidden shadow-xl text-left animate-fade-in">
                         <div className="h-44 w-full bg-stone-950 relative overflow-hidden flex items-center justify-center">
                           <img
-                            src={clinic.ogImage || clinic.heroImage || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80'}
+                            src={clinic.ogImage || clinic.heroImage || '/images/clinic_hero_care.jpg'}
                             alt="Social Share Thumbnail"
                             className="w-full h-full object-cover"
                           />
@@ -1844,7 +1844,7 @@ export function AgencyWorkspace({
                       <div className="w-full max-w-md bg-stone-900 border border-stone-750 rounded-2xl overflow-hidden shadow-xl text-left animate-fade-in">
                         <div className="aspect-[1.91/1] w-full bg-stone-950 relative overflow-hidden flex items-center justify-center">
                           <img
-                            src={clinic.ogImage || clinic.heroImage || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80'}
+                            src={clinic.ogImage || clinic.heroImage || '/images/clinic_hero_care.jpg'}
                             alt="Twitter Card Banner"
                             className="w-full h-full object-cover"
                           />
@@ -1868,7 +1868,7 @@ export function AgencyWorkspace({
                       <div className="w-full max-w-md bg-stone-900 border border-stone-750 rounded-xl overflow-hidden shadow-xl text-left animate-fade-in">
                         <div className="aspect-[1.91/1] w-full bg-stone-950 relative overflow-hidden">
                           <img
-                            src={clinic.ogImage || clinic.heroImage || 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80'}
+                            src={clinic.ogImage || clinic.heroImage || '/images/clinic_hero_care.jpg'}
                             alt="Facebook Share Card"
                             className="w-full h-full object-cover"
                           />

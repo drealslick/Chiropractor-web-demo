@@ -35,7 +35,8 @@
 
 | Doc | Purpose |
 | --- | --- |
-| [findings-tracking.md](findings-tracking.md) | Historical findings |
-| [FINAL_READINESS_REPORT.md](FINAL_READINESS_REPORT.md) | Readiness snapshot |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | How to develop |
 | [../CHANGELOG.md](../CHANGELOG.md) | Release history |
+| [../SECURITY.md](../SECURITY.md) | How to report a vulnerability |
+| [internal/findings-tracking.md](internal/findings-tracking.md) | Internal audit log, not a buyer doc |
+| [internal/FINAL_READINESS_REPORT.md](internal/FINAL_READINESS_REPORT.md) | Internal readiness snapshot |

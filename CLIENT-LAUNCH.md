@@ -1,5 +1,8 @@
 # Practice OS: Pre-Launch Checklist (30–45 min)
 
+> Canonical extended guide: [docs/CLINIC_LAUNCH_GUIDE.md](./docs/CLINIC_LAUNCH_GUIDE.md). This file is the short go-live checklist.
+
+
 Follow this checklist to replace sample demo data with your clinic's live operational information:
 
 1. **Deploy Repository**: Deploy to your hosting provider (Vercel, Netlify, or Cloud Run).

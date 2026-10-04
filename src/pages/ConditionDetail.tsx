@@ -691,7 +691,7 @@ export default function ConditionDetail() {
                   <div className="flex items-start gap-3.5">
                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0">
                       <img
-                        src={spec.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400'}
+                        src={spec.photoUrl || '/images/doctor_portrait.jpg'}
                         alt={spec.name}
                         className="w-full h-full object-cover object-top"
                       />

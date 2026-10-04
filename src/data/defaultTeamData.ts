@@ -70,7 +70,7 @@ export const defaultPublicTeamMembers: PublicTeamMember[] = [
     name: 'Dr. Elena Rostova',
     credentials: 'D.C., B.Sc. (Hons) Chiro, CACCP',
     role: 'Senior Associate Chiropractor & Cervical Spine Lead',
-    photoUrl: 'https://images.unsplash.com/photo-1594824813580-044238711efd?auto=format&fit=crop&q=80&w=800',
+    photoUrl: '/images/doctor_portrait.jpg',
     photoAlt: 'Dr. Elena Rostova Senior Associate Chiropractor portrait',
     shortSummary: 'Specializing in cervical motion restoration, tension headaches, vertigo relief, and perinatal chiropractic care.',
     quote: 'Restoring cervical alignment transforms not just physical neck mobility, but cognitive clarity and daily energy.',
@@ -120,7 +120,7 @@ export const defaultPublicTeamMembers: PublicTeamMember[] = [
     name: 'Dr. Marcus Sterling',
     credentials: 'M.Chiro, CSCS, ART Certified',
     role: 'Sports Chiropractor & Functional Rehab Specialist',
-    photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800',
+    photoUrl: '/images/doctor_portrait.jpg',
     photoAlt: 'Dr. Marcus Sterling Sports Chiropractor portrait',
     shortSummary: 'Specializing in athletic performance kinematics, running gait correction, and kinetic chain extremity adjusting.',
     quote: 'Our goal isn\'t just to get you out of pain—it\'s to make your musculoskeletal system more robust than it was before.',
@@ -168,21 +168,21 @@ export const defaultSupportStaff: SupportStaffMember[] = [
     id: 'staff-1',
     name: 'Sarah Jenkins',
     role: 'Practice Director & Patient Concierge',
-    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400',
+    photoUrl: '/images/doctor_portrait.jpg',
     bio: 'Sarah oversees patient intake, insurance pre-authorizations, and ensures your first visit is completely seamless, unhurried, and welcoming.'
   },
   {
     id: 'staff-2',
     name: 'David Chen',
     role: 'Clinic Operations & Digital Records',
-    photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400',
+    photoUrl: '/images/doctor_portrait.jpg',
     bio: 'David coordinates diagnostic referrals, digital imaging uploads, and ensures seamless communication with your general practitioner.'
   },
   {
     id: 'staff-3',
     name: 'Maya Patel',
     role: 'Patient Care & Rehabilitation Assistant',
-    photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400',
+    photoUrl: '/images/doctor_portrait.jpg',
     bio: 'Maya walks patients through their customized home movement exercises, ensuring safe execution and progressive functional recovery.'
   }
 ];

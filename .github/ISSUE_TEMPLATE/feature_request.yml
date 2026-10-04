@@ -1,0 +1,17 @@
+name: Feature request
+description: A clinic or agency workflow the template should support
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: job
+    attributes:
+      label: Job to be done
+      description: Who needs this, and what they cannot do today?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Out of scope
+      description: What this should not become (hosted SaaS, EHR replacement, etc.).

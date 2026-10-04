@@ -99,7 +99,7 @@ export default function Team() {
                 {/* Headshot with subtle framed container */}
                 <div className="relative aspect-4/5 overflow-hidden bg-stone-100">
                   <img
-                    src={member.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800'}
+                    src={member.photoUrl || '/images/doctor_portrait.jpg'}
                     alt={member.photoAlt || `${member.name} portrait`}
                     className="w-full h-full object-cover object-top group-hover:scale-103 transition-transform duration-500"
                   />
@@ -219,7 +219,7 @@ export default function Team() {
                   {/* Small Circular Headshot */}
                   <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-full overflow-hidden border-2 border-emerald-600/30 shadow-xs shrink-0 bg-stone-200">
                     <img
-                      src={staff.photoUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400'}
+                      src={staff.photoUrl || '/images/doctor_portrait.jpg'}
                       alt={staff.name}
                       className="w-full h-full object-cover"
                     />

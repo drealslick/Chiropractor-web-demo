@@ -255,7 +255,7 @@ export default function TeamMemberDetail() {
             <div className="lg:col-span-5">
               <div className="relative rounded-2xl overflow-hidden border border-stone-200 shadow-md bg-stone-100 aspect-4/5">
                 <img
-                  src={member.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800'}
+                  src={member.photoUrl || '/images/doctor_portrait.jpg'}
                   alt={member.photoAlt || member.name}
                   className="w-full h-full object-cover object-top"
                 />

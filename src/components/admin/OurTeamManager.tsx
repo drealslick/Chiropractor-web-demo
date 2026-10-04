@@ -124,7 +124,7 @@ export const OurTeamManager: React.FC<OurTeamManagerProps> = ({ clinic, onUpdate
       name: '',
       credentials: 'D.C., MSc',
       role: 'Associate Chiropractic Physician',
-      photoUrl: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800',
+      photoUrl: '/images/doctor_portrait.jpg',
       photoAlt: '',
       shortSummary: '',
       quote: '',
@@ -278,7 +278,7 @@ export const OurTeamManager: React.FC<OurTeamManagerProps> = ({ clinic, onUpdate
       id: `staff_${Date.now()}`,
       name: 'New Support Member',
       role: 'Front Desk Coordinator',
-      photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400',
+      photoUrl: '/images/doctor_portrait.jpg',
       bio: 'Welcomes patients and manages front-of-house intake.',
     };
     const next = [...supportStaff, newStaff];
@@ -466,7 +466,7 @@ export const OurTeamManager: React.FC<OurTeamManagerProps> = ({ clinic, onUpdate
                       {/* Photo Thumbnail */}
                       <div className="w-12 h-12 rounded-xl overflow-hidden bg-stone-900 border border-stone-700 shrink-0">
                         <img
-                          src={member.photoUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400'}
+                          src={member.photoUrl || '/images/doctor_portrait.jpg'}
                           alt={member.name}
                           className="w-full h-full object-cover object-top"
                         />
@@ -716,7 +716,7 @@ export const OurTeamManager: React.FC<OurTeamManagerProps> = ({ clinic, onUpdate
                     <input
                       type="text"
                       value={formData.photoUrl || ''}
-                      placeholder="Paste image URL (e.g. https://... or /src/assets/images/...)"
+                      placeholder="Paste an image URL (https://... or /images/your-photo.jpg)"
                       onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
                       className="w-full px-3 py-1.5 rounded-lg bg-stone-950 border border-stone-800 text-stone-200 text-xs font-mono focus:outline-none focus:border-emerald-500"
                     />

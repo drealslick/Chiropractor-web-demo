@@ -61,7 +61,7 @@ const ROUTES: RouteMetadata[] = [
     path: '',
     title: `${CLINIC_NAME} | Evidence-Based Chiropractic & Spinal Care`,
     description: `Specialized chiropractic care, lumbar disc decompression, and cervical rehabilitation in ${CLINIC_LOCALITY}, ${CLINIC_STATE}. Evidence-based protocols with transparent booking.`,
-    ogImage: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'home',
     h1: 'Get Back to What Pain Took Away.',
     h2Subtitle: `Evidence-Based Chiropractic Care in ${CLINIC_LOCALITY}, ${CLINIC_STATE}`,
@@ -85,7 +85,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'conditions',
     title: `Conditions We Treat | Evidence-Based Protocols | ${CLINIC_NAME}`,
     description: `Explore targeted chiropractic pathways for acute lower back pain, sciatica, herniated discs, cervical posture strain, and sports injuries in ${CLINIC_LOCALITY}.`,
-    ogImage: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'conditions',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -103,7 +103,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'conditions/lower-back-pain',
     title: `Lower Back Pain & Lumbar Disc Care | ${CLINIC_NAME}`,
     description: `Evidence-based chiropractic adjustments, spinal mobilization, and lumbar stabilization exercises for lower back pain in ${CLINIC_LOCALITY}, ${CLINIC_STATE}.`,
-    ogImage: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'condition-detail',
     conditionKey: 'lower-back-pain',
     breadcrumbs: [
@@ -129,7 +129,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'conditions/sciatica-decompression',
     title: `Sciatica & Disc Decompression Protocol | ${CLINIC_NAME}`,
     description: `Non-surgical spinal decompression and nerve root pressure relief for radiating leg pain and lumbar disc bulges in ${CLINIC_LOCALITY}.`,
-    ogImage: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'condition-detail',
     conditionKey: 'sciatica-decompression',
     breadcrumbs: [
@@ -155,7 +155,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'conditions/neck-posture-headaches',
     title: `Neck Pain, Posture & Tension Headaches | ${CLINIC_NAME}`,
     description: `Upper cervical adjustments and desk-worker postural ergonomics for chronic neck stiffness, tech neck, and cervicogenic headaches in ${CLINIC_LOCALITY}.`,
-    ogImage: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'condition-detail',
     conditionKey: 'neck-posture-headaches',
     breadcrumbs: [
@@ -181,7 +181,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'conditions/sports-rehab-performance',
     title: `Sports Chiropractic & Athletic Injury Recovery | ${CLINIC_NAME}`,
     description: `Sports medicine chiropractic, joint mechanics optimization, and kinetic chain rehab for runners, athletes, and fitness enthusiasts in ${CLINIC_LOCALITY}.`,
-    ogImage: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'condition-detail',
     conditionKey: 'sports-rehab-performance',
     breadcrumbs: [
@@ -206,7 +206,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'first-visit',
     title: `Your First Visit Guide | What to Expect | ${CLINIC_NAME}`,
     description: `Step-by-step walkthrough of your initial chiropractic consultation, orthopedic physical exam, diagnostic review, and first adjustment in ${CLINIC_LOCALITY}.`,
-    ogImage: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'first-visit',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -238,7 +238,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'pricing',
     title: `Transparent Fees & Insurance Plans | ${CLINIC_NAME}`,
     description: `Clear, transparent chiropractic pricing in ${CLINIC_LOCALITY}. Initial consultation ${EXAM_FEE}, follow-up adjustments ${FOLLOWUP_FEE}. Direct health insurance receipts provided.`,
-    ogImage: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'pricing',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -266,7 +266,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'team',
     title: `Licensed Chiropractors & Clinicians | ${CLINIC_NAME}`,
     description: `Meet Dr. Marcus Reed, Dr. Elena Rostova, and Dr. Marcus Sterling at ${CLINIC_NAME}. Licensed chiropractic doctors specializing in spinal rehabilitation.`,
-    ogImage: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'team',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -284,7 +284,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'about',
     title: `About ${CLINIC_NAME} | Clinical Philosophy & Standards`,
     description: `Founded on evidence-based musculoskeletal care, patient autonomy, and modern spinal rehabilitation standards in ${CLINIC_LOCALITY}, ${CLINIC_STATE}.`,
-    ogImage: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'about',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -302,7 +302,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'contact',
     title: `Contact & Practice Location | ${CLINIC_NAME}`,
     description: `Find ${CLINIC_NAME} at ${CLINIC_ADDRESS_STREET}, ${CLINIC_LOCALITY}, ${CLINIC_STATE} ${CLINIC_POSTAL}. Phone: ${CLINIC_PHONE}. Dedicated patient parking available.`,
-    ogImage: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'contact',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -320,7 +320,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'portal',
     title: `Patient Portal & Appointment Management | ${CLINIC_NAME}`,
     description: 'Secure patient self-service portal for appointment rescheduling, digital receipt downloads, and treatment itinerary review.',
-    ogImage: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     noIndex: true,
     pageType: 'portal',
     h1: 'Patient Self-Service Portal',
@@ -334,7 +334,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'privacy',
     title: `Privacy Notice & Patient Data Protection | ${CLINIC_NAME}`,
     description: `Comprehensive Privacy Policy and patient health data protection policies for ${CLINIC_NAME}.`,
-    ogImage: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'legal',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -352,7 +352,7 @@ const ROUTES: RouteMetadata[] = [
     path: 'terms',
     title: `Terms of Service & Cancellation Policy | ${CLINIC_NAME}`,
     description: `Clinical consultation agreements, payment terms, and 24-hour appointment cancellation policies for ${CLINIC_NAME}.`,
-    ogImage: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1200&h=630&q=80',
+    ogImage: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     pageType: 'legal',
     breadcrumbs: [
       { name: 'Home', path: '' },
@@ -381,8 +381,8 @@ function buildSchemaGraph(route: RouteMetadata): string {
     '@id': PRIMARY_CLINIC_ID,
     name: CLINIC_NAME,
     url: `${BASE_URL}/`,
-    logo: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=400&h=400&q=80',
-    image: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&h=630&q=80',
+    logo: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
+    image: 'https://your-clinic-domain.com/images/clinic_hero_care.jpg',
     description: 'Evidence-based chiropractic clinic specializing in lumbar decompression, cervical posture rehabilitation, and sports medicine.',
     telephone: CLINIC_PHONE,
     email: CLINIC_EMAIL,

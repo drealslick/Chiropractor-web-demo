@@ -104,7 +104,7 @@ export const AboutManager: React.FC<AboutManagerProps> = ({ clinic, onUpdateClin
   const handleAddGalleryImage = () => {
     const newImg: AboutGalleryImage = {
       id: `gal_${Date.now()}`,
-      url: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1200',
+      url: '/images/clinic_hero_care.jpg',
       caption: 'Diagnostic Motion Suite: State-of-the-art postural analysis and digital kinematics.',
       alt: 'Chiropractic diagnostic equipment',
       tag: 'Facilities',

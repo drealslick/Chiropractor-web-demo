@@ -1,5 +1,8 @@
 # Optional Multi-Client Deployment Add-On (Agency License)
 
+> Canonical handoff: [docs/AGENCY_GUIDE.md](./docs/AGENCY_GUIDE.md). This file is the short agency add-on.
+
+
 > 💡 **Core Platform Architecture**: Practice OS is natively designed as a **standalone, single-clinic operating system** with zero platform fees or vendor lock-in. If you are a clinic owner deploying for your practice, follow the primary [README.md](./README.md) and [SETUP_WIZARD.md](./SETUP_WIZARD.md).
 >
 > If you hold an agency license and deploy standalone Practice OS instances for multiple independent clients, use this optional guide for client blueprint setup.

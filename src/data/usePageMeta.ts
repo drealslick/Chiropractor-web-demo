@@ -21,7 +21,7 @@ export function usePageMeta(pageTitle: string, pageDesc?: string, pageImage?: st
       pageImage ||
       clinic.ogImage ||
       clinic.heroImage ||
-      'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&h=630&q=80';
+      '/images/clinic_hero_care.jpg';
     let canonicalUrl = '';
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);

@@ -1,8 +1,18 @@
 {
   "name": "practice-os",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Production-grade chiropractic & physical therapy practice management platform",
+  "author": "Noir Labs <hello.noirlabs@gmail.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://chiropractor-web-demo.vercel.app",
+  "bugs": {
+    "url": "https://github.com/drealslick/Chiropractor-web-demo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drealslick/Chiropractor-web-demo.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=20.0.0",

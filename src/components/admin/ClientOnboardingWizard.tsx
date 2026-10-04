@@ -369,7 +369,7 @@ export function ClientOnboardingWizard({
                   type="text"
                   value={clinic.doctorImageUrl || ''}
                   onChange={(e) => onUpdateClinic({ ...clinic, doctorImageUrl: e.target.value })}
-                  placeholder="e.g. https://images.unsplash.com/photo-..."
+                  placeholder="e.g. /images/clinic_hero_care.jpg"
                   className="w-full bg-stone-950 border border-stone-800 rounded-xl p-3 text-sm text-white focus:border-emerald-500 focus:outline-none"
                 />
               </div>
