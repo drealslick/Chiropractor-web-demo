@@ -33,7 +33,7 @@ jobs:
           cd ..
 
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@v13.5.0
+        uses: w9jds/firebase-action@v15.30.0
         with:
           args: deploy
         env:
