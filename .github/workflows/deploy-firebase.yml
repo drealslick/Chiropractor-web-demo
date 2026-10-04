@@ -46,7 +46,7 @@ jobs:
 
       - name: Deploy to Firebase
         if: steps.creds.outputs.present == 'true'
-        uses: w9jds/firebase-action@v15.30.0
+        uses: w9jds/firebase-action@v15.32.1
         with:
           args: deploy
         env:
