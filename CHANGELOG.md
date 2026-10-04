@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add security policy, issue forms, pull request template, and `.nvmrc`.
 - Run lint, format check, and Firestore rules tests in CI.
 - Move internal audit notes to `docs/internal/`.
+- Remove unimported `ClientManagerDrawer`, `FirebaseSetupRequired`, `ImageUpload`, and `functions/src/validators.ts`.
 
 ## [1.0.2] - 2026-10-04
 
