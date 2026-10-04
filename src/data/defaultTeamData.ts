@@ -1,5 +1,5 @@
 import { PublicTeamMember, SupportStaffMember } from '../types';
-const doctorImg = '/images/doctor_portrait.webp';
+const doctorImg = '/images/doctor_portrait.jpg';
 
 export const defaultPublicTeamMembers: PublicTeamMember[] = [
   {

@@ -1,7 +1,7 @@
-export const heroImg = '/images/clinic_hero_care.webp';
-export const doctorImg = '/images/doctor_portrait.webp';
-export const clinicRoomImg = '/images/clinic_interior_room.webp';
-export const michaelImg = '/images/patient_michael_tennis.webp';
+export const heroImg = '/images/clinic_hero_care.jpg';
+export const doctorImg = '/images/doctor_portrait.jpg';
+export const clinicRoomImg = '/images/clinic_interior_room.jpg';
+export const michaelImg = '/images/patient_michael_tennis.jpg';
 
 import { ClinicInfo, ProblemCondition, ProcessStep, PatientTestimonial, FeaturedStory, FAQItem, HeroTriageOption, ClinicSchedulingRules, ClinicPaymentPolicy, ClinicLocation } from '../types';
 
