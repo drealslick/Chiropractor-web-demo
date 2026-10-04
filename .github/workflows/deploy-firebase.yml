@@ -32,7 +32,20 @@ jobs:
           npm run build
           cd ..
 
+      - name: Check Firebase credentials
+        id: creds
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -n "$FIREBASE_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "FIREBASE_TOKEN is not set. Skipping deploy. Add the secret, or GCP_SA_KEY, before this job can publish."
+          fi
+
       - name: Deploy to Firebase
+        if: steps.creds.outputs.present == 'true'
         uses: w9jds/firebase-action@v15.30.0
         with:
           args: deploy
