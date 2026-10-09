@@ -23,7 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
   const [logoImageError, setLogoImageError] = useState(false);
 
   return (
-    <nav aria-label="Main Navigation" className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
+    <nav aria-label="Main Navigation" className="sticky top-0 z-40 bg-[#f3efe6]/95 border-b border-[#1a1814]/10">
       {/* Top Multi-Location Utility Ribbon */}
       {allLocations && allLocations.length > 1 && (
         <div className="bg-stone-900 text-stone-300 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between border-b border-stone-800">
@@ -54,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* LOGO & Home Link */}
         <div className="flex items-center gap-3">

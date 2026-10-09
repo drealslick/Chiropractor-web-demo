@@ -35,15 +35,13 @@ export const WhyUs: React.FC<WhyUsProps> = ({ clinic }) => {
   ];
 
   return (
-    <section id="about" className="py-12 sm:py-16 md:py-24 bg-white border-b border-stone-200/80 overflow-hidden">
+    <section id="about" className="py-16 sm:py-20 md:py-28 bg-[#f7f4ee] border-b border-[#1a1814]/10 overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
         <div className="max-w-3xl mb-8 sm:mb-12">
-          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-md inline-block mb-3">
-            {sectionSubtitle}
-          </span>
-          <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-stone-900 tracking-tight leading-[1.15] [text-wrap:balance]">
+          <p className="font-serif italic text-stone-600 mb-3">{sectionSubtitle}</p>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif font-normal text-[#1a1814] tracking-[-0.02em] leading-[1.08] [text-wrap:balance]">
             {sectionTitle}
           </h2>
           <p className="text-stone-600 text-sm sm:text-base md:text-lg mt-3 sm:mt-4 leading-relaxed">
