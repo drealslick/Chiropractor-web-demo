@@ -60,7 +60,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
             >
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold text-stone-900 tracking-tight leading-[1.12] [text-wrap:balance]">
                 {clinic.heroHeadline || "Get Back to What Pain Took Away."}
@@ -70,7 +70,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             <motion.p
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              transition={{ duration: 0.28, delay: 0.04, ease: [0.23, 1, 0.32, 1] }}
               className="text-sm sm:text-base lg:text-lg text-stone-600 leading-relaxed max-w-xl font-normal"
             >
               {clinic.heroSubheadline || `Personalized, root-cause chiropractic care in ${clinic.city || 'our practice'}. We find the biomechanical source of your discomfort and build a clear plan to restore natural mobility.`}
@@ -81,7 +81,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
               <motion.div
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                transition={{ duration: 0.28, delay: 0.08, ease: [0.23, 1, 0.32, 1] }}
                 className="p-3.5 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-3"
               >
                 <div className="flex items-center justify-between text-xs">
@@ -152,14 +152,14 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              transition={{ duration: 0.28, delay: 0.12, ease: [0.23, 1, 0.32, 1] }}
               className="space-y-3 pt-1 sm:pt-2"
             >
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   onClick={onBookClick}
                   id="hero-book-first-visit-btn"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:py-4 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer group uppercase min-h-[48px]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:py-4 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.97] cursor-pointer group uppercase min-h-[48px]"
                 >
                   <Calendar className="w-4 h-4 text-emerald-400" />
                   <span>{clinic.heroCtaText || "BOOK YOUR FIRST VISIT"}</span>
