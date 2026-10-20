@@ -155,6 +155,13 @@ service cloud.firestore {
         // authoritative Cloud Functions or trusted staff workflows.
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['notes', 'intakeForm', 'updatedAt']) &&
+        // Signed intake is immutable to the patient once submitted.
+        // A clinic administrator can correct it through the staff pathway.
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['intakeForm']) ||
+          !('intakeForm' in resource.data) ||
+          resource.data.intakeForm.get('informedConsentAgreed', false) != true
+        ) &&
         (!('priceAmount' in request.resource.data) || request.resource.data.priceAmount == resource.data.priceAmount) &&
         (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus == resource.data.paymentStatus) &&
         (!('amountPaid' in request.resource.data) || request.resource.data.amountPaid == resource.data.amountPaid) &&
