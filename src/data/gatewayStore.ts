@@ -1,4 +1,5 @@
 import { dispatchSafeEvent } from '../utils/customEvents';
+import { isExplicitDemo } from '../lib/mode';
 
 export interface GatewaySettings {
   smsProvider: 'simulator' | 'twilio' | 'custom_webhook';
@@ -119,6 +120,7 @@ export const DEFAULT_INITIAL_GATEWAY_LOGS: GatewayLogEntry[] = [
 ];
 
 export function getGatewaySettings(): GatewaySettings {
+  if (!isExplicitDemo()) return { ...DEFAULT_GATEWAY_SETTINGS };
   try {
     const raw = localStorage.getItem(GATEWAY_SETTINGS_KEY);
     if (!raw) {
@@ -132,6 +134,9 @@ export function getGatewaySettings(): GatewaySettings {
 }
 
 export function saveGatewaySettings(settings: GatewaySettings): void {
+  if (!isExplicitDemo()) {
+    throw new Error('Gateway credentials must be configured in server-side Secret Manager, not the browser.');
+  }
   try {
     localStorage.setItem(GATEWAY_SETTINGS_KEY, JSON.stringify(settings));
     dispatchSafeEvent('gateway_settings_updated', settings);
@@ -141,6 +146,7 @@ export function saveGatewaySettings(settings: GatewaySettings): void {
 }
 
 export function getGatewayLogs(): GatewayLogEntry[] {
+  if (!isExplicitDemo()) return [];
   try {
     const raw = localStorage.getItem(GATEWAY_LOGS_KEY);
     if (!raw) {
@@ -162,6 +168,7 @@ export function logGatewayEvent(entry: Omit<GatewayLogEntry, 'id' | 'timestamp'>
     ...entry,
   };
   const updated = [newEntry, ...current].slice(0, 100);
+  if (!isExplicitDemo()) return newEntry;
   try {
     localStorage.setItem(GATEWAY_LOGS_KEY, JSON.stringify(updated));
     dispatchSafeEvent('gateway_logs_updated', updated);
@@ -234,6 +241,18 @@ export async function sendLiveOrSimulatedSms(
     }
   } catch (err: any) {
     console.warn('Cloud Function SMS dispatch fallback:', err?.message);
+  }
+
+  // Production notifications must be handled exclusively by authenticated
+  // Cloud Functions. Never POST confidential messages or secret headers directly
+  // to a URL supplied by browser localStorage, and never pretend delivery.
+  if (!isExplicitDemo()) {
+    return {
+      success: false,
+      message: 'SMS was not delivered by the configured secure server gateway.',
+      logId: '',
+      status: 'failed',
+    };
   }
 
   // 2. CUSTOM WEBHOOK DISPATCH
@@ -316,7 +335,37 @@ export async function sendLiveOrSimulatedEmail(
     };
   }
 
-  // 1. LIVE RESEND GATEWAY DISPATCH
+  // In live mode never embed Resend/SendGrid credentials or perform direct
+  // provider API requests in the browser. Dispatch via authorized Cloud Functions.
+  if (!isExplicitDemo()) {
+    try {
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('../lib/firebase');
+      const sendFn = httpsCallable(functions, 'sendAutomatedNotification');
+      const result: any = await sendFn({
+        channel: 'email',
+        recipient: cleanEmail,
+        messageText: bodyHtmlOrText,
+        subject,
+      });
+      if (result.data?.success) {
+        const entry = logGatewayEvent({
+          channel: 'email',
+          provider: 'Authenticated Cloud Function',
+          recipient: cleanEmail,
+          eventType,
+          status: 'delivered',
+          payloadPreview: 'Sent from server',
+        });
+        return { success: true, message: 'Message accepted by the secure server.', logId: entry.id, status: 'delivered' };
+      }
+    } catch (error) {
+      console.error('Secure email dispatch rejected:', error);
+    }
+    return { success: false, message: 'Email could not be delivered by the secure server.', logId: '', status: 'failed' };
+  }
+
+  // 1. DEMO-ONLY RESEND PREVIEW DISPATCH
   if (settings.emailProvider === 'resend' && settings.resendApiKey) {
     try {
       const resp = await fetch('https://api.resend.com/emails', {
