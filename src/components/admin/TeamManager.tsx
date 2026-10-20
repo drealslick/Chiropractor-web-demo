@@ -14,6 +14,7 @@ import {
   Key,
 } from 'lucide-react';
 import { ClinicInfo } from '../../types';
+import { isExplicitDemo } from '../../lib/mode';
 
 export type UserRole = 'admin' | 'editor' | 'staff';
 
@@ -169,6 +170,29 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
     const updated = teamMembers.map((m) => (m.id === id ? { ...m, role } : m));
     handleSaveTeam(updated);
   };
+
+  // The website-team editor below is a fictional roster, not Firebase Auth.
+  // In live mode, do not present changing a clinic document as creating an account.
+  if (!isExplicitDemo()) {
+    return (
+      <section className="space-y-4 rounded-xl border border-amber-700/50 bg-stone-900 p-5" role="status">
+        <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <Lock className="w-4 h-4 text-amber-400" />
+          Staff accounts are managed securely
+        </h3>
+        <p className="text-sm text-stone-300">
+          Editing a team name or email on the website does not grant Firebase access.
+          Live staff provisioning, role changes, and revocation must be completed by
+          the clinic owner through a verified administrator workflow.
+        </p>
+        <p className="text-xs text-amber-200">
+          Account invitations are not configured for this deployment. Ask the clinic's
+          technical administrator to provision a Firebase Auth user and assign a
+          clinic-scoped custom role claim; do not share existing login credentials.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-6">
