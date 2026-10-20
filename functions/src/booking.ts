@@ -768,7 +768,11 @@ export const setReceptionAppointmentStatus = functions.https.onCall(async (data,
     }
     const appointment = snapshot.data()!;
     const claims = context.auth!.token;
-    if (!canManageReceptionAppointment(claims, appointment.clinicId)) {
+    if (!canManageReceptionAppointment({
+      role: claims.role,
+      clinicId: claims.clinicId,
+      superAdmin: claims.superAdmin,
+    }, appointment.clinicId)) {
       throw new functions.https.HttpsError('permission-denied', 'No clinic staff access to this appointment.');
     }
     let validatedStatus;
