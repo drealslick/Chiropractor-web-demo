@@ -4,6 +4,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import * as crypto from 'crypto';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import { requireSignedWebhook, verifyPaymentForAppointment } from './paymentSecurity';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -1151,19 +1152,19 @@ export async function stripeWebhookHandler(req: any, res: any) {
   let event: Stripe.Event;
   const stripe = getStripe();
 
-  if (req.rawBody && sig && webhookSecret) {
-    try {
-      event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-    } catch (err: any) {
-      functions.logger.error('Stripe webhook signature verification failed:', err.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-      return;
-    }
-  } else if (req.body && req.body.type && req.body.id) {
-    event = req.body as Stripe.Event;
-  } else {
-    functions.logger.error('Stripe webhook error: Missing stripe-signature Header.');
-    res.status(400).send('Missing stripe-signature Header');
+  // No unsigned JSON fallback, including in demo mode. The emulator must
+  // generate properly signed Stripe events for integration tests.
+  if (!webhookSecret) {
+    functions.logger.error('Stripe webhook signing secret is not configured.');
+    res.status(503).send('Webhook unavailable');
+    return;
+  }
+  try {
+    requireSignedWebhook(req.rawBody, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(req.rawBody, sig as string, webhookSecret);
+  } catch (err: any) {
+    functions.logger.error('Stripe webhook signature verification failed:', err.message);
+    res.status(400).send('Invalid Stripe webhook signature');
     return;
   }
 
@@ -1212,6 +1213,16 @@ export async function stripeWebhookHandler(req: any, res: any) {
             ) {
               return;
             }
+
+            // Verify Stripe's authoritative state, appointment binding, and amount.
+            // Signed events alone are insufficient if their metadata refers to a
+            // different booking or a smaller charge.
+            verifyPaymentForAppointment(
+              paymentIntent,
+              apptData,
+              appointmentId,
+              paymentChoice as 'deposit' | 'full' | 'balance'
+            );
 
             // Check if hold is expired or slot occupied by someone else in schedules
             if (apptData.status === 'hold_expired') {
