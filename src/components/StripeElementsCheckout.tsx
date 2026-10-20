@@ -10,6 +10,7 @@ import { Lock, ShieldCheck, RefreshCw, AlertCircle, CreditCard, RotateCcw } from
 interface StripeElementsCheckoutProps {
   clinicId: string;
   appointmentId: string;
+  clientRequestId: string;
   amount: number;
   currencySymbol: string;
   paymentChoice: 'deposit' | 'full' | 'card_hold' | 'pay_at_clinic';
@@ -22,7 +23,7 @@ interface StripeElementsCheckoutProps {
     amount: number;
     last4?: string;
     brand?: string;
-  }) => void;
+  }) => Promise<void> | void;
   onFallbackToDemo?: (reason?: string) => void;
 }
 
@@ -65,7 +66,7 @@ const CheckoutForm: React.FC<{
           setErrorMessage(result.error.message || 'Card authorization failed. Please check your card details.');
           setIsProcessing(false);
         } else if (result.setupIntent && result.setupIntent.status === 'succeeded') {
-          onSuccess({
+          await onSuccess({
             paymentIntentId: result.setupIntent.id,
             status: 'card_saved',
             amount: 0,
@@ -90,7 +91,7 @@ const CheckoutForm: React.FC<{
           setIsProcessing(false);
         } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
           const pi = result.paymentIntent;
-          onSuccess({
+          await onSuccess({
             paymentIntentId: pi.id,
             status: pi.status,
             amount: (pi.amount || 0) / 100,
@@ -98,13 +99,9 @@ const CheckoutForm: React.FC<{
             brand: 'Verified Card',
           });
         } else if (result.paymentIntent && result.paymentIntent.status === 'processing') {
-          onSuccess({
-            paymentIntentId: result.paymentIntent.id,
-            status: 'processing',
-            amount: amount / 100,
-            last4: '••••',
-            brand: 'Processing',
-          });
+          // Processing is not settled. Stripe webhook will confirm asynchronously.
+          setErrorMessage('Your payment is still processing. Do not pay again yet; contact reception if the status does not update.');
+          setIsProcessing(false);
         } else {
           // Do NOT synthesize a successful transaction if status is not verified
           setErrorMessage(
@@ -201,6 +198,7 @@ const CheckoutForm: React.FC<{
 export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
   clinicId,
   appointmentId,
+  clientRequestId,
   amount,
   currencySymbol,
   paymentChoice,
@@ -240,6 +238,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
       const result: any = await createIntentFn({
         clinicId,
         appointmentId,
+        clientRequestId,
         amount,
         currency: currencyCode,
         paymentChoice,
@@ -279,7 +278,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
 
   useEffect(() => {
     initializeIntent();
-  }, [clinicId, appointmentId, amount, currencySymbol, paymentChoice, patientEmail, patientName, serviceTitle]);
+  }, [clinicId, appointmentId, clientRequestId, amount, currencySymbol, paymentChoice, patientEmail, patientName, serviceTitle]);
 
   if (isLoadingIntent) {
     return (
