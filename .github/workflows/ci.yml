@@ -43,11 +43,18 @@ jobs:
           npm run typecheck
           npm --prefix functions run build
 
-      - name: Run Test Suites
+      - name: Setup Java for Firebase Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Run Firestore security suites against real emulator
         run: |
-          npm run test:rules
-          npm run test:handlers
-          npm run test:security
+          npx --yes firebase-tools@14.15.2 emulators:exec --project demo-practice-os --only firestore "npm run test:rules && npm run test:security"
+
+      - name: Run Cloud Functions handler tests
+        run: npm run test:handlers
 
       - name: Build Production Bundle & Prerender
         run: |
