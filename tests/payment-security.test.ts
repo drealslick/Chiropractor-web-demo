@@ -4,6 +4,7 @@ import {
   verifyPaymentForAppointment,
   verifySetupForAppointment,
   expectedCurrencyCode,
+  minorUnitsToMajorUnits,
 } from '../functions/src/paymentSecurity';
 
 const appointment = {
@@ -34,6 +35,14 @@ describe('Stripe payment and booking trust boundaries', () => {
     expect(() => requireSignedWebhook({ type: 'payment_intent.succeeded' }, 't=123,v1=fake', 'whsec_test')).toThrow(/raw body/i);
     expect(() => requireSignedWebhook(Buffer.from('{}'), 't=123,v1=fake', 'whsec_test')).not.toThrow();
     // The real Stripe SDK's constructEvent must still validate the signature cryptographically.
+  });
+
+  it('converts clinic service prices from cents/pence exactly once', () => {
+    expect(minorUnitsToMajorUnits(8500)).toBe(85);
+    expect(minorUnitsToMajorUnits(2500)).toBe(25);
+    expect(minorUnitsToMajorUnits(4900)).toBe(49);
+    expect(() => minorUnitsToMajorUnits(85.50)).toThrow();
+    expect(() => minorUnitsToMajorUnits(-10)).toThrow();
   });
 
   it('maps currency symbols to real Stripe currency codes', () => {
