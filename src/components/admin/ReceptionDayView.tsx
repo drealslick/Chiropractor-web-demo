@@ -41,7 +41,8 @@ import { BodyPainLocator } from '../BodyPainLocator';
 import { IntakeQuestionnaireModal } from '../IntakeQuestionnaireModal';
 import { ClinicalChartPrintExport } from './ClinicalChartPrintExport';
 import { sendLiveOrSimulatedSms, getGatewaySettings, interpolateTemplate } from '../../data/gatewayStore';
-import { rescheduleAppointmentServer, cancelAppointmentServer } from '../../lib/booking-client';
+import { rescheduleAppointmentServer, cancelAppointmentServer, setReceptionStatusServer } from '../../lib/booking-client';
+import { isExplicitDemo } from '../../lib/mode';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../../lib/firebase';
 
@@ -92,9 +93,12 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
 
   // Authoritative real-time Firestore appointments subscription
   const [firestoreAppointments, setFirestoreAppointments] = useState<PatientLead[]>([]);
+  const demoMode = isExplicitDemo();
+  const [liveLoadError, setLiveLoadError] = useState(false);
+  const authoritativeLeads = demoMode ? leads : firestoreAppointments;
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
+    if (demoMode || !isFirebaseConfigured) return;
 
     const sanitizedClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
     const appointmentsQuery = query(
@@ -131,14 +135,16 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
           } as PatientLead);
         });
         setFirestoreAppointments(liveList);
+        setLiveLoadError(false);
       },
       (err) => {
         console.warn('Real-time Firestore appointments subscription error:', err);
+        setLiveLoadError(true);
       }
     );
 
     return () => unsubscribe();
-  }, [clinicName]);
+  }, [clinicName, demoMode]);
 
   // Selected appointment for patient profile slide-out panel
   const [selectedPatient, setSelectedPatient] = useState<PatientLead | null>(null);
@@ -261,74 +267,83 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     setDragOverSlot(null);
   };
 
-  const handleDrop = (e: React.DragEvent, targetDoctor: string, targetTime: string) => {
+  const handleDrop = async (e: React.DragEvent, targetDoctor: string, targetTime: string) => {
     e.preventDefault();
     setDragOverSlot(null);
     const leadId = e.dataTransfer.getData('text/plain') || draggedLeadId;
-    if (!leadId) return;
-
-    const leadToMove = leads.find((l) => l.id === leadId);
-    if (!leadToMove) return;
-
-    const targetPractitioner = practitioners.find((p) => p.name === targetDoctor);
-
-    // Call server reschedule operation
-    rescheduleAppointmentServer({
+    const leadToMove = authoritativeLeads.find((lead) => lead.id === leadId);
+    if (!leadToMove) {
+      setRescheduleToast('Could not find the appointment. Refresh the calendar and try again.');
+      return;
+    }
+    const targetPractitioner = practitioners.find((practitioner) => practitioner.name === targetDoctor);
+    const response = await rescheduleAppointmentServer({
       appointmentId: leadId,
       newDate: selectedDate,
       newTime: targetTime,
       newPractitionerId: targetPractitioner?.id || leadToMove.practitionerId,
       reason: 'Reception calendar drag-and-drop reschedule',
-    }).then((res) => {
-      if (!res.success) {
-        setRescheduleToast(`⚠️ Reschedule Error: ${res.error}`);
-        setTimeout(() => setRescheduleToast(null), 5000);
-      }
     });
-
-    // Update appointment with new time, doctor, and date
-    updateLeadDetails(leadId, {
-      date: selectedDate,
-      time: targetTime,
-      practitionerName: targetDoctor,
-      practitionerId: targetPractitioner?.id || leadToMove.practitionerId,
-    });
-
-    setRescheduleToast(
-      `✓ Rescheduled: ${leadToMove.name} moved to ${targetTime} with ${targetDoctor.split(' ')[0]} ${targetDoctor.split(' ')[1] || ''}`
-    );
-
-    setTimeout(() => {
-      setRescheduleToast(null);
-    }, 3500);
-
+    if (!response.success) {
+      setRescheduleToast(`Reschedule failed: ${response.error || 'Please try again.'}`);
+      setDraggedLeadId(null);
+      return;
+    }
+    if (demoMode) {
+      updateLeadDetails(leadId, {
+        date: selectedDate,
+        time: targetTime,
+        practitionerName: targetDoctor,
+        practitionerId: targetPractitioner?.id || leadToMove.practitionerId,
+      });
+    }
+    // Firestore onSnapshot updates the live calendar after the transaction commits.
+    setRescheduleToast(`Appointment moved successfully to ${targetTime} with ${targetDoctor}.`);
     setDraggedLeadId(null);
   };
 
-  // Patient profile action handlers
-  const handleCheckInPatient = (lead: PatientLead) => {
-    updateLeadStatus(lead.id, 'checked_in');
+  // Patient profile actions are authoritative in live mode.
+  const handleCheckInPatient = async (lead: PatientLead) => {
+    const response = await setReceptionStatusServer({ appointmentId: lead.id, status: 'checked_in' });
+    if (!response.success) {
+      setRescheduleToast(`Check-in failed: ${response.error || 'Try again.'}`);
+      return;
+    }
+    if (demoMode) updateLeadStatus(lead.id, 'checked_in');
     setSelectedPatient({ ...lead, status: 'checked_in' });
   };
 
-  const handleConfirmPatient = (lead: PatientLead) => {
-    updateLeadStatus(lead.id, 'confirmed');
+  const handleConfirmPatient = async (lead: PatientLead) => {
+    const response = await setReceptionStatusServer({ appointmentId: lead.id, status: 'confirmed' });
+    if (!response.success) {
+      setRescheduleToast(`Confirmation failed: ${response.error || 'Try again.'}`);
+      return;
+    }
+    if (demoMode) updateLeadStatus(lead.id, 'confirmed');
     setSelectedPatient({ ...lead, status: 'confirmed' });
   };
 
-  const handleCancelPatient = (lead: PatientLead) => {
-    if (confirm(`Cancel appointment for ${lead.name}?`)) {
-      updateLeadStatus(lead.id, 'cancelled', 'Cancelled by front desk via calendar profile');
-      cancelAppointmentServer({
-        appointmentId: lead.id,
-        reason: 'Cancelled by front desk via calendar profile',
-      }).catch((err) => console.warn('Cancel server sync:', err));
-      setSelectedPatient(null);
+  const handleCancelPatient = async (lead: PatientLead) => {
+    if (!confirm(`Cancel appointment for ${lead.name}?`)) return;
+    const result = await cancelAppointmentServer({
+      appointmentId: lead.id,
+      reason: 'Cancelled by front desk via calendar profile',
+    });
+    if (!result.success) {
+      setRescheduleToast(`Cancellation failed: ${result.error || 'Try again.'}`);
+      return;
     }
+    if (demoMode) updateLeadStatus(lead.id, 'cancelled', 'Cancelled by front desk via calendar profile');
+    setSelectedPatient(null);
+    setRescheduleToast('Appointment cancelled on the booking server.');
   };
 
   const handleSaveStaffNote = () => {
     if (!selectedPatient || !newStaffNote.trim()) return;
+    if (!demoMode) {
+      setRescheduleToast('Private clinician notes need a protected records workflow; notes are not saved here.');
+      return;
+    }
     const existingNotes = selectedPatient.notes ? `${selectedPatient.notes}\n` : '';
     const timeStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const updatedNotes = `${existingNotes}[${timeStamp} Staff Note]: ${newStaffNote.trim()}`;
@@ -375,7 +390,6 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
   };
 
   // Day's active appointments: prioritize live Firestore subscription over local leads
-  const authoritativeLeads = firestoreAppointments.length > 0 ? firestoreAppointments : leads;
   const dayBookings = authoritativeLeads.filter(
     (l) =>
       l.source === 'booking' &&
@@ -389,7 +403,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     <div className="space-y-4">
       {/* Toast Notification Banner on Drag & Drop Reschedule */}
       {rescheduleToast && (
-        <div className="p-3 bg-emerald-950 border border-emerald-500/70 text-emerald-200 text-xs font-bold rounded-xl shadow-lg flex items-center justify-between animate-fade-in">
+        <div role="status" className="p-3 bg-stone-900 border border-stone-600 text-stone-100 text-xs font-bold rounded-xl shadow-lg flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{rescheduleToast}</span>
@@ -404,6 +418,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
         </div>
       )}
 
+      {!demoMode && liveLoadError && <div role="alert" className="rounded-xl border border-rose-600 bg-rose-950/50 p-3 text-xs text-rose-200">Could not load the clinic calendar. Appointment information is unavailable until access is restored.</div>}
       {/* Reception Day Toolbar */}
       <div className="bg-stone-900 border border-stone-800 p-3.5 sm:p-4 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-sm">
         {/* Date Navigation */}
@@ -898,7 +913,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-stone-400">Amount Recorded:</span>
                     <span className="font-bold text-white">
-                      {selectedPatient.paymentAmount || (selectedPatient.paymentStatus === 'paid_full' ? '£49.00' : selectedPatient.paymentStatus === 'deposit_paid' ? '£25.00' : '£0.00')}
+                      {selectedPatient.paymentAmount || (demoMode ? 'Demo amount not recorded' : 'See verified Stripe record')}
                     </span>
                   </div>
                   {selectedPatient.cardLast4 && (
@@ -917,24 +932,27 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                       </span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between pt-1 border-t border-stone-800">
+                  {demoMode && <div className="flex items-center justify-between pt-1 border-t border-stone-800">
                     <span className="text-stone-400">No-Show Protection:</span>
-                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>£35 Fee Authorized</span>
-                    </span>
-                  </div>
+                    <span className="text-amber-300 font-semibold">Simulation only</span>
+                  </div>}
                 </div>
 
-                {/* Quick Receptionist Payment Action Buttons */}
-                <div className="pt-2 border-t border-stone-800 flex flex-wrap gap-1.5">
+                {/* Only show payment simulators inside the isolated demo sandbox. */}
+                {!demoMode && (
+                  <p role="status" className="border-t border-stone-700 pt-2 text-xs text-amber-200">
+                    Payments, card charges and refunds must be processed in the clinic's verified Stripe dashboard.
+                    This panel does not initiate or confirm financial transactions.
+                  </p>
+                )}
+                {demoMode && <div className="pt-2 border-t border-stone-800 flex flex-wrap gap-1.5">
                   {selectedPatient.paymentStatus !== 'paid_full' && (
                     <button
                       type="button"
                       onClick={() => handleMarkBalancePaid(selectedPatient)}
                       className="flex-1 py-1.5 px-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-200 text-[11px] font-bold rounded-lg transition cursor-pointer"
                     >
-                      Mark Paid at Desk (£49)
+                      Simulate Paid at Desk (£49)
                     </button>
                   )}
                   {selectedPatient.paymentStatus !== 'refunded' && (
@@ -943,7 +961,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                       onClick={() => handleRefundPayment(selectedPatient)}
                       className="py-1.5 px-2 bg-stone-800 hover:bg-stone-750 border border-stone-700 text-stone-300 text-[11px] font-medium rounded-lg transition cursor-pointer"
                     >
-                      Refund Deposit
+                      Simulate Refund
                     </button>
                   )}
                   <button
@@ -951,9 +969,9 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
                     onClick={() => handleChargeNoShowFee(selectedPatient)}
                     className="py-1.5 px-2 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-200 text-[11px] font-bold rounded-lg transition cursor-pointer"
                   >
-                    Charge No-Show (£35)
+                    Simulate No-Show (£35)
                   </button>
-                </div>
+                </div>}
               </div>
 
               {/* Digital Pre-Visit Intake & Clinical Triage Panel */}
