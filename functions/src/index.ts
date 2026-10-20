@@ -637,7 +637,7 @@ export async function createPaymentIntentHandler(data: any, context: any) {
   if (typeof appointmentId !== 'string' || !appointmentId) {
     throw new functions.https.HttpsError('invalid-argument', 'An existing appointmentId is required.');
   }
-  if (!['full', 'deposit', 'balance', 'card_hold', 'card_on_file', 'setup_only', 'pay_at_clinic', 'pay_on_arrival'].includes(paymentChoice)) {
+  if (!['full', 'deposit', 'balance', 'card_hold', 'card_on_file', 'setup_only'].includes(paymentChoice)) {
     throw new functions.https.HttpsError('invalid-argument', 'Invalid payment choice.');
   }
   if (!Number.isInteger(attempt) || attempt < 1 || attempt > 5) {
@@ -718,31 +718,8 @@ export async function createPaymentIntentHandler(data: any, context: any) {
   serverPrice = booked.priceAmount;
   serverDeposit = booked.depositAmount;
 
-  // 0. PAY ON ARRIVAL (Zero Stripe API Calls)
-  if (paymentChoice === 'pay_on_arrival' || paymentChoice === 'pay_at_clinic') {
-    if (appointmentId) {
-      await db.collection('appointments').doc(appointmentId).set(
-        {
-          priceAmount: serverPrice,
-          depositAmount: serverDeposit,
-          currency: currency.toLowerCase(),
-          paymentChoice: 'pay_on_arrival',
-          paymentStatus: 'unpaid',
-          amountPaid: 0,
-          remainingBalance: serverPrice,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-    return {
-      isDemoMode: false,
-      isPayOnArrival: true,
-      amount: 0,
-      currency: currency.toLowerCase(),
-      message: 'Pay on arrival selected; no upfront payment charged.',
-    };
-  }
+  // Pay-on-arrival must use a separate server-authoritative booking transition.
+  // The payment endpoint must never reset an existing paid appointment to unpaid.
 
   const stripe = getStripe();
   const publishableKey = getEnvConfig('STRIPE_PUBLISHABLE_KEY') || '';
@@ -799,7 +776,7 @@ export async function createPaymentIntentHandler(data: any, context: any) {
             paymentChoice: 'card_on_file',
             paymentStatus: 'unpaid',
             amountPaid: 0,
-            cardOnFile: true,
+            cardOnFile: false, // Only verified SetupIntent completion can enable card-on-file
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true }
