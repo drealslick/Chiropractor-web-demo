@@ -209,6 +209,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
   onFallbackToDemo,
 }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [serverAmount, setServerAmount] = useState<number | null>(null);
   const [isSetupIntent, setIsSetupIntent] = useState<boolean>(false);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [isLoadingIntent, setIsLoadingIntent] = useState<boolean>(true);
@@ -263,6 +264,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
         );
         setStripePromise(stripeInstance);
         setClientSecret(data.clientSecret);
+        setServerAmount(data.amount);
         setIsSetupIntent(data.isSetupIntent === true);
       } else {
         setInitError('Live Stripe public keys are not configured on this deployment.');
@@ -334,7 +336,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
         }}
       >
         <CheckoutForm
-          amount={amount}
+          amount={serverAmount ?? amount * 100}
           currencySymbol={currencySymbol}
           paymentChoice={paymentChoice}
           isSetupIntent={isSetupIntent}
