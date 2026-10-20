@@ -416,6 +416,98 @@ describe('Firestore Security Rules Matrix', () => {
     });
   });
 
+  describe('5. Server-authoritative booking and patient profile boundaries', () => {
+    it('DENIES anonymous unpaid appointment creation that bypasses schedule locking', async () => {
+      const guest = testEnv.unauthenticatedContext();
+      await assertFails(guest.firestore().doc('appointments/guest_bypass').set({
+        clinicId: CLINIC_A,
+        patientName: 'Guest Tester',
+        patientEmail: 'guest@example.test',
+        date: '2026-10-25',
+        time: '10:00',
+        paymentStatus: 'unpaid',
+      }));
+    });
+
+    it('DENIES an authenticated patient from bypassing the booking function', async () => {
+      const patient = testEnv.authenticatedContext('patient_john_123', {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+      await assertFails(patient.firestore().doc('appointments/patient_bypass').set({
+        clinicId: CLINIC_A,
+        patientId: 'patient_john_123',
+        patientName: 'John Tester',
+        patientEmail: 'john@example.test',
+        date: '2026-10-25',
+        time: '10:00',
+        paymentStatus: 'unpaid',
+      }));
+    });
+
+    it('ALLOWS authorized clinic staff to create an appointment', async () => {
+      const staff = testEnv.authenticatedContext('staff_clinic_a', {
+        role: 'staff',
+        clinicId: CLINIC_A,
+      });
+      await assertSucceeds(staff.firestore().doc('appointments/staff_booked').set({
+        clinicId: CLINIC_A,
+        patientName: 'Reception Patient',
+        patientEmail: 'reception@example.test',
+        date: '2026-10-25',
+        time: '10:00',
+        paymentStatus: 'unpaid',
+      }));
+    });
+
+    it('DENIES anonymous patient profile creation', async () => {
+      const guest = testEnv.unauthenticatedContext();
+      await assertFails(guest.firestore().doc('patients/arbitrary_guest_id').set({
+        name: 'Fake Patient',
+        clinicId: CLINIC_A,
+      }));
+    });
+
+    it('ALLOWS profile creation for the authenticated owner and DENIES another user', async () => {
+      const owner = testEnv.authenticatedContext('patient_alice', {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+      await assertSucceeds(owner.firestore().doc('patients/patient_alice').set({
+        name: 'Alice',
+        clinicId: CLINIC_A,
+      }));
+      await assertFails(owner.firestore().doc('patients/patient_bob').set({
+        name: 'Bob',
+        clinicId: CLINIC_A,
+      }));
+    });
+
+    it('DENIES patient self-modification of appointment time, status and payment method', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc('appointments/patient_edit_scope').set({
+          clinicId: CLINIC_A,
+          patientId: 'patient_alice',
+          date: '2026-10-25',
+          time: '10:00',
+          status: 'confirmed',
+          paymentStatus: 'unpaid',
+          paymentMethod: 'none',
+          notes: '',
+        });
+      });
+      const patient = testEnv.authenticatedContext('patient_alice', {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+      const ref = patient.firestore().doc('appointments/patient_edit_scope');
+      await assertSucceeds(ref.update({ notes: 'Please call on arrival' }));
+      await assertFails(ref.update({ time: '12:00' }));
+      await assertFails(ref.update({ status: 'cancelled' }));
+      await assertFails(ref.update({ paymentMethod: 'card' }));
+    });
+  });
+
   describe('5. Audit Critical Regressions (October 2 Audit)', () => {
     it('DENIES anonymous user from creating appointment with paymentStatus: paid_full', async () => {
       const unauthContext = testEnv.unauthenticatedContext();
