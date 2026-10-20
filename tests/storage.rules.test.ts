@@ -171,6 +171,16 @@ describe('Cloud Storage Security Rules Matrix', () => {
       await assertSucceeds(fileRef.getDownloadURL());
     });
 
+    it('DENIES script-capable SVG uploads to publicly readable clinic media', async () => {
+      const staff = testEnv!.authenticatedContext('staff_columbus_01', {
+        role: 'staff',
+        clinicId: CLINIC_A,
+      });
+      const publicRef = staff.storage().ref(`clinics/${CLINIC_A}/public/active.svg`);
+      const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+      await assertFails(publicRef.put(svg, { contentType: 'image/svg+xml' }));
+    });
+
     it('DENIES regular staff from reading or writing /clinics/{clinicId}/staff/**', async () => {
       const regularStaff = testEnv!.authenticatedContext('staff_columbus_02', {
         role: 'staff',
