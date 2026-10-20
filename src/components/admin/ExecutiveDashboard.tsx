@@ -21,6 +21,9 @@ import { resolvePalette } from '../../data/colorPalettes';
 import { isExplicitDemo } from '../../lib/mode';
 import { getSaveFeedback, getReceptionMetrics } from '../../lib/admin-state';
 import { BookingEngineManager } from './BookingEngineManager';
+import { getActiveClinicId } from '../../data/ClinicContext';
+import { db, isFirebaseConfigured } from '../../lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 interface ExecutiveDashboardProps {
   clinic: ClinicInfo;
@@ -43,6 +46,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const [testLeadAdded, setTestLeadAdded] = useState(false);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const isStaff = role === 'staff';
+  const demoMode = isExplicitDemo();
+  const [liveAppointments, setLiveAppointments] = useState<PatientLead[]>([]);
+  const [liveInquiries, setLiveInquiries] = useState<PatientLead[]>([]);
+  const [cloudReadStatus, setCloudReadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -52,9 +59,82 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     return () => window.removeEventListener('leads_updated', handleUpdate);
   }, []);
 
-  const { pendingCount, todayCount, unconfirmedCount, checkedInCount } = getReceptionMetrics(leads);
+  useEffect(() => {
+    if (demoMode) return;
+    if (!isFirebaseConfigured) {
+      setCloudReadStatus('error');
+      return;
+    }
+    let appointmentsLoaded = false;
+    let inquiriesLoaded = false;
+    const markReady = () => {
+      if (appointmentsLoaded && inquiriesLoaded) setCloudReadStatus('ready');
+    };
+    const clinicId = getActiveClinicId();
+    const unsubscribeAppointments = onSnapshot(
+      query(collection(db, 'appointments'), where('clinicId', '==', clinicId)),
+      (snapshot) => {
+        setLiveAppointments(snapshot.docs.map((document) => {
+          const data = document.data();
+          return {
+            id: document.id,
+            source: 'booking',
+            name: data.patientName || data.name || 'Patient',
+            email: data.patientEmail || '',
+            phone: data.patientPhone || '',
+            date: data.date || '',
+            time: data.time || '',
+            status: data.status || 'new',
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
+          } as PatientLead;
+        }));
+        appointmentsLoaded = true;
+        markReady();
+      },
+      () => setCloudReadStatus('error')
+    );
+    const unsubscribeInquiries = onSnapshot(
+      query(collection(db, 'inquiries'), where('clinicId', '==', clinicId)),
+      (snapshot) => {
+        setLiveInquiries(snapshot.docs.map((document) => {
+          const data = document.data();
+          return {
+            id: document.id,
+            source: 'contact',
+            name: data.name || 'Visitor',
+            email: data.email || '',
+            phone: data.phone || '',
+            status: data.status || 'new',
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
+          } as PatientLead;
+        }));
+        inquiriesLoaded = true;
+        markReady();
+      },
+      () => setCloudReadStatus('error')
+    );
+    return () => {
+      unsubscribeAppointments();
+      unsubscribeInquiries();
+    };
+  }, [clinic.id, demoMode]);
 
-  const newLeadsCount = leads.filter((l) => l.status === 'new').length;
+  // Demo records stay separate from authenticated, clinic-scoped live records.
+  const displayedRecords = demoMode ? leads : [...liveAppointments, ...liveInquiries];
+  const metrics = getReceptionMetrics(displayedRecords);
+  const { pendingCount, todayCount, unconfirmedCount, checkedInCount } = metrics;
+  const liveMetricsReady = demoMode || cloudReadStatus === 'ready';
+  const metricText = (value: number) => liveMetricsReady ? value : '—';
+  const cloudNotice = !demoMode && cloudReadStatus !== 'ready' ? (
+    <div role="status" className="rounded-xl border border-amber-800 bg-amber-950/30 px-4 py-3 text-xs text-amber-200">
+      {cloudReadStatus === 'loading'
+        ? 'Loading verified clinic records… totals are not yet available.'
+        : 'Could not load clinic records. Totals are unavailable until connection or permissions are restored.'}
+    </div>
+  ) : null;
+
+
+  const newLeadsCount = displayedRecords.filter((lead) => lead.status === 'new').length;
   const currentPalette = resolvePalette(clinic.colorPalette);
 
   const isExternalSync = clinic.bookingEmbedMode === 'iframe' || clinic.bookingEmbedMode === 'redirect';
@@ -77,13 +157,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     Boolean(clinic.externalBookingUrl || clinic.bookingEmbedMode),
     Boolean(clinic.examFee),
     Boolean(clinic.seoTitle),
-    Boolean(clinic.customConditions?.length),
+    Boolean(clinic.customConditions?.length || clinic.customFeeItems?.length),
   ];
   const passedCount = checks.filter(Boolean).length;
   const healthPercent = Math.round((passedCount / checks.length) * 100);
 
   const handleSimulateLead = () => {
-    if (!isExplicitDemo()) return;
+    if (!demoMode) return;
     const mockNames = ['Sarah Mitchell', 'David Chen', 'Emily Watson', 'James Thorne', 'Elena Rossi'];
     const mockConditions = [
       'Lower Back & Sciatica',
@@ -139,6 +219,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   if (isStaff) {
     return (
       <div className="space-y-6">
+        {cloudNotice}
         {/* Reception Header */}
         <div className="p-4 sm:p-5 rounded-2xl bg-stone-900 border border-stone-800 shadow-md space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
@@ -189,11 +270,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                       <span>General Patient Inquiries</span>
                     </span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-stone-950">
-                      {pendingCount} Pending
+                      {metricText(pendingCount)} Pending
                     </span>
                   </div>
                   <div className="text-2xl font-serif font-bold text-white tabular-nums mb-1">
-                    {pendingCount}
+                    {metricText(pendingCount)}
                   </div>
                   <p className="text-xs text-stone-400 leading-relaxed">
                     Patient questions submitted via Contact Us form (insurance coverage, conditions, examination fees).
@@ -259,7 +340,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-serif font-bold text-white tabular-nums">
-                    {pendingCount}
+                    {metricText(pendingCount)}
                   </span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500 text-stone-950">
                     +1 new
@@ -284,7 +365,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-serif font-bold text-emerald-300 tabular-nums">
-                    {todayCount}
+                    {metricText(todayCount)}
                   </span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700">
                     Day View →
@@ -309,7 +390,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-serif font-bold text-amber-300 tabular-nums">
-                    {unconfirmedCount}
+                    {metricText(unconfirmedCount)}
                   </span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
                     Needs a call
@@ -334,7 +415,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-serif font-bold text-emerald-400 tabular-nums">
-                    {checkedInCount}
+                    {metricText(checkedInCount)}
                   </span>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500 text-stone-950">
                     In Waiting Room
@@ -501,6 +582,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
   return (
     <div className="space-y-6">
+      {cloudNotice}
       {/* Executive Command Header */}
       <div className="p-4 sm:p-5 rounded-2xl bg-stone-900 border border-stone-800 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
@@ -525,25 +607,23 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             {/* Mode Switcher */}
             <button
               type="button"
-              onClick={() =>
-                onUpdateClinic({
-                  ...clinic,
-                  isProductionMode: !clinic.isProductionMode,
-                })
-              }
+              disabled={!demoMode}
+              onClick={() => {
+                if (demoMode) onUpdateClinic({ ...clinic, isProductionMode: !clinic.isProductionMode });
+              }}
               className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                 clinic.isProductionMode
                   ? 'bg-emerald-950/80 border-emerald-700 text-emerald-300 hover:bg-emerald-900'
                   : 'bg-amber-950/70 border-amber-700 text-amber-300 hover:bg-amber-900'
               }`}
-              title="Toggle between Sandbox Demo mode and Live Production mode"
+              title="Demo preview only. Real deployment is controlled through verified release workflows."
             >
               <span
                 className={`w-2 h-2 rounded-full ${
                   clinic.isProductionMode ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
                 }`}
               />
-              <span>{clinic.isProductionMode ? '🟢 Live Production' : '🧪 Demo Sandbox'}</span>
+              <span>{demoMode ? 'Sandbox preview' : 'Live backend not verified'}</span>
             </button>
 
             {/* Clickable Setup Health Badge */}
@@ -554,7 +634,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               title="Click to view Setup & Launch Checklist"
             >
               <div className="text-xs font-bold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-1">
-                <span>{healthPercent}% Setup Health</span>
+                <span>{healthPercent}% Content Setup</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </div>
               <div className="text-[10px] text-stone-500 font-mono">
@@ -577,10 +657,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <Inbox className="w-3.5 h-3.5 text-stone-500" />
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-serif font-bold text-white tabular-nums">{leads.length}</span>
+              <span className="text-xl font-serif font-bold text-white tabular-nums">{displayedRecords.length}</span>
               {newLeadsCount > 0 && (
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500 text-stone-950">
-                  +{newLeadsCount} new
+                  +{metricText(newLeadsCount)} new
                 </span>
               )}
             </div>
