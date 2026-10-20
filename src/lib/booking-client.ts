@@ -74,7 +74,10 @@ export async function bookAppointmentServer(
   input: BookingSubmissionInput
 ): Promise<BookingSubmissionResponse> {
   // If demo mode or unconfigured, execute via deterministic sandbox
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     const apptId = 'COL-' + Math.floor(1000 + Math.random() * 9000) + '-DEMO';
     const mockAppt: PatientLead = {
       id: apptId,
@@ -147,7 +150,10 @@ export async function bookAppointmentServer(
 export async function rescheduleAppointmentServer(
   input: RescheduleSubmissionInput
 ): Promise<{ success: boolean; error?: string }> {
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     sandbox.update('appointments', input.appointmentId, {
       date: input.newDate,
       time: input.newTime,
@@ -176,7 +182,10 @@ export async function rescheduleAppointmentServer(
 export async function cancelAppointmentServer(
   input: CancelSubmissionInput
 ): Promise<{ success: boolean; error?: string }> {
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     sandbox.update('appointments', input.appointmentId, {
       status: 'cancelled',
       cancellationReason: input.reason || 'Cancelled via reception',
@@ -206,7 +215,10 @@ export async function confirmAppointmentHoldServer(input: {
   paymentIntentId: string;
   paymentChoice?: 'deposit' | 'full' | 'card_hold';
 }): Promise<{ success: boolean; error?: string }> {
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     sandbox.update('appointments', input.appointmentId, {
       status: 'confirmed',
       paymentStatus: input.paymentChoice === 'card_hold' ? 'unpaid' : input.paymentChoice === 'deposit' ? 'deposit_paid' : 'paid_full',
