@@ -836,13 +836,34 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
-  const handleStripePaymentSuccess = (details: {
+  const handleStripePaymentSuccess = async (details: {
     paymentIntentId: string;
     status: string;
     amount: number;
     last4?: string;
     brand?: string;
   }) => {
+    if (!createdBookingRefId) {
+      throw new Error('No server booking was created. Please restart the booking process.');
+    }
+    setBookingError(null);
+    setIsProcessingPayment(true);
+    try {
+      const result = await confirmAppointmentHoldServer({
+        appointmentId: createdBookingRefId,
+        paymentIntentId: details.paymentIntentId,
+        paymentChoice: paymentChoice === 'card_hold' ? 'card_hold' : paymentChoice === 'deposit' ? 'deposit' : 'full',
+      });
+      if (!result.success) {
+        throw new Error(result.error || 'The clinic could not verify this payment. Do not pay again; contact reception.');
+      }
+    } catch (error: any) {
+      setBookingError(error?.message || 'Payment verification failed.');
+      throw error;
+    } finally {
+      setIsProcessingPayment(false);
+    }
+
     const statusMap = {
       deposit: 'deposit_paid' as const,
       full: 'paid_full' as const,
@@ -852,7 +873,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const paymentDetail = {
       status: statusMap[paymentChoice],
-      amount: `${currency}${details.amount}.00`,
+      amount: `${currency}${details.amount.toFixed(2)}`,
       method: 'card' as const,
       last4: details.last4 || '••••',
       brand: details.brand || 'Verified Stripe Card',
@@ -860,15 +881,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     setConfirmedPaymentDetails(paymentDetail);
-
-    // Authoritatively confirm hold on server
-    if (createdBookingRefId) {
-      confirmAppointmentHoldServer({
-        appointmentId: createdBookingRefId,
-        paymentIntentId: details.paymentIntentId,
-        paymentChoice: paymentChoice === 'full' ? 'full' : 'deposit',
-      }).catch((err) => console.warn('Async server hold confirmation:', err));
-    }
 
     // Save lead with full payment & multi-service tracking
     const saved = saveLead({
@@ -886,10 +898,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       time: formData.time,
       durationMinutes: activeServiceDetails.durationMinutes,
       clinicName: clinic.name,
-      notes: `Stripe Payment ID: ${details.paymentIntentId}. Amount: ${currency}${details.amount}.00 (${paymentChoice}). Status: ${details.status}. Service: ${activeServiceDetails.title}`,
+      notes: `Stripe Payment ID: ${details.paymentIntentId}. Amount: ${currency}${details.amount.toFixed(2)} (${paymentChoice}). Status: ${details.status}. Service: ${activeServiceDetails.title}`,
       status: 'confirmed',
       paymentStatus: statusMap[paymentChoice],
-      paymentAmount: `${currency}${details.amount}.00`,
+      paymentAmount: `${currency}${details.amount.toFixed(2)}`,
       paymentMethod: 'card',
       transactionId: details.paymentIntentId,
     });
@@ -1863,7 +1875,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         <div className="pt-1">
                           <StripeElementsCheckout
                             clinicId={clinic.id || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic'}
-                            appointmentId={createdBookingRefId || `appt_${Date.now()}`}
+                            appointmentId={createdBookingRefId}
+                            clientRequestId={clientRequestId}
                             amount={paymentChoice === 'full' ? effectiveFullAmt : effectiveDepositAmt}
                             currencySymbol={currency}
                             paymentChoice={paymentChoice}
