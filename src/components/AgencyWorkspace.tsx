@@ -84,9 +84,11 @@ import { SectionVisibilityManager } from './admin/SectionVisibilityManager';
 import { IntegrationsBillingManager } from './admin/IntegrationsBillingManager';
 import { ClientOnboardingWizard } from './admin/ClientOnboardingWizard';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
+import { isExplicitDemo } from '../lib/mode';
 
 interface AgencyWorkspaceProps {
   isOpen: boolean;
+  authenticatedRole: 'admin' | 'staff';
   onClose: () => void;
   clinic: ClinicInfo;
   onUpdateClinic: (updated: ClinicInfo) => void;
@@ -145,6 +147,7 @@ export type AdminTabId =
 
 export function AgencyWorkspace({
   isOpen,
+  authenticatedRole,
   onClose,
   clinic,
   onUpdateClinic,
@@ -157,6 +160,8 @@ export function AgencyWorkspace({
   const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
+  // Role switcher is a sandbox tool, never an authorization mechanism in live mode.
+  const effectiveRole: UserRole = isExplicitDemo() ? activeRolePreview : authenticatedRole;
   const [selectedLeadToSchedule, setSelectedLeadToSchedule] = useState<PatientLead | null>(null);
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
@@ -204,7 +209,7 @@ export function AgencyWorkspace({
       collapsible: false,
       items: [
         { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: clinic.isProductionMode ? 'Live' : 'Demo' },
-        { id: 'onboarding' as AdminTabId, label: 'Client Onboarding Launchpad', icon: Sparkles, badge: 'Handoff', highlight: true },
+        { id: 'onboarding' as AdminTabId, label: 'Client Onboarding Launchpad', icon: Sparkles, badge: 'Handoff', highlight: true, minRole: 'admin' as UserRole },
         { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles, minRole: 'admin' as UserRole },
         { id: 'leads' as AdminTabId, label: 'Patient Inquiries', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
         ...(!isExternalSync ? [{ id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar }] : []),
@@ -311,7 +316,7 @@ export function AgencyWorkspace({
 
   // Filter navigation groups and individual items based on active role preview
   const roleRank: Record<UserRole, number> = { staff: 1, editor: 2, admin: 3 };
-  const userRank = roleRank[activeRolePreview] || 3;
+  const userRank = roleRank[effectiveRole] || 1;
 
   const navGroups = allNavGroups
     .filter((g) => {
@@ -335,7 +340,7 @@ export function AgencyWorkspace({
     if (!accessibleTabIds.includes(activeTab)) {
       setActiveTab('overview');
     }
-  }, [activeRolePreview, accessibleTabIds, activeTab]);
+  }, [effectiveRole, accessibleTabIds, activeTab]);
 
   const banner = clinic.announcementBanner || { enabled: false, message: '', variant: 'amber' };
 
@@ -369,7 +374,7 @@ export function AgencyWorkspace({
               </div>
               <div className="flex items-center gap-2 text-[11px] text-stone-400 mt-0.5">
                 <span className="text-emerald-400 font-medium">
-                  {isCloudSynced ? (syncStatus === 'synced' ? '🟢 Cloud Synced' : '🔄 Syncing...') : '💾 Local Storage'}
+                  {syncStatus === 'synced' && isCloudSynced ? 'Cloud synced' : syncStatus === 'saving' ? 'Saving changes…' : isExplicitDemo() ? 'Demo sandbox storage' : 'Cloud sync unavailable'}
                 </span>
                 {lastSaved && (
                   <>
@@ -391,8 +396,8 @@ export function AgencyWorkspace({
               }}
             />
 
-            {/* Quick Role Preview Switcher */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
+            {/* Role preview exists only in the explicitly isolated sandbox. */}
+            {isExplicitDemo() && <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
               <span className="text-[10px] uppercase font-bold text-stone-400">Role:</span>
               <select
                 value={activeRolePreview}
@@ -404,16 +409,16 @@ export function AgencyWorkspace({
                 <option value="editor" className="bg-stone-900 text-stone-200">Editor (Content)</option>
                 <option value="staff" className="bg-stone-900 text-stone-200">Staff (Front Desk)</option>
               </select>
-            </div>
+            </div>}
 
-            <button
+            {effectiveRole === 'admin' && <button
               onClick={onResetDefault}
               className="px-2.5 py-1 text-stone-400 hover:text-amber-400 transition hover:bg-stone-850 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-amber-900/50"
               title="Reset to Factory Defaults"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline text-xs font-medium">Reset Defaults</span>
-            </button>
+            </button>}
             <button
               onClick={onClose}
               className="p-1.5 text-stone-400 hover:text-white transition hover:bg-stone-800 rounded-lg cursor-pointer"
@@ -599,7 +604,7 @@ export function AgencyWorkspace({
                 }}
                 isCloudSynced={isCloudSynced}
                 syncStatus={syncStatus}
-                role={activeRolePreview}
+                role={effectiveRole}
               />
             )}
 
@@ -646,7 +651,7 @@ export function AgencyWorkspace({
             {activeTab === 'leads' && (
               <LeadsInbox
                 clinicName={clinic.name || 'Clinic'}
-                role={activeRolePreview}
+                role={effectiveRole}
                 onAssignToCalendar={(lead) => {
                   setSelectedLeadToSchedule(lead);
                   setActiveTab('booking');
@@ -657,7 +662,7 @@ export function AgencyWorkspace({
             {/* 4. BOOKING & EHR */}
             {activeTab === 'booking' && (
               <BookingSettings
-                role={activeRolePreview}
+                role={effectiveRole}
                 assignedLead={selectedLeadToSchedule}
                 onClearAssignedLead={() => setSelectedLeadToSchedule(null)}
               />
@@ -2030,8 +2035,8 @@ export function AgencyWorkspace({
               <TeamManager
                 clinic={clinic}
                 onUpdateClinic={onUpdateClinic}
-                activeRolePreview={activeRolePreview}
-                onSelectRolePreview={setActiveRolePreview}
+                activeRolePreview={effectiveRole}
+                onSelectRolePreview={isExplicitDemo() ? setActiveRolePreview : () => {}}
               />
             )}
 
@@ -2070,7 +2075,7 @@ export function AgencyWorkspace({
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="text-[11px] text-stone-300">
-              <strong className="text-emerald-400 font-semibold">Firebase Cloud Active</strong> • Cloud Firestore & Auth Online
+              <strong className="text-emerald-400 font-semibold">{isExplicitDemo() ? 'Demo sandbox' : syncStatus === 'synced' && isCloudSynced ? 'Firebase synced' : 'Cloud status unverified'}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2">
