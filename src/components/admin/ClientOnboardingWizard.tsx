@@ -26,6 +26,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { ClinicInfo } from '../../types';
+import { isExplicitDemo } from '../../lib/mode';
 
 interface ClientOnboardingWizardProps {
   clinic: ClinicInfo;
@@ -588,7 +589,7 @@ export function ClientOnboardingWizard({
                 <div className="text-right">
                   <div className="text-xs text-stone-400">Launch Readiness Status</div>
                   <div className="text-sm font-bold text-emerald-400 flex items-center gap-1 justify-end">
-                    <ShieldCheck className="w-4 h-4" /> 100% Client Ready
+                    <ShieldCheck className="w-4 h-4" /> Draft Setup — Verification Pending
                   </div>
                 </div>
               </div>
@@ -604,11 +605,11 @@ export function ClientOnboardingWizard({
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="bg-stone-950 text-stone-300 text-xs px-3 py-1.5 rounded-lg font-mono border border-stone-800 truncate flex-1">
-                      {window.location.origin}/admin (Day View)
+                      {window.location.origin}/?admin=true (Sign In)
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleCopyLink(`${window.location.origin}/admin`)}
+                      onClick={() => handleCopyLink(`${window.location.origin}/?admin=true`)}
                       className="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs p-2 rounded-lg"
                     >
                       {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -675,27 +676,28 @@ export function ClientOnboardingWizard({
                   <span>Ready to Mark Practice Setup as Complete?</span>
                 </div>
                 <p className="text-xs text-stone-300 mt-0.5">
-                  This confirms all client customization, doctor credentials, and reception preferences are saved.
+                  Review the content setup. Real patient launch still requires verified cloud deployment, permissions, and end-to-end testing.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => {
-                  onUpdateClinic({ ...clinic, isProductionMode: true });
+                  // This is only a content handoff acknowledgement, not deployment.
+                  if (isExplicitDemo()) onUpdateClinic({ ...clinic, isProductionMode: false });
                   setShowCelebration(true);
                   if (onClose) setTimeout(onClose, 1500);
                 }}
                 className="bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs px-5 py-3 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-950/60 shrink-0"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Confirm & Mark Client Ready</span>
+                <span>Mark Content Review Complete</span>
               </button>
             </div>
 
             {showCelebration && (
               <div className="bg-emerald-900/90 border border-emerald-500 text-white p-4 rounded-xl text-center text-sm font-bold animate-bounce">
-                🎉 Practice Onboarding Complete! The clinic app is 100% configured for client handoff.
+                Content review recorded in this session. This does not certify production readiness or deploy Firebase.
               </div>
             )}
           </div>
