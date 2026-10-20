@@ -15,3 +15,12 @@ export function validateReceptionStatus(
   if (nextStatus === 'confirmed' && ['new', 'confirmed', 'booked'].includes(currentStatus)) return 'confirmed';
   throw new Error('Reception status transition is not permitted');
 }
+
+export function canManageReceptionAppointment(
+  claims: { role?: unknown; clinicId?: unknown; superAdmin?: unknown },
+  appointmentClinicId: string
+): boolean {
+  return claims.superAdmin === true ||
+    (claims.clinicId === appointmentClinicId &&
+      (claims.role === 'admin' || claims.role === 'staff' || claims.role === 'practitioner'));
+}
