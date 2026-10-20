@@ -32,10 +32,10 @@ export function verifyPaymentForAppointment(
     status: string;
     amount_received: number;
     currency: string;
-    metadata?: Record<string, string>;
+    metadata?: Record<string, string> | null;
   },
   appointment: {
-    clinicId: string;
+    clinicId?: string;
     stripePaymentIntentId?: string;
     priceAmount?: number;
     depositAmount?: number;
@@ -83,9 +83,9 @@ export function verifySetupForAppointment(
   intent: {
     id: string;
     status: string;
-    metadata?: Record<string, string>;
+    metadata?: Record<string, string> | null;
   },
-  appointment: { clinicId: string; stripeSetupIntentId?: string },
+  appointment: { clinicId?: string; stripeSetupIntentId?: string },
   appointmentId: string
 ): void {
   if (intent.id !== appointment.stripeSetupIntentId ||
