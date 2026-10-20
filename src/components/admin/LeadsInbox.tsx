@@ -33,7 +33,8 @@ import {
 import { UserRole } from '../../types';
 import { ClinicalChartPrintExport } from './ClinicalChartPrintExport';
 import { db, isFirebaseConfigured } from '../../lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { isExplicitDemo } from '../../lib/mode';
 
 interface LeadsInboxProps {
   clinicName: string;
@@ -65,8 +66,11 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
   const [selectedExportLead, setSelectedExportLead] = useState<PatientLead | null>(null);
 
   const isStaff = role === 'staff';
+  const demoMode = isExplicitDemo();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!demoMode) return;
     const handleUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<PatientLead[]>;
       if (customEvent.detail) {
@@ -77,10 +81,10 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
     };
     window.addEventListener('leads_updated', handleUpdate);
     return () => window.removeEventListener('leads_updated', handleUpdate);
-  }, []);
+  }, [demoMode]);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
+    if (demoMode || !isFirebaseConfigured) return;
 
     const activeClinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
     const inquiriesQuery = query(
@@ -109,61 +113,86 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
             clinicName: d.clinicName || clinicName,
           });
         });
-        if (liveItems.length > 0) {
-          setLeads(liveItems);
-        }
+        setLeads(liveItems);
+        setActionError(null);
       },
       (err) => {
         console.warn('Real-time inquiries subscription warning:', err);
+        setActionError('Could not load live inquiries. Check Firebase access and try again.');
       }
     );
 
     return () => unsubscribe();
-  }, [clinicName]);
+  }, [clinicName, demoMode]);
 
-  const handleStatusChange = (id: string, status: PatientLead['status']) => {
-    const targetLead = leads.find((l) => l.id === id);
+  const handleStatusChange = async (id: string, status: PatientLead['status']) => {
+    const targetLead = leads.find((lead) => lead.id === id);
     if (status === 'booked' && targetLead) {
-      // Trigger receptionist modal to prompt calendar assignment
       setBookingPromptLead(targetLead);
       return;
     }
-    const updated = updateLeadStatus(id, status);
-    setLeads(updated);
+    if (demoMode) {
+      setLeads(updateLeadStatus(id, status));
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'inquiries', id), { status, updatedAt: new Date().toISOString() });
+      setActionError(null);
+      // The live Firestore listener will refresh the dropdown with the confirmed value.
+    } catch (error: any) {
+      setActionError(`Could not save inquiry status: ${error?.message || 'Please try again.'}`);
+    }
   };
 
   const handleConfirmAssignToCalendar = () => {
     if (!bookingPromptLead) return;
-    const updated = updateLeadStatus(bookingPromptLead.id, 'booked');
-    setLeads(updated);
-    if (onAssignToCalendar) {
-      onAssignToCalendar(bookingPromptLead);
-    }
+    if (demoMode) setLeads(updateLeadStatus(bookingPromptLead.id, 'booked'));
+    // Live inquiries are not marked booked until the server creates a real slot.
+    onAssignToCalendar?.(bookingPromptLead);
     setBookingPromptLead(null);
   };
 
   const handleConfirmJustBooked = () => {
     if (!bookingPromptLead) return;
-    const updated = updateLeadStatus(bookingPromptLead.id, 'booked');
-    setLeads(updated);
+    if (!demoMode) {
+      setActionError('Use Assign to Calendar. Live inquiries cannot be marked booked without a confirmed slot.');
+      setBookingPromptLead(null);
+      return;
+    }
+    setLeads(updateLeadStatus(bookingPromptLead.id, 'booked'));
     setBookingPromptLead(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this inquiry record?')) {
-      const updated = deleteLead(id);
-      setLeads(updated);
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this inquiry record?')) return;
+    if (demoMode) {
+      setLeads(deleteLead(id));
+      return;
+    }
+    if (role !== 'admin') {
+      setActionError('Only clinic admins can delete inquiry records.');
+      return;
+    }
+    try {
+      await deleteDoc(doc(db, 'inquiries', id));
+    } catch (error: any) {
+      setActionError(`Could not delete inquiry: ${error?.message || 'Please try again.'}`);
     }
   };
 
   const handleClearAll = () => {
-    if (confirm('Clear all stored leads? This cannot be undone.')) {
+    if (!demoMode) {
+      setActionError('Bulk deletion is disabled for live clinic inquiries.');
+      return;
+    }
+    if (confirm('Clear all demo inquiries? This cannot be undone.')) {
       clearAllLeads();
       setLeads([]);
     }
   };
 
   const handleAddDemoLead = () => {
+    if (!demoMode) return;
     const names = ['Sarah Jenkins', 'Marcus Vance', 'David Chen', 'Emma Watson', 'Robert Taylor'];
     const randomName = names[Math.floor(Math.random() * names.length)];
     const conditions = ['Sciatica & Lumbar Pain', 'Neck Stiffness / Tech Neck', 'Sports Injury Assessment', 'Migraine & Posture'];
@@ -202,6 +231,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
 
   return (
     <div className="space-y-6">
+      {actionError && <div role="alert" className="rounded-lg border border-rose-700 bg-rose-950/50 p-3 text-sm text-rose-200">{actionError}</div>}
       {/* Top Banner Stats */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-stone-850 border border-stone-800 p-2.5 rounded-lg">
@@ -233,7 +263,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
 
         <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
           {/* "Add Sample" only visible to Admin role */}
-          {!isStaff && (
+          {!isStaff && demoMode && (
             <button
               onClick={handleAddDemoLead}
               className="px-2.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 rounded-lg text-xs font-medium flex items-center gap-1 transition cursor-pointer"
@@ -517,13 +547,13 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
                     </button>
                   </div>
 
-                  <button
+                  {(demoMode || role === 'admin') && <button
                     onClick={() => handleDelete(lead.id)}
                     className="p-1 text-stone-500 hover:text-red-400 transition cursor-pointer"
                     title="Delete record"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  </button>}
                 </div>
               </div>
             );
@@ -579,13 +609,13 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
                 <CalendarPlus className="w-3.5 h-3.5" />
                 <span>Assign to Calendar Slot</span>
               </button>
-              <button
+              {demoMode && <button
                 type="button"
                 onClick={handleConfirmJustBooked}
                 className="py-2 px-3 rounded-xl bg-stone-800 hover:bg-stone-750 text-stone-200 text-xs font-semibold transition cursor-pointer"
               >
                 Just Mark as Booked
-              </button>
+              </button>}
             </div>
           </div>
         </div>
@@ -601,8 +631,8 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
 
       {leads.length > 0 && (
         <div className="pt-2 flex justify-between items-center text-xs text-stone-500">
-          <span>{leads.length} records saved on this device</span>
-          {!isStaff && (
+          <span>{demoMode ? `${leads.length} demo records saved on this device` : `${leads.length} clinic inquiries loaded from Firestore`}</span>
+          {!isStaff && demoMode && (
             <button
               onClick={handleClearAll}
               className="text-stone-500 hover:text-red-400 text-xs underline cursor-pointer"
