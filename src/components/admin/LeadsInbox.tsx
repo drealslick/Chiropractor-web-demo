@@ -128,6 +128,10 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
   const handleStatusChange = async (id: string, status: PatientLead['status']) => {
     const targetLead = leads.find((lead) => lead.id === id);
     if (status === 'booked' && targetLead) {
+      if (!demoMode) {
+        setActionError('An inquiry can only be marked booked after the appointment has been created and confirmed on the booking server.');
+        return;
+      }
       setBookingPromptLead(targetLead);
       return;
     }
@@ -433,7 +437,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
                   >
                     <option value="new">New</option>
                     <option value="contacted">Contacted</option>
-                    <option value="booked">Booked</option>
+                    <option value="booked" disabled={!demoMode}>Booked (requires confirmed appointment)</option>
                     <option value="archived">Archived</option>
                   </select>
                 </div>
