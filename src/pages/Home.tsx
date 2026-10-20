@@ -20,7 +20,7 @@ import { MobileStickyBar } from '../components/MobileStickyBar';
 import { usePageMeta } from '../data/usePageMeta';
 
 export default function Home() {
-  const { clinicData: clinic, openBookingModal } = useClinic();
+  const { clinicData: clinic, openBookingModal, isBookingModalOpen } = useClinic();
   usePageMeta('Home', clinic.seoDescription || clinic.tagline);
 
   return (
@@ -75,7 +75,7 @@ export default function Home() {
         )}
       </div>
 
-      {clinic.showMobileStickyBar !== false && (
+      {clinic.showMobileStickyBar !== false && !isBookingModalOpen && (
         <MobileStickyBar
           clinic={clinic}
           onBookClick={() => openBookingModal()}
