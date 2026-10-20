@@ -485,6 +485,46 @@ describe('Firestore Security Rules Matrix', () => {
       }));
     });
 
+    it('DENIES edits to already signed clinical intake while preserving other notes', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc('appointments/signed_intake').set({
+          clinicId: CLINIC_A,
+          patientId: 'patient_alice',
+          date: '2026-10-25',
+          status: 'confirmed',
+          intakeForm: {
+            informedConsentAgreed: true,
+            painLevel: 5,
+            signatureDataUrl: 'data:image/png;base64,synthetic',
+          },
+        });
+      });
+      const patient = testEnv.authenticatedContext('patient_alice', {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+      const ref = patient.firestore().doc('appointments/signed_intake');
+      await assertFails(ref.update({ intakeForm: { informedConsentAgreed: true, painLevel: 0 } }));
+      await assertSucceeds(ref.update({ notes: 'Please phone me before the visit' }));
+    });
+
+    it('ALLOWS submitting intake on an unsigned patient-owned appointment', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().doc('appointments/unsigned_intake').set({
+          clinicId: CLINIC_A,
+          patientId: 'patient_alice',
+          status: 'confirmed',
+        });
+      });
+      const patient = testEnv.authenticatedContext('patient_alice', {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+      await assertSucceeds(patient.firestore().doc('appointments/unsigned_intake').update({
+        intakeForm: { informedConsentAgreed: true, painLevel: 3, signatureDataUrl: 'data:image/png;base64,synthetic' },
+      }));
+    });
+
     it('DENIES patient self-modification of appointment time, status and payment method', async () => {
       await testEnv.withSecurityRulesDisabled(async (context) => {
         await context.firestore().doc('appointments/patient_edit_scope').set({
