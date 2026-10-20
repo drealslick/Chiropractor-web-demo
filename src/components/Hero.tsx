@@ -29,14 +29,17 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
   const triageSubheadline = clinic.heroTriageSubheadline || 'Personalized pathway';
 
   return (
-    <section className="relative pt-8 pb-16 sm:pt-14 sm:pb-24 bg-[#f3efe6]">
+    <section className="relative pt-6 pb-12 sm:pt-10 sm:pb-20 overflow-hidden bg-stone-50/50">
+      {/* Background Grid Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Top Kicker Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 pb-3 mb-6 sm:mb-8 text-xs text-stone-600">
           <div className="flex items-center gap-2">
-            <span className="font-serif italic text-stone-800 text-sm sm:text-base">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+            <span className="font-medium text-stone-900 tracking-tight text-xs sm:text-sm">
               {clinic.heroAcceptingPillText || `Accepting New Patients in ${clinic.cityState || clinic.city || 'Practice Area'}`}
             </span>
           </div>
@@ -57,9 +60,9 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-normal text-[#1a1814] tracking-[-0.02em] leading-[1.05] [text-wrap:balance]">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold text-stone-900 tracking-tight leading-[1.12] [text-wrap:balance]">
                 {clinic.heroHeadline || "Get Back to What Pain Took Away."}
               </h1>
             </motion.div>
@@ -67,7 +70,7 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             <motion.p
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, delay: 0.04, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ duration: 0.5, delay: 0.1 }}
               className="text-sm sm:text-base lg:text-lg text-stone-600 leading-relaxed max-w-xl font-normal"
             >
               {clinic.heroSubheadline || `Personalized, root-cause chiropractic care in ${clinic.city || 'our practice'}. We find the biomechanical source of your discomfort and build a clear plan to restore natural mobility.`}
@@ -78,18 +81,19 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
               <motion.div
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, delay: 0.08, ease: [0.23, 1, 0.32, 1] }}
-                className="p-4 sm:p-5 border-t border-[#1a1814]/15 space-y-3"
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="p-3.5 sm:p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-3"
               >
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-serif italic text-stone-700 text-sm">
+                  <span className="font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5 text-[11px] sm:text-xs">
+                    <Activity className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                     {triageHeadline}
                   </span>
                   <span className="text-[10px] sm:text-[11px] text-stone-400">{triageSubheadline}</span>
                 </div>
 
                 {/* Triage Switcher Tabs */}
-                <div className={`grid gap-2 ${
+                <div className={`grid gap-1.5 p-1 bg-stone-100 rounded-xl ${
                   triageList.length === 1
                     ? 'grid-cols-1'
                     : triageList.length === 2
@@ -105,10 +109,10 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
                         key={opt.id}
                         type="button"
                         onClick={() => setActiveTriage(opt)}
-                        className={`px-2 py-2 text-xs text-center truncate cursor-pointer border-b ${
+                        className={`px-2 py-2 text-xs font-semibold rounded-lg transition-all text-center truncate cursor-pointer ${
                           isActive
-                            ? 'border-[#1a1814] text-[#1a1814] font-medium'
-                            : 'border-transparent text-stone-500 hover:text-stone-900'
+                            ? 'bg-white text-stone-900 shadow-xs ring-1 ring-black/5 font-bold'
+                            : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
                         }`}
                       >
                         <span className="sm:hidden">{opt.shortLabel || opt.label.split(' & ')[0]}</span>
@@ -148,14 +152,14 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, delay: 0.12, ease: [0.23, 1, 0.32, 1] }}
+              transition={{ duration: 0.5, delay: 0.3 }}
               className="space-y-3 pt-1 sm:pt-2"
             >
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   onClick={onBookClick}
                   id="hero-book-first-visit-btn"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:py-4 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.97] cursor-pointer group uppercase min-h-[48px]"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 sm:py-4 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-bold tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer group uppercase min-h-[48px]"
                 >
                   <Calendar className="w-4 h-4 text-emerald-400" />
                   <span>{clinic.heroCtaText || "BOOK YOUR FIRST VISIT"}</span>
@@ -172,9 +176,9 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
 
           {/* Right Column: Clean Architectural Visual Carrier with Doctor Quote */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, delay: 0.08, ease: [0.23, 1, 0.32, 1] }}
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="lg:col-span-5 relative"
           >
             <div className="relative rounded-3xl overflow-hidden shadow-xl border border-stone-200/90 bg-stone-100">
@@ -190,15 +194,25 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
               </picture>
               
               {/* Subtle bottom gradient scrim */}
-              <figcaption className="px-1 pt-3 text-[#1a1814]">
-                <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="font-serif">{clinic.doctorName || 'Dr. Marcus Reed'}</span>
-                  <span className="text-xs text-stone-500">{clinic.doctorCredentials || 'D.C., CCSP'}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none" />
+
+              {/* Doctor & Room Caption */}
+              <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 text-white">
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-stone-950/85 backdrop-blur-md border border-white/15 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-emerald-400 flex items-center gap-1.5 truncate">
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      {clinic.doctorName || 'Dr. Marcus Reed'}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] text-stone-300 font-mono shrink-0 ml-2">
+                      {clinic.doctorCredentials || 'D.C., CCSP'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-stone-200 leading-snug">
+                    "Every spine tells a specific mechanical story. Our job is to listen thoroughly before we ever adjust."
+                  </p>
                 </div>
-                <p className="mt-1 text-sm text-stone-600 leading-snug">
-                  Every spine tells a specific mechanical story. We listen before we adjust.
-                </p>
-              </figcaption>
+              </div>
             </div>
           </motion.div>
 
