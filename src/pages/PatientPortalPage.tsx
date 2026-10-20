@@ -17,9 +17,12 @@ import {
   loginPatientWithFirebaseAuth,
   sendRealPasswordReset,
   fetchAppointmentsByEmailFromFirestore,
+  fetchMyAppointmentsFromFirestore,
   fetchAppointmentByIdFromFirestore,
   logoutPatientFromFirebase,
 } from '../services/firebaseSync';
+import { isExplicitDemo } from '../lib/mode';
+import { rescheduleAppointmentServer, cancelAppointmentServer } from '../lib/booking-client';
 import {
   Calendar,
   Clock,
@@ -189,6 +192,16 @@ export default function PatientPortalPage() {
 
   // Check existing session or URL query params on mount
   useEffect(() => {
+    // Never restore patient identity from unauthenticated browser session data.
+    // In live mode Firebase Auth, not sessionStorage or URL parameters, decides
+    // which private records are available.
+    if (!isExplicitDemo()) {
+      if (searchParams.get('ref') || searchParams.get('query')) {
+        setAuthMode('account');
+        setLoginError('For your privacy, sign in to your verified account to access appointment details.');
+      }
+      return;
+    }
     const urlRef = searchParams.get('ref') || searchParams.get('query');
     if (urlRef) {
       setAuthMode('quickRef');
@@ -215,6 +228,11 @@ export default function PatientPortalPage() {
   }, [searchParams]);
 
   const handleDirectRefLookup = async (query: string, phoneCheck?: string) => {
+    if (!isExplicitDemo()) {
+      setAuthMode('account');
+      setLoginError('Sign in to your verified account. Direct booking-reference access is unavailable for confidential records.');
+      return;
+    }
     setLoginError('');
     const cleanId = query.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
     if (!cleanId) {
@@ -247,7 +265,7 @@ export default function PatientPortalPage() {
       setPatientAppointments(matches);
       setSelectedAppt(primary);
       try {
-        sessionStorage.setItem(
+        if (isExplicitDemo()) sessionStorage.setItem(
           PATIENT_SESSION_KEY,
           JSON.stringify({ id: primary.id, name: primary.name, email: primary.email, isAccount: false })
         );
@@ -316,17 +334,16 @@ export default function PatientPortalPage() {
         setIsLoading(false);
         if (firebaseRes.success && firebaseRes.account) {
           // Fetch appointments from Cloud Firestore first, fallback to local store
-          let appts = await fetchAppointmentsByEmailFromFirestore(firebaseRes.account.email);
-          if (appts.length === 0) {
-            appts = findPatientAppointmentsByEmail(firebaseRes.account.email);
-          }
+          const appts = isExplicitDemo()
+            ? await fetchAppointmentsByEmailFromFirestore(firebaseRes.account.email)
+            : await fetchMyAppointmentsFromFirestore();
 
           setActivePatient({ name: firebaseRes.account.name, email: firebaseRes.account.email, isAccount: true });
           setPatientAppointments(appts);
           if (appts.length > 0) setSelectedAppt(appts[0]);
 
           try {
-            sessionStorage.setItem(
+            if (isExplicitDemo()) sessionStorage.setItem(
               PATIENT_SESSION_KEY,
               JSON.stringify({ id: firebaseRes.account.id, name: firebaseRes.account.name, email: firebaseRes.account.email, isAccount: true })
             );
@@ -355,17 +372,16 @@ export default function PatientPortalPage() {
         setIsLoading(false);
         if (authRes.success && authRes.account) {
           // Fetch live appointments from Cloud Firestore
-          let appts = await fetchAppointmentsByEmailFromFirestore(authRes.account.email);
-          if (appts.length === 0) {
-            appts = findPatientAppointmentsByEmail(authRes.account.email);
-          }
+          const appts = isExplicitDemo()
+            ? await fetchAppointmentsByEmailFromFirestore(authRes.account.email)
+            : await fetchMyAppointmentsFromFirestore();
 
           setActivePatient({ name: authRes.account.name, email: authRes.account.email, isAccount: true });
           setPatientAppointments(appts);
           if (appts.length > 0) setSelectedAppt(appts[0]);
 
           try {
-            sessionStorage.setItem(
+            if (isExplicitDemo()) sessionStorage.setItem(
               PATIENT_SESSION_KEY,
               JSON.stringify({ id: authRes.account.id, name: authRes.account.name, email: authRes.account.email, isAccount: true })
             );
@@ -419,9 +435,30 @@ export default function PatientPortalPage() {
     setLoginError('');
   };
 
-  const handleResubmitReschedule = (e: React.FormEvent) => {
+  const handleResubmitReschedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAppt || !newDate) return;
+    if (!selectedAppt || !newDate || !newTime) return;
+
+    if (!isExplicitDemo()) {
+      setLoginError('');
+      setIsLoading(true);
+      const result = await rescheduleAppointmentServer({
+        appointmentId: selectedAppt.id,
+        newDate,
+        newTime,
+        reason: rescheduleNote,
+      });
+      setIsLoading(false);
+      if (!result.success) {
+        setLoginError(result.error || 'Could not reschedule appointment.');
+        return;
+      }
+      const updated = { ...selectedAppt, date: newDate, time: newTime };
+      setSelectedAppt(updated);
+      setPatientAppointments((items) => items.map((p) => p.id === updated.id ? updated : p));
+      setRescheduleSuccess(true);
+      return;
+    }
 
     const res = requestPatientReschedule(selectedAppt.id, newDate, newTime, rescheduleNote);
     if (res.success && res.updatedLead) {
@@ -434,8 +471,23 @@ export default function PatientPortalPage() {
     }
   };
 
-  const handleConfirmCancellation = () => {
+  const handleConfirmCancellation = async () => {
     if (!selectedAppt) return;
+    if (!isExplicitDemo()) {
+      setLoginError('');
+      setIsLoading(true);
+      const result = await cancelAppointmentServer({ appointmentId: selectedAppt.id, reason: cancelReason });
+      setIsLoading(false);
+      if (!result.success) {
+        setLoginError(result.error || 'Could not cancel appointment.');
+        return;
+      }
+      const updated: PatientLead = { ...selectedAppt, status: 'cancelled', cancellationReason: cancelReason };
+      setSelectedAppt(updated);
+      setPatientAppointments((items) => items.map((p) => p.id === updated.id ? updated : p));
+      setCancelSuccess(true);
+      return;
+    }
     const res = requestPatientCancellation(selectedAppt.id, cancelReason);
     if (res.success && res.updatedLead) {
       setSelectedAppt(res.updatedLead);
@@ -563,7 +615,7 @@ export default function PatientPortalPage() {
                   <User className="w-3.5 h-3.5 text-emerald-700" />
                   <span>Patient Account</span>
                 </button>
-                <button
+                {isExplicitDemo() && <button
                   type="button"
                   onClick={() => {
                     setAuthMode('quickRef');
@@ -577,7 +629,7 @@ export default function PatientPortalPage() {
                 >
                   <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
                   <span>Quick Booking ID</span>
-                </button>
+                </button>}
               </div>
 
               {loginError && (
