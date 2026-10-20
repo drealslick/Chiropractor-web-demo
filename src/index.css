@@ -20,6 +20,8 @@
 }
 
 @theme {
+  --color-stone-750: #373330;
+  --color-stone-850: #242120;
   --color-emerald-50: var(--theme-primary-50);
   --color-emerald-100: var(--theme-primary-100);
   --color-emerald-200: var(--theme-primary-200);
@@ -58,4 +60,44 @@
 *:focus-visible {
   outline: 2px solid var(--theme-primary-600);
   outline-offset: 2px;
+}
+
+/* Operational UI keeps a stable palette regardless of public website branding. */
+.admin-ui {
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+  --color-emerald-900: #064e3b;
+  --color-emerald-950: #022c22;
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: var(--font-body);
+}
+.admin-ui :where(button, select, input:not([type='checkbox']), textarea) {
+  min-height: 44px;
+}
+.admin-ui :focus-visible {
+  outline: 2px solid #6ee7b7;
+  outline-offset: 3px;
+}
+.admin-ui aside button {
+  font-size: 0.8125rem;
+}
+.admin-ui [role='dialog'] {
+  min-width: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-ui *, .admin-ui *::before, .admin-ui *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

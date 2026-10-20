@@ -10,13 +10,37 @@ on:
       - 'firestore.rules'
       - 'firestore.indexes.json'
       - 'storage.rules'
+      - '.github/workflows/deploy-firebase.yml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Validate explicit deployment target and credentials
+        run: |
+          if [ -z "$FIREBASE_PROJECT_ID" ]; then
+            echo "::error::Missing GitHub Actions variable FIREBASE_PROJECT_ID. Deployment cannot choose a project implicitly."
+            exit 1
+          fi
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::Missing GitHub Actions secret FIREBASE_TOKEN. Firebase was NOT deployed."
+            exit 1
+          fi
+          case "$FIREBASE_PROJECT_ID" in
+            demo-*)
+              echo "::error::Do not deploy to Firebase emulator demo project IDs."
+              exit 1
+              ;;
+          esac
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,27 +51,12 @@ jobs:
 
       - name: Install Functions Dependencies & Build
         run: |
-          cd functions
-          npm ci
-          npm run build
-          cd ..
+          npm --prefix functions ci
+          npm --prefix functions run build
 
-      - name: Check Firebase credentials
-        id: creds
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: |
-          if [ -n "$FIREBASE_TOKEN" ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "FIREBASE_TOKEN is not set. Skipping deploy. Add the secret, or GCP_SA_KEY, before this job can publish."
-          fi
-
-      - name: Deploy to Firebase
-        if: steps.creds.outputs.present == 'true'
+      - name: Deploy only Firebase backend components
         uses: w9jds/firebase-action@v15.30.0
         with:
-          args: deploy
+          args: deploy --project ${{ vars.FIREBASE_PROJECT_ID }} --only functions,firestore:rules,firestore:indexes,storage --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

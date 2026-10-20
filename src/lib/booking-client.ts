@@ -74,7 +74,10 @@ export async function bookAppointmentServer(
   input: BookingSubmissionInput
 ): Promise<BookingSubmissionResponse> {
   // If demo mode or unconfigured, execute via deterministic sandbox
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     const apptId = 'COL-' + Math.floor(1000 + Math.random() * 9000) + '-DEMO';
     const mockAppt: PatientLead = {
       id: apptId,
@@ -147,7 +150,10 @@ export async function bookAppointmentServer(
 export async function rescheduleAppointmentServer(
   input: RescheduleSubmissionInput
 ): Promise<{ success: boolean; error?: string }> {
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     sandbox.update('appointments', input.appointmentId, {
       date: input.newDate,
       time: input.newTime,
@@ -176,7 +182,10 @@ export async function rescheduleAppointmentServer(
 export async function cancelAppointmentServer(
   input: CancelSubmissionInput
 ): Promise<{ success: boolean; error?: string }> {
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     sandbox.update('appointments', input.appointmentId, {
       status: 'cancelled',
       cancellationReason: input.reason || 'Cancelled via reception',
@@ -206,7 +215,10 @@ export async function confirmAppointmentHoldServer(input: {
   paymentIntentId: string;
   paymentChoice?: 'deposit' | 'full' | 'card_hold';
 }): Promise<{ success: boolean; error?: string }> {
-  if (isExplicitDemo() || !isFirebaseConfigured) {
+  if (!isFirebaseConfigured && !isExplicitDemo()) {
+    return { success: false, error: 'Live booking is unavailable: Firebase backend is not configured.' };
+  }
+  if (isExplicitDemo()) {
     sandbox.update('appointments', input.appointmentId, {
       status: 'confirmed',
       paymentStatus: input.paymentChoice === 'card_hold' ? 'unpaid' : input.paymentChoice === 'deposit' ? 'deposit_paid' : 'paid_full',
@@ -227,5 +239,30 @@ export async function confirmAppointmentHoldServer(input: {
       success: false,
       error: err?.message || 'Confirmation failed. Hold may have expired.',
     };
+  }
+}
+
+/**
+ * Update a reception status only after the callable returns success.
+ * Never mutate financial status or private clinical notes through this API.
+ */
+export async function setReceptionStatusServer(input: {
+  appointmentId: string;
+  status: 'confirmed' | 'checked_in';
+}): Promise<{ success: boolean; error?: string }> {
+  if (isExplicitDemo()) {
+    sandbox.update('appointments', input.appointmentId, { status: input.status });
+    return { success: true };
+  }
+  if (!isFirebaseConfigured) return { success: false, error: 'Clinic backend is not configured.' };
+  try {
+    const functionsInstance = getFunctions(app, 'us-central1');
+    const callable = httpsCallable<typeof input, { success: boolean }>(functionsInstance, 'setReceptionAppointmentStatus');
+    const result = await callable(input);
+    if (!result.data.success) return { success: false, error: 'The server did not confirm this change.' };
+    return { success: true };
+  } catch (err: any) {
+    console.error('Reception update rejected:', err);
+    return { success: false, error: err?.message || 'Could not update the appointment.' };
   }
 }

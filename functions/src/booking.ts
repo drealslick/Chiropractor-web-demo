@@ -14,6 +14,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 import { minorUnitsToMajorUnits, verifyPaymentForAppointment, verifySetupForAppointment } from './paymentSecurity';
+import { canManageReceptionAppointment, validateReceptionStatus } from './receptionPolicy';
 import {
   ScheduleInterval,
   parseTimeToMinutes,
@@ -741,4 +742,51 @@ export const cancelAppointmentSlot = functions.https.onCall(async (data, context
   });
 
   return { success: true, appointmentId, cancelled: true };
+});
+
+/**
+ * Reception status transitions must be authorized and persisted by the server.
+ * Financial events and private clinician notes are NOT supported here.
+ */
+export const setReceptionAppointmentStatus = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Sign in to manage clinic appointments.');
+  }
+  const appointmentId = data?.appointmentId;
+  const nextStatus = data?.status;
+  if (typeof appointmentId !== 'string' || appointmentId.length < 3 ||
+      typeof nextStatus !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'A valid appointment and status are required.');
+  }
+
+  const activeDb = getDb();
+  await activeDb.runTransaction(async (transaction) => {
+    const appointmentRef = activeDb.collection('appointments').doc(appointmentId);
+    const snapshot = await transaction.get(appointmentRef);
+    if (!snapshot.exists) {
+      throw new functions.https.HttpsError('not-found', 'Appointment not found.');
+    }
+    const appointment = snapshot.data()!;
+    const claims = context.auth!.token;
+    if (!canManageReceptionAppointment({
+      role: claims.role,
+      clinicId: claims.clinicId,
+      superAdmin: claims.superAdmin,
+    }, appointment.clinicId)) {
+      throw new functions.https.HttpsError('permission-denied', 'No clinic staff access to this appointment.');
+    }
+    let validatedStatus;
+    try {
+      validatedStatus = validateReceptionStatus(String(appointment.status || ''), nextStatus);
+    } catch (error: any) {
+      throw new functions.https.HttpsError('failed-precondition', error.message || 'Invalid status change.');
+    }
+    transaction.update(appointmentRef, {
+      status: validatedStatus,
+      updatedAt: new Date().toISOString(),
+      lastReceptionAction: { actorUid: context.auth!.uid, at: new Date().toISOString(), status: validatedStatus },
+    });
+  });
+
+  return { success: true, appointmentId, status: nextStatus };
 });

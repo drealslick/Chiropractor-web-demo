@@ -91,6 +91,8 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
             ? 'bg-stone-800 text-emerald-400'
             : 'text-stone-300 hover:text-white hover:bg-stone-850'
         }`}
+        aria-expanded={isOpen}
+        aria-controls="reception-notifications"
         aria-label="Reception Notifications"
         title="Reception Live Alerts & Notifications"
       >
@@ -104,7 +106,7 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-stone-900 border border-stone-750 rounded-2xl shadow-2xl z-[150] overflow-hidden animate-fade-in text-stone-200">
+        <div id="reception-notifications" data-escape-layer role="region" aria-label="Reception notifications" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setIsOpen(false); containerRef.current?.querySelector('button')?.focus(); } }} className="absolute right-0 top-full mt-2 w-[min(24rem,calc(100vw-6rem))] bg-stone-900 border border-stone-750 rounded-2xl shadow-2xl z-[150] overflow-hidden animate-fade-in text-stone-200">
           {/* Header */}
           <div className="p-3.5 sm:p-4 border-b border-stone-800 bg-stone-950 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -134,6 +136,7 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
+                aria-label="Close notifications"
                 className="p-1 text-stone-400 hover:text-white rounded"
               >
                 <X className="w-3.5 h-3.5" />
@@ -175,7 +178,6 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
                 return (
                   <div
                     key={`${item.id}-${idx}`}
-                    onClick={() => handleItemClick(item)}
                     className={`p-3 rounded-xl transition cursor-pointer flex items-start gap-2.5 group ${
                       isUnread
                         ? 'bg-stone-850/80 hover:bg-stone-800 text-stone-100'
@@ -189,13 +191,13 @@ export const NotificationHub: React.FC<NotificationHubProps> = ({ onNavigateTab 
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className={`text-xs font-bold truncate ${isUnread ? 'text-white' : 'text-stone-300'}`}>
+                        <button type="button" onClick={() => handleItemClick(item)} className={`text-left text-sm font-bold truncate ${isUnread ? 'text-white' : 'text-stone-300'}`}>
                           {item.subject}
-                        </span>
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => handleDismiss(e, item.id)}
-                          className="opacity-0 group-hover:opacity-100 text-stone-500 hover:text-stone-300 p-0.5 rounded cursor-pointer"
+                          className="text-stone-400 hover:text-stone-300 p-0.5 rounded cursor-pointer"
                           title="Dismiss"
                         >
                           <X className="w-3 h-3" />

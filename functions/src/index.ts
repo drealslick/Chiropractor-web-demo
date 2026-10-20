@@ -1,3 +1,4 @@
+import { invitationAccessError } from './staffSecurity';
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
@@ -1126,6 +1127,7 @@ export {
   confirmAppointmentHold,
   rescheduleAppointmentSlot,
   cancelAppointmentSlot,
+  setReceptionAppointmentStatus,
 } from './booking';
 import { bookAppointment as authoritativeBookAppointment } from './booking';
 
@@ -2173,7 +2175,14 @@ export const acceptStaffInvitation = functions.https.onCall(async (data, context
   }
 
   const { clinicId, inviteId, token } = data;
-  if (!clinicId || !inviteId || !token) {
+  const verifiedEmail = context.auth.token.email;
+  if (context.auth.token.email_verified !== true || typeof verifiedEmail !== 'string') {
+    throw new functions.https.HttpsError('permission-denied', 'Verify your account email before accepting a staff invitation.');
+  }
+  if (context.auth.token.superAdmin === true || (context.auth.token.clinicId && context.auth.token.clinicId !== clinicId)) {
+    throw new functions.https.HttpsError('permission-denied', 'Use an account belonging to this clinic.');
+  }
+  if (typeof clinicId !== 'string' || typeof inviteId !== 'string' || typeof token !== 'string' || !clinicId || !inviteId || !token || clinicId.includes('/') || inviteId.includes('/')) {
     throw new functions.https.HttpsError('invalid-argument', 'clinicId, inviteId, and token are required.');
   }
 
@@ -2185,6 +2194,8 @@ export const acceptStaffInvitation = functions.https.onCall(async (data, context
   }
 
   const inviteData = inviteSnap.data()!;
+  const accessError = invitationAccessError(context.auth.token, clinicId, inviteData);
+  if (accessError) throw new functions.https.HttpsError('permission-denied', accessError);
   if (inviteData.status !== 'pending') {
     throw new functions.https.HttpsError('failed-precondition', 'Invitation has already been accepted or revoked.');
   }
@@ -2202,6 +2213,18 @@ export const acceptStaffInvitation = functions.https.onCall(async (data, context
   const userRef = db.collection('users').doc(context.auth.uid);
 
   await db.runTransaction(async (transaction) => {
+    const freshInvite = await transaction.get(inviteRef);
+    const existingMember = await transaction.get(memberRef);
+    const existingUser = await transaction.get(userRef);
+    if (existingMember.exists && existingMember.data()?.status === 'active') {
+      throw new functions.https.HttpsError('failed-precondition', 'You already have active membership. Ask your administrator to change your role.');
+    }
+    if (existingUser.data()?.clinicId && existingUser.data()?.clinicId !== clinicId) {
+      throw new functions.https.HttpsError('permission-denied', 'This account belongs to another clinic.');
+    }
+    if (freshInvite.data()?.status !== 'pending' || freshInvite.data()?.token !== inviteData.token || new Date(freshInvite.data()?.expiresAt).getTime() <= Date.now()) {
+      throw new functions.https.HttpsError('failed-precondition', 'Invitation is no longer available.');
+    }
     transaction.set(
       memberRef,
       {
