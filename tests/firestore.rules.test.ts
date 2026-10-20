@@ -43,9 +43,11 @@ describe('Firestore Security Rules Matrix', () => {
           port,
         },
       });
-    } catch {
-      // In CI/dev containers without a running Firebase emulator, mark tests skipped
-      testEnv = null;
+    } catch (error) {
+      // Security tests must fail closed if rules cannot be loaded or the emulator is missing.
+      throw new Error('Firestore emulator/rules initialization failed; security tests cannot be skipped.', {
+        cause: error,
+      });
     }
   });
 
