@@ -270,6 +270,11 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
   // Handle incoming lead assignment from Patient Inquiries or Waitlist
   useEffect(() => {
     if (assignedLead) {
+      if (!demoMode) {
+        setOperationError('Live reception booking is not configured. Create a secure appointment before marking the inquiry as booked.');
+        onClearAssignedLead?.();
+        return;
+      }
       setCalendarMode('day');
       setNewBookingData({
         name: assignedLead.name,
@@ -286,7 +291,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
         onClearAssignedLead();
       }
     }
-  }, [assignedLead, practitioners, onClearAssignedLead]);
+  }, [assignedLead, practitioners, onClearAssignedLead, demoMode]);
 
   // Update scheduling rules in clinic data
   const handleUpdateRules = (updatedRules: ClinicSchedulingRules) => {
@@ -294,6 +299,22 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
       ...clinic,
       schedulingRules: updatedRules,
     });
+  };
+
+  const openNewBooking = () => {
+    if (!demoMode) {
+      setOperationError('Live front-desk booking is unavailable until the secured walk-in workflow is configured.');
+      return;
+    }
+    setIsAddBookingOpen(true);
+  };
+
+  const openWaitlist = () => {
+    if (!demoMode) {
+      setOperationError('The live waitlist is not connected to the booking backend yet.');
+      return;
+    }
+    setIsWaitlistOpen(true);
   };
 
   // Status Change
@@ -598,7 +619,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
             {!isExternalSync ? (
               <button
                 type="button"
-                onClick={() => setIsAddBookingOpen(true)}
+                onClick={openNewBooking}
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-sm transition active:scale-[0.99] cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -775,7 +796,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsWaitlistOpen(true)}
+                onClick={openWaitlist}
                 className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
               >
                 <Clock className="w-3.5 h-3.5 text-amber-600" />
@@ -794,8 +815,8 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
               leads={leads}
               practitioners={practitioners}
               clinicName={clinic.name || 'Clinic'}
-              onOpenNewBookingModal={() => setIsAddBookingOpen(true)}
-              onOpenWaitlistModal={() => setIsWaitlistOpen(true)}
+              onOpenNewBookingModal={openNewBooking}
+              onOpenWaitlistModal={openWaitlist}
               waitlistCount={leads.filter((l) => l.status === 'waitlist').length}
             />
           ) : (
@@ -2820,7 +2841,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
             time: '3:00 PM',
             notes: `Waitlist slot offer: ${patient.notes || ''}`,
           });
-          setIsAddBookingOpen(true);
+          openNewBooking();
         }}
       />
     </div>
