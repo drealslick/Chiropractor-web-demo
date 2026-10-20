@@ -168,9 +168,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [elementsFallbackNotice, setElementsFallbackNotice] = useState<string | null>(null);
   const [showIntakeModal, setShowIntakeModal] = useState<boolean>(false);
   const [intakeDone, setIntakeDone] = useState<boolean>(false);
-  const [clientRequestId] = useState<string>(() => generateClientRequestId());
+  const [clientRequestId, setClientRequestId] = useState<string>(() => generateClientRequestId());
+  const [bookedDetailsKey, setBookedDetailsKey] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isSubmittingBooking, setIsSubmittingBooking] = useState<boolean>(false);
+
+  // Escape and external navigation close paths must clear any old reservation.
+  useEffect(() => {
+    if (isOpen) return;
+    setCreatedBookingRefId('');
+    setBookedDetailsKey(null);
+    setClientRequestId(generateClientRequestId());
+    setConfirmedPaymentDetails(null);
+    setBookingError(null);
+    setStep(1);
+  }, [isOpen]);
 
   const detectedBrand = useMemo(() => {
     const clean = cardNumber.replace(/\s+/g, '');
@@ -728,6 +740,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCardHolder(formData.name);
     }
 
+    // Never checkout against a reservation made for different patient/slot details.
+    const currentDetailsKey = JSON.stringify([
+      clinic.id,
+      selectedCustomServiceId || (activeServiceDetails.type === 'initial' ? 'initial-consultation' : 'followup-adjustment'),
+      formData.preferredPractitionerId, formData.date, formData.time,
+      formData.name.trim(), formData.email.trim().toLowerCase(),
+      formData.phone.trim(), (formData.notes || '').trim(),
+    ]);
+    const reuseExistingBooking = Boolean(createdBookingRefId && bookedDetailsKey === currentDetailsKey);
+    const effectiveClientRequestId = createdBookingRefId && !reuseExistingBooking
+      ? generateClientRequestId()
+      : clientRequestId;
+    if (effectiveClientRequestId !== clientRequestId) setClientRequestId(effectiveClientRequestId);
+
     const bookingPayload = {
       source: 'booking' as const,
       name: formData.name,
@@ -751,7 +777,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     if (isPaymentEnabled) {
-      if (!createdBookingRefId) {
+      if (!reuseExistingBooking) {
         setBookingError(null);
         setIsSubmittingBooking(true);
 
@@ -768,7 +794,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             patientPhone: formData.phone,
             notes: formData.notes,
             condition: formData.condition,
-            clientRequestId,
+            clientRequestId: effectiveClientRequestId,
             isHold: true,
           });
 
@@ -780,6 +806,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           const assignedId = serverResult.appointmentId || serverResult.bookingReference || 'COL-CONFIRMED';
           setCreatedBookingRefId(assignedId);
+          setBookedDetailsKey(currentDetailsKey);
 
           saveLead({
             ...bookingPayload,
@@ -804,6 +831,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       }
     } else {
       // Direct booking without upfront payment
+      if (reuseExistingBooking) {
+        setStep(4);
+        return;
+      }
       setBookingError(null);
       setIsSubmittingBooking(true);
 
@@ -820,7 +851,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           patientPhone: formData.phone,
           notes: formData.notes,
           condition: formData.condition,
-          clientRequestId,
+          clientRequestId: effectiveClientRequestId,
           isHold: false,
         });
 
@@ -832,6 +863,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         const assignedId = serverResult.appointmentId || serverResult.bookingReference || 'COL-CONFIRMED';
         setCreatedBookingRefId(assignedId);
+          setBookedDetailsKey(currentDetailsKey);
 
         saveLead({
           ...bookingPayload,
@@ -1046,6 +1078,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setCardZip('');
     setCardHolder('');
     setConfirmedPaymentDetails(null);
+    setCreatedBookingRefId('');
+    setBookedDetailsKey(null);
+    setClientRequestId(generateClientRequestId());
+    setBookingError(null);
     onClose();
   };
 
