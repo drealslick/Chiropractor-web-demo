@@ -229,3 +229,28 @@ export async function confirmAppointmentHoldServer(input: {
     };
   }
 }
+
+/**
+ * Update a reception status only after the callable returns success.
+ * Never mutate financial status or private clinical notes through this API.
+ */
+export async function setReceptionStatusServer(input: {
+  appointmentId: string;
+  status: 'confirmed' | 'checked_in';
+}): Promise<{ success: boolean; error?: string }> {
+  if (isExplicitDemo()) {
+    sandbox.update('appointments', input.appointmentId, { status: input.status });
+    return { success: true };
+  }
+  if (!isFirebaseConfigured) return { success: false, error: 'Clinic backend is not configured.' };
+  try {
+    const functionsInstance = getFunctions(app, 'us-central1');
+    const callable = httpsCallable<typeof input, { success: boolean }>(functionsInstance, 'setReceptionAppointmentStatus');
+    const result = await callable(input);
+    if (!result.data.success) return { success: false, error: 'The server did not confirm this change.' };
+    return { success: true };
+  } catch (err: any) {
+    console.error('Reception update rejected:', err);
+    return { success: false, error: err?.message || 'Could not update the appointment.' };
+  }
+}
