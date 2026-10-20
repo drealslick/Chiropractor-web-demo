@@ -13,7 +13,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
-import { verifyPaymentForAppointment, verifySetupForAppointment } from './paymentSecurity';
+import { minorUnitsToMajorUnits, verifyPaymentForAppointment, verifySetupForAppointment } from './paymentSecurity';
 import {
   ScheduleInterval,
   parseTimeToMinutes,
@@ -169,13 +169,26 @@ export async function executeAuthoritativeBooking(
 
   const clinicServices: any[] = clinicData.services || [];
   const matchedService = clinicServices.find(
-    (s) => s.id === serviceId || s.title?.toLowerCase() === requestedServiceTitle?.toLowerCase()
+    (s) => s.active !== false && (s.id === serviceId || s.title?.toLowerCase() === requestedServiceTitle?.toLowerCase())
   );
 
   if (matchedService) {
-    trustedPrice = typeof matchedService.price === 'number' ? matchedService.price : 85;
-    trustedDeposit = typeof matchedService.deposit === 'number' ? matchedService.deposit : 25;
-    trustedDuration = typeof matchedService.duration === 'number' ? matchedService.duration : 45;
+    // ClinicService.price/deposit are canonically INTEGER MINOR UNITS.
+    // The appointment + UI layer uses major units; Stripe converts back
+    // exactly once. Never charge a cents-denominated service 100x its price.
+    try {
+      trustedPrice = minorUnitsToMajorUnits(matchedService.price);
+      trustedDeposit = minorUnitsToMajorUnits(matchedService.deposit);
+    } catch {
+      throw new functions.https.HttpsError('failed-precondition', 'Service pricing is invalid; contact clinic reception.');
+    }
+    if (trustedDeposit > trustedPrice) {
+      throw new functions.https.HttpsError('failed-precondition', 'Deposit cannot exceed the full service price.');
+    }
+    trustedDuration = matchedService.durationMinutes || matchedService.duration || 45;
+    if (!Number.isInteger(trustedDuration) || trustedDuration < 5 || trustedDuration > 240) {
+      throw new functions.https.HttpsError('failed-precondition', 'Service duration is invalid.');
+    }
     canonicalServiceTitle = matchedService.title || canonicalServiceTitle;
   } else if (DEFAULT_SERVICE_CATALOG[serviceId]) {
     const defaultItem = DEFAULT_SERVICE_CATALOG[serviceId];
