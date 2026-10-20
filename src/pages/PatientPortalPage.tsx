@@ -663,7 +663,7 @@ export default function PatientPortalPage() {
                           ? 'Access all your visits, receipts & recovery plan without booking IDs.'
                           : accountTab === 'forgot'
                           ? 'Enter your registered email address to request a secure password recovery link.'
-                          : 'Set up your credentials to automatically link all current and future bookings.'}
+                          : 'Sign up securely. Guest bookings must be linked to your account by reception.'}
                       </p>
                     </div>
                     <div className="flex gap-1 text-xs">
@@ -1145,7 +1145,7 @@ export default function PatientPortalPage() {
                         {selectedAppt.practitionerName || clinic.leadPractitionerName || 'Doctor of Chiropractic'}
                       </p>
                       <p className="text-xs text-emerald-800 font-medium">
-                        Board Licensed Practitioner
+                        Assigned practitioner
                       </p>
                     </div>
 
@@ -1155,11 +1155,11 @@ export default function PatientPortalPage() {
                         <span>Payment / Protection</span>
                       </span>
                       <p className="text-base font-bold text-stone-900">
-                        {selectedAppt.paymentAmount || '£49.00 Consultation'}
+                        {selectedAppt.paymentAmount || (selectedAppt.paymentStatus === 'unpaid' ? 'Payment due at clinic' : 'See your receipt for amount')}
                       </p>
                       <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>{selectedAppt.paymentStatus === 'paid_full' ? 'Paid in Full' : selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit Paid (£25)' : 'No-Show Card Protected'}</span>
+                        <span>{selectedAppt.paymentStatus === 'paid_full' ? 'Paid in Full' : selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit Paid' : 'Payment not yet recorded'}</span>
                       </p>
                     </div>
                   </div>
@@ -1200,9 +1200,17 @@ export default function PatientPortalPage() {
                     )}
                   </div>
 
-                  {activePatient?.isAccount === true && (
+                  {!isExplicitDemo() && activePatient?.isAccount === true && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+                      Personal treatment plans, recovery milestones and home exercises will appear here
+                      only when entered or approved by your licensed treating clinician. Contact reception
+                      for advice about your individual condition.
+                    </div>
+                  )}
+
+                  {isExplicitDemo() && activePatient?.isAccount === true && (
                     <>
-                      {/* HEALTH DASHBOARD INTERACTIVE SECTIONS */}
+                      {/* HEALTH DASHBOARD INTERACTIVE SECTIONS — DEMO EXAMPLES ONLY */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                         
                         {/* CARE PLAN PHASE & MILESTONES */}
