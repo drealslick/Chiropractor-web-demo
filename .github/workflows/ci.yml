@@ -49,9 +49,9 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Run Firestore security suites against real emulator
+      - name: Run Firestore and Storage privacy suites against real emulators
         run: |
-          npx --yes firebase-tools@14.15.2 emulators:exec --project demo-practice-os --only firestore "npm run test:rules && npm run test:security"
+          npx --yes firebase-tools@14.15.2 emulators:exec --project demo-practice-os --only firestore,storage "npm run test:rules && npm run test:security && npx vitest run tests/storage.rules.test.ts"
 
       - name: Run Cloud Functions handler and payment security tests
         run: |
