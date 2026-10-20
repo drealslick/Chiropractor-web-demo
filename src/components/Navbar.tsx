@@ -1,5 +1,5 @@
-import React, { useState, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useContext, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Calendar, Phone, Menu, X, CalendarCheck2 } from 'lucide-react';
 import { ClinicContext } from '../data/ClinicContext';
 
@@ -9,6 +9,18 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => setMobileMenuOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [mobileMenuOpen]);
   
   // 📻 Tuning into our central brain!
   const context = useContext(ClinicContext);
@@ -157,9 +169,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
 
           {/* Mobile Hamburger Button */}
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-stone-700 hover:text-stone-900 rounded-lg focus:outline-none"
-            aria-label="Toggle Navigation"
+            className="md:hidden p-2 text-stone-700 hover:text-stone-900 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-700"
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation-links"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -169,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
 
       {/* Mobile Slide-down Multi-Page Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-stone-50 border-t border-stone-200/80 px-4 pt-3 pb-5 space-y-2 shadow-lg">
+        <div id="mobile-navigation-links" className="md:hidden bg-stone-50 border-t border-stone-200/80 px-4 pt-3 pb-5 space-y-2 shadow-lg max-h-[70dvh] overflow-y-auto">
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}
@@ -266,11 +281,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
               <span>Quick Booking Lookup</span>
             </button>
             <a
-              href={`tel:${clinic.phoneRaw}`}
+              href={`tel:${activeLocation.phoneRaw || clinic.phoneRaw}`}
               className="flex items-center gap-2 py-2 px-3 text-sm font-semibold text-emerald-800"
             >
               <Phone className="w-4 h-4 text-emerald-700" />
-              <span>{clinic.phone}</span>
+              <span>{activeLocation.phone || clinic.phone}</span>
             </a>
           </div>
         </div>
