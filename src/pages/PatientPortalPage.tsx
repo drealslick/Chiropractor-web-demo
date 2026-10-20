@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { useClinic } from '../data/ClinicContext';
 import {
   PatientLead,
@@ -189,6 +191,40 @@ export default function PatientPortalPage() {
       doctorNote: 'Maintain good core stability exercises. Schedule your monthly check-in whenever your mobility feels restricted.'
     };
   };
+
+  // Restore an existing Firebase Auth session securely without trusting browser
+  // sessionStorage or an unverified email address.
+  useEffect(() => {
+    if (isExplicitDemo()) return;
+    let disposed = false;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        if (!disposed) {
+          setActivePatient(null);
+          setPatientAppointments([]);
+          setSelectedAppt(null);
+        }
+        return;
+      }
+      try {
+        const appointments = await fetchMyAppointmentsFromFirestore();
+        if (disposed) return;
+        setActivePatient({
+          name: user.displayName || user.email?.split('@')[0] || 'Patient',
+          email: user.email || undefined,
+          isAccount: true,
+        });
+        setPatientAppointments(appointments);
+        setSelectedAppt(appointments[0] || null);
+      } catch {
+        if (!disposed) setLoginError('We could not load your appointments. Please try signing in again.');
+      }
+    });
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
+  }, []);
 
   // Check existing session or URL query params on mount
   useEffect(() => {
