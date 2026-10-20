@@ -204,12 +204,13 @@ export async function cancelAppointmentServer(
 export async function confirmAppointmentHoldServer(input: {
   appointmentId: string;
   paymentIntentId: string;
-  paymentChoice?: 'deposit' | 'full';
+  paymentChoice?: 'deposit' | 'full' | 'card_hold';
 }): Promise<{ success: boolean; error?: string }> {
   if (isExplicitDemo() || !isFirebaseConfigured) {
     sandbox.update('appointments', input.appointmentId, {
       status: 'confirmed',
-      paymentStatus: input.paymentChoice === 'deposit' ? 'deposit_paid' : 'paid_full',
+      paymentStatus: input.paymentChoice === 'card_hold' ? 'unpaid' : input.paymentChoice === 'deposit' ? 'deposit_paid' : 'paid_full',
+      cardOnFile: input.paymentChoice === 'card_hold',
       transactionId: input.paymentIntentId,
     });
     return { success: true };
