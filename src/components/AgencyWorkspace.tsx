@@ -159,7 +159,7 @@ export function AgencyWorkspace({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
   const [previewRole, setActiveRolePreview] = useState<UserRole>(authenticatedRole);
-  const activeRolePreview = authenticatedRole === 'admin' ? previewRole : authenticatedRole;
+  const activeRolePreview = isDemo && authenticatedRole === 'admin' ? previewRole : authenticatedRole;
   const canEdit = authenticatedRole === 'admin' && activeRolePreview === 'admin';
   const onUpdateClinic = (updated: ClinicInfo) => { if (canEdit) persistClinic(updated); };
   const closeWorkspace = useCallback(() => onClose(), [onClose]);
@@ -325,7 +325,7 @@ export function AgencyWorkspace({
 
   // Filter navigation groups and individual items based on active role preview
   const roleRank: Record<UserRole, number> = { staff: 1, editor: 2, admin: 3 };
-  const userRank = roleRank[activeRolePreview] || 3;
+  const userRank = roleRank[activeRolePreview] || 1;
 
   const navGroups = allNavGroups
     .filter((g) => {
@@ -413,7 +413,7 @@ export function AgencyWorkspace({
             />}
 
             {/* Quick Role Preview Switcher */}
-            {authenticatedRole === 'admin' && <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
+            {isDemo && authenticatedRole === 'admin' && <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
               <span className="text-[10px] uppercase font-bold text-stone-400">Role:</span>
               <select
                 value={activeRolePreview}
