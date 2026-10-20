@@ -91,6 +91,17 @@ export interface DispatchedNotification {
 const LEADS_STORAGE_KEY = 'agency_patient_leads_v1';
 const NOTIFICATIONS_STORAGE_KEY = 'agency_dispatched_notifications_v1';
 
+// Browser localStorage is an insecure persistence layer for actual clinical data.
+// Keep it strictly confined to explicit demo mode with fictional records.
+function persistDemoLeads(leads: PatientLead[]): void {
+  if (isDemoMode()) localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+}
+
+function persistDemoNotifications(notifications: DispatchedNotification[]): void {
+  if (isDemoMode()) localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
+}
+
+
 export function generateSecureBookingReference(prefix: string = 'VH'): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // base32 without ambiguous chars (no 0/O, 1/I)
   let part1 = '';
@@ -282,6 +293,9 @@ export function getDefaultReceptionNotifications(): DispatchedNotification[] {
 }
 
 export function getStoredLeads(): PatientLead[] {
+  // Live appointments must come from Firestore after authorization, never from
+  // records left on a shared device, another user's session, or earlier demos.
+  if (!isDemoMode()) return [];
   let leads: PatientLead[];
   if (isDemoMode() || (typeof process !== 'undefined' && process.env.NODE_ENV === 'test')) {
     leads = sandbox.list<PatientLead>('appointments');
@@ -319,17 +333,18 @@ export function getStoredLeads(): PatientLead[] {
 }
 
 export function getDispatchedNotifications(): DispatchedNotification[] {
+  if (!isDemoMode()) return [];
   try {
     const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
     if (!raw) {
       const defaultNotifs = getDefaultReceptionNotifications();
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(defaultNotifs));
+      persistDemoNotifications(defaultNotifs);
       return defaultNotifs;
     }
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
       const defaultNotifs = getDefaultReceptionNotifications();
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(defaultNotifs));
+      persistDemoNotifications(defaultNotifs);
       return defaultNotifs;
     }
     return parsed;
@@ -352,7 +367,7 @@ export function logNotification(notif: Omit<DispatchedNotification, 'id' | 'time
   };
   const updated = [entry, ...current].slice(0, 50); // keep last 50
   try {
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoNotifications(updated);
     dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
@@ -430,14 +445,14 @@ export function saveLead(
   });
 
   try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoLeads(updated);
     dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore storage quota
   }
 
   // Auto-dispatch simulated notification alerts when a booking request is saved
-  if (newLead.source === 'booking') {
+  if (newLead.source === 'booking' && isDemoMode()) {
     // 1. Alert to Clinic Front Desk
     logNotification({
       type: 'clinic_alert',
@@ -491,6 +506,10 @@ export function saveLead(
 export async function saveLeadAsync(
   leadInput: Omit<PatientLead, 'id' | 'createdAt' | 'status'> & Partial<PatientLead>
 ): Promise<{ success: boolean; lead: PatientLead; error?: string }> {
+  // Prevent legacy direct client writes from bypassing the server-side booking lock.
+  if (!isDemoMode()) {
+    return { success: false, lead: leadInput as PatientLead, error: 'Use the secure server booking API in live mode.' };
+  }
   const lead = saveLead(leadInput);
   try {
     const synced = await syncAppointmentToFirestore(lead);
@@ -521,7 +540,7 @@ export function updateLeadStatus(id: string, status: PatientLead['status'], canc
     } else if (updatedLead) {
       syncAppointmentToFirestore(updatedLead).catch(() => {});
     }
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoLeads(updated);
     dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
@@ -567,7 +586,7 @@ export function updateLeadDetails(id: string, partial: Partial<PatientLead>): Pa
     } else if (modifiedLead) {
       syncAppointmentToFirestore(modifiedLead).catch(() => {});
     }
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoLeads(updated);
     dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
@@ -621,7 +640,7 @@ export function updateLeadPayment(
     } else if (modifiedLead) {
       syncAppointmentToFirestore(modifiedLead).catch(() => {});
     }
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoLeads(updated);
     dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
@@ -651,7 +670,7 @@ export function deleteLead(id: string): PatientLead[] {
         deleteAppointmentFromFirestore(id).catch(() => {});
       });
     }
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoLeads(updated);
     dispatchSafeEvent('leads_updated', updated );
   } catch {
     // Ignore
@@ -663,7 +682,7 @@ export function markNotificationAsRead(id: string): DispatchedNotification[] {
   const current = getDispatchedNotifications();
   const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
   try {
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoNotifications(updated);
     dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
@@ -675,7 +694,7 @@ export function markAllNotificationsAsRead(): DispatchedNotification[] {
   const current = getDispatchedNotifications();
   const updated = current.map((n) => ({ ...n, read: true }));
   try {
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoNotifications(updated);
     dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
@@ -687,7 +706,7 @@ export function dismissNotification(id: string): DispatchedNotification[] {
   const current = getDispatchedNotifications();
   const updated = current.filter((n) => n.id !== id);
   try {
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+    persistDemoNotifications(updated);
     dispatchSafeEvent('notifications_updated', updated );
   } catch {
     // Ignore
@@ -770,6 +789,7 @@ export function getDefaultSeedPatientAccounts(): PatientAccount[] {
 }
 
 export function getStoredPatientAccounts(): PatientAccount[] {
+  if (!isDemoMode()) return [];
   try {
     const raw = localStorage.getItem(PATIENT_ACCOUNTS_KEY);
     if (!raw) {
@@ -795,6 +815,9 @@ export function registerPatientAccount(
   _password?: string,
   phone?: string
 ): { success: boolean; account?: PatientAccount; message: string } {
+  if (!isDemoMode()) {
+    return { success: false, message: 'Use Firebase Authentication to create a patient account.' };
+  }
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || !name) {
     return { success: false, message: 'Please provide full name and email.' };
@@ -919,6 +942,7 @@ export function requestPatientReschedule(
   newTime: string,
   notes?: string
 ): { success: boolean; updatedLead?: PatientLead; message: string } {
+  if (!isDemoMode()) return { success: false, message: 'Sign in to manage appointments securely.' };
   const leads = getStoredLeads();
   const targetIndex = leads.findIndex((l) => l.id === leadId);
 
@@ -952,7 +976,7 @@ export function requestPatientReschedule(
       syncAppointmentToFirestore(updatedLead).catch(() => {});
     }
 
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    persistDemoLeads(leads);
     dispatchSafeEvent('leads_updated', leads );
 
     // Dispatch front desk notification
@@ -989,7 +1013,7 @@ export function requestPatientReschedule(
 
     const currentNotifs = getDispatchedNotifications();
     const updatedNotifs = [newNotif, ...currentNotifs];
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
+    persistDemoNotifications(updatedNotifs);
     dispatchSafeEvent('notifications_updated', updatedNotifs );
   } catch {
     // Ignore
@@ -1002,6 +1026,7 @@ export function requestPatientCancellation(
   leadId: string,
   reason: string
 ): { success: boolean; updatedLead?: PatientLead; message: string } {
+  if (!isDemoMode()) return { success: false, message: 'Sign in to manage appointments securely.' };
   const leads = getStoredLeads();
   const targetIndex = leads.findIndex((l) => l.id === leadId);
 
@@ -1030,7 +1055,7 @@ export function requestPatientCancellation(
       syncAppointmentToFirestore(updatedLead).catch(() => {});
     }
 
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    persistDemoLeads(leads);
     dispatchSafeEvent('leads_updated', leads );
 
     // Dispatch patient SMS cancellation receipt
@@ -1067,7 +1092,7 @@ export function requestPatientCancellation(
 
     const currentNotifs = getDispatchedNotifications();
     const updatedNotifs = [newNotif, ...currentNotifs];
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
+    persistDemoNotifications(updatedNotifs);
     dispatchSafeEvent('notifications_updated', updatedNotifs );
   } catch {
     // Ignore
@@ -1077,6 +1102,7 @@ export function requestPatientCancellation(
 }
 
 export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['intakeForm']) {
+  if (!isDemoMode()) return { success: false, updatedLead: null as PatientLead | null };
   const leads = getStoredLeads();
   let updatedLead: PatientLead | null = null;
   const updatedLeads = leads.map((l) => {
@@ -1094,7 +1120,7 @@ export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['i
       } else {
         syncAppointmentToFirestore(updatedLead).catch(() => {});
       }
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLeads));
+      persistDemoLeads(updatedLeads);
       dispatchSafeEvent('leads_updated', updatedLeads );
 
       // Create staff notification
@@ -1113,7 +1139,7 @@ export function savePatientIntakeForm(leadId: string, intakeData: PatientLead['i
 
       const currentNotifs = getDispatchedNotifications();
       const updatedNotifs = [newNotif, ...currentNotifs];
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updatedNotifs));
+      persistDemoNotifications(updatedNotifs);
       dispatchSafeEvent('notifications_updated', updatedNotifs );
     } catch {
       // ignore

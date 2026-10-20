@@ -54,9 +54,9 @@ function AppShell() {
               <span className="hidden sm:inline-flex items-center gap-1">
                 <Phone className="w-3 h-3 text-emerald-400" /> {clinic.phone}
               </span>
-              <span className="bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded text-[10px]">
-                {clinic.legalLabel || "GDPR Ready"}
-              </span>
+              <a href={`tel:${clinic.phoneRaw || clinic.phone}`} className="sm:hidden text-emerald-200 font-semibold underline underline-offset-2">
+                Call clinic
+              </a>
             </div>
           </div>
         </header>

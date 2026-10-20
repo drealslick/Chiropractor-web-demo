@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X,
   Check,
@@ -32,6 +32,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ClinicInfo, BookingFormData, PublicTeamMember, ClinicSchedulingRules, PricingFeeItem } from '../types';
 import { useClinic } from '../data/ClinicContext';
 import { saveLead, getStoredLeads } from '../data/leadsStore';
+import { isExplicitDemo } from '../lib/mode';
 import { defaultPublicTeamMembers } from '../data/defaultTeamData';
 import { defaultSchedulingRules, defaultPaymentPolicy } from '../data/clinicData';
 import { StripeElementsCheckout } from './StripeElementsCheckout';
@@ -70,28 +71,44 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [step, setStep] = useState<number>(1);
   const [serviceType, setServiceType] = useState<'initial' | 'followup' | 'custom'>('initial');
 
+  const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (isOpen) {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      const timer = setTimeout(() => {
-        const dialog = document.querySelector('[role="dialog"], [aria-modal="true"]');
-        if (dialog) {
-          const focusable = dialog.querySelector<HTMLElement>(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          );
-          if (focusable) focusable.focus();
-        }
-      }, 100);
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        clearTimeout(timer);
-      };
-    }
+    if (!isOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const timer = window.setTimeout(() => dialogRef.current?.querySelector<HTMLElement>('[aria-label="Close booking modal"]')?.focus(), 0);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const dialog = dialogRef.current;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )).filter((element) => element.getClientRects().length > 0);
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
   }, [isOpen, onClose]);
   const [selectedCustomServiceId, setSelectedCustomServiceId] = useState<string>('');
   const [selectedPractitionerId, setSelectedPractitionerId] = useState<string>('');
@@ -151,9 +168,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [elementsFallbackNotice, setElementsFallbackNotice] = useState<string | null>(null);
   const [showIntakeModal, setShowIntakeModal] = useState<boolean>(false);
   const [intakeDone, setIntakeDone] = useState<boolean>(false);
-  const [clientRequestId] = useState<string>(() => generateClientRequestId());
+  const [clientRequestId, setClientRequestId] = useState<string>(() => generateClientRequestId());
+  const [bookedDetailsKey, setBookedDetailsKey] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isSubmittingBooking, setIsSubmittingBooking] = useState<boolean>(false);
+
+  // Escape and external navigation close paths must clear any old reservation.
+  useEffect(() => {
+    if (isOpen) return;
+    setCreatedBookingRefId('');
+    setBookedDetailsKey(null);
+    setClientRequestId(generateClientRequestId());
+    setConfirmedPaymentDetails(null);
+    setBookingError(null);
+    setStep(1);
+  }, [isOpen]);
 
   const detectedBrand = useMemo(() => {
     const clean = cardNumber.replace(/\s+/g, '');
@@ -246,8 +275,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Sync props and context state on modal open
   useEffect(() => {
     if (isOpen) {
-      // Check for active logged-in patient session in portal to auto-fill details!
-      try {
+      // Demo-only convenience. Live identity must come from verified Firebase Auth.
+      if (isExplicitDemo()) try {
         const savedSession = sessionStorage.getItem('clinic_patient_portal_session_v2');
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
@@ -711,6 +740,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       setCardHolder(formData.name);
     }
 
+    // Never checkout against a reservation made for different patient/slot details.
+    const currentDetailsKey = JSON.stringify([
+      clinic.id,
+      selectedCustomServiceId || (activeServiceDetails.type === 'initial' ? 'initial-consultation' : 'followup-adjustment'),
+      formData.preferredPractitionerId, formData.date, formData.time,
+      formData.name.trim(), formData.email.trim().toLowerCase(),
+      formData.phone.trim(), (formData.notes || '').trim(),
+    ]);
+    const reuseExistingBooking = Boolean(createdBookingRefId && bookedDetailsKey === currentDetailsKey);
+    const effectiveClientRequestId = createdBookingRefId && !reuseExistingBooking
+      ? generateClientRequestId()
+      : clientRequestId;
+    if (effectiveClientRequestId !== clientRequestId) setClientRequestId(effectiveClientRequestId);
+
     const bookingPayload = {
       source: 'booking' as const,
       name: formData.name,
@@ -734,7 +777,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     if (isPaymentEnabled) {
-      if (!createdBookingRefId) {
+      if (!reuseExistingBooking) {
         setBookingError(null);
         setIsSubmittingBooking(true);
 
@@ -751,7 +794,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             patientPhone: formData.phone,
             notes: formData.notes,
             condition: formData.condition,
-            clientRequestId,
+            clientRequestId: effectiveClientRequestId,
             isHold: true,
           });
 
@@ -763,6 +806,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
           const assignedId = serverResult.appointmentId || serverResult.bookingReference || 'COL-CONFIRMED';
           setCreatedBookingRefId(assignedId);
+          setBookedDetailsKey(currentDetailsKey);
 
           saveLead({
             ...bookingPayload,
@@ -787,6 +831,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       }
     } else {
       // Direct booking without upfront payment
+      if (reuseExistingBooking) {
+        setStep(4);
+        return;
+      }
       setBookingError(null);
       setIsSubmittingBooking(true);
 
@@ -803,7 +851,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           patientPhone: formData.phone,
           notes: formData.notes,
           condition: formData.condition,
-          clientRequestId,
+          clientRequestId: effectiveClientRequestId,
           isHold: false,
         });
 
@@ -815,6 +863,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         const assignedId = serverResult.appointmentId || serverResult.bookingReference || 'COL-CONFIRMED';
         setCreatedBookingRefId(assignedId);
+          setBookedDetailsKey(currentDetailsKey);
 
         saveLead({
           ...bookingPayload,
@@ -836,13 +885,34 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     }
   };
 
-  const handleStripePaymentSuccess = (details: {
+  const handleStripePaymentSuccess = async (details: {
     paymentIntentId: string;
     status: string;
     amount: number;
     last4?: string;
     brand?: string;
   }) => {
+    if (!createdBookingRefId) {
+      throw new Error('No server booking was created. Please restart the booking process.');
+    }
+    setBookingError(null);
+    setIsProcessingPayment(true);
+    try {
+      const result = await confirmAppointmentHoldServer({
+        appointmentId: createdBookingRefId,
+        paymentIntentId: details.paymentIntentId,
+        paymentChoice: paymentChoice === 'card_hold' ? 'card_hold' : paymentChoice === 'deposit' ? 'deposit' : 'full',
+      });
+      if (!result.success) {
+        throw new Error(result.error || 'The clinic could not verify this payment. Do not pay again; contact reception.');
+      }
+    } catch (error: any) {
+      setBookingError(error?.message || 'Payment verification failed.');
+      throw error;
+    } finally {
+      setIsProcessingPayment(false);
+    }
+
     const statusMap = {
       deposit: 'deposit_paid' as const,
       full: 'paid_full' as const,
@@ -852,7 +922,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const paymentDetail = {
       status: statusMap[paymentChoice],
-      amount: `${currency}${details.amount}.00`,
+      amount: `${currency}${details.amount.toFixed(2)}`,
       method: 'card' as const,
       last4: details.last4 || '••••',
       brand: details.brand || 'Verified Stripe Card',
@@ -860,15 +930,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     setConfirmedPaymentDetails(paymentDetail);
-
-    // Authoritatively confirm hold on server
-    if (createdBookingRefId) {
-      confirmAppointmentHoldServer({
-        appointmentId: createdBookingRefId,
-        paymentIntentId: details.paymentIntentId,
-        paymentChoice: paymentChoice === 'full' ? 'full' : 'deposit',
-      }).catch((err) => console.warn('Async server hold confirmation:', err));
-    }
 
     // Save lead with full payment & multi-service tracking
     const saved = saveLead({
@@ -886,10 +947,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       time: formData.time,
       durationMinutes: activeServiceDetails.durationMinutes,
       clinicName: clinic.name,
-      notes: `Stripe Payment ID: ${details.paymentIntentId}. Amount: ${currency}${details.amount}.00 (${paymentChoice}). Status: ${details.status}. Service: ${activeServiceDetails.title}`,
+      notes: `Stripe Payment ID: ${details.paymentIntentId}. Amount: ${currency}${details.amount.toFixed(2)} (${paymentChoice}). Status: ${details.status}. Service: ${activeServiceDetails.title}`,
       status: 'confirmed',
       paymentStatus: statusMap[paymentChoice],
-      paymentAmount: `${currency}${details.amount}.00`,
+      paymentAmount: `${currency}${details.amount.toFixed(2)}`,
       paymentMethod: 'card',
       transactionId: details.paymentIntentId,
     });
@@ -903,6 +964,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleExecutePayment = (method: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash' = 'card') => {
+    // No simulated payments or pay-on-arrival confirmation in live checkout.
+    // The latter needs its own server-authoritative reservation transition.
+    if (import.meta.env.VITE_DEMO_MODE !== 'true') {
+      setBookingError('This payment option is unavailable. Please use the secure Stripe checkout.');
+      return;
+    }
     if (method === 'card' && paymentChoice !== 'pay_at_clinic') {
       const cleanNum = cardNumber.replace(/\s+/g, '');
       if (cleanNum.length < 15) {
@@ -1011,6 +1078,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setCardZip('');
     setCardHolder('');
     setConfirmedPaymentDetails(null);
+    setCreatedBookingRefId('');
+    setBookedDetailsKey(null);
+    setClientRequestId(generateClientRequestId());
+    setBookingError(null);
     onClose();
   };
 
@@ -1042,8 +1113,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             className={`bg-white rounded-2xl shadow-2xl border border-stone-200 w-full overflow-hidden flex flex-col max-h-[92vh] ${
               activeViewMode === 'iframe' ? 'max-w-3xl h-[85vh]' : 'max-w-lg'
             }`}
+            ref={dialogRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
+            aria-labelledby="booking-dialog-title"
+            aria-describedby="booking-dialog-description"
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/80">
@@ -1055,7 +1130,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     ? 'Appointment Guaranteed'
                     : `Step ${step} of ${totalSteps}`}
                 </span>
-                <h2 className="text-xl font-serif font-bold text-stone-900 leading-tight">
+                <h2 id="booking-dialog-title" className="text-xl font-serif font-bold text-stone-900 leading-tight">
                   {activeViewMode === 'iframe'
                     ? `Book with ${doctorDisplayName}`
                     : step === 1
@@ -1068,7 +1143,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     ? 'Secure your appointment'
                     : 'Request Confirmed'}
                 </h2>
-                <p className="text-xs text-stone-500">
+                <p id="booking-dialog-description" className="text-xs text-stone-500">
                   {activeViewMode === 'iframe'
                     ? 'Select your appointment type and slot below'
                     : step === 1
@@ -1496,7 +1571,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       </div>
 
                       <p className="text-[11px] text-stone-500 text-center italic pt-1">
-                        Need a specific time not shown? Call us directly at {clinic.phone}.
+                        Time options are indicative; availability is verified when you continue. Need another time? Call {clinic.phone}.
                       </p>
                     </div>
                   )}
@@ -1697,6 +1772,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   {/* STEP 4: UPFRONT PAYMENT & NO-SHOW PROTECTION */}
                   {step === 4 && isPaymentEnabled && (
                     <div className="space-y-4 animate-fadeIn">
+                      {bookingError && (
+                        <div role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-950">
+                          <strong>Payment confirmation needs attention.</strong>
+                          <p className="mt-1">{bookingError}</p>
+                          <p className="mt-1 text-xs">Do not pay again until reception confirms the previous attempt's status.</p>
+                        </div>
+                      )}
                       {/* Appointment & Fee Banner */}
                       <div className="p-3.5 bg-stone-900 text-white rounded-xl shadow-xs space-y-2">
                         <div className="flex items-center justify-between text-xs text-stone-300">
@@ -1794,7 +1876,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           </button>
 
                           {/* Option 4: Pay at Clinic */}
-                          {paymentPolicy.allowPayAtClinic && (
+                          {paymentPolicy.allowPayAtClinic && import.meta.env.VITE_DEMO_MODE === 'true' && (
                             <button
                               type="button"
                               onClick={() => setPaymentChoice('pay_at_clinic')}
@@ -1863,7 +1945,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         <div className="pt-1">
                           <StripeElementsCheckout
                             clinicId={clinic.id || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic'}
-                            appointmentId={createdBookingRefId || `appt_${Date.now()}`}
+                            appointmentId={createdBookingRefId}
+                            clientRequestId={clientRequestId}
                             amount={paymentChoice === 'full' ? effectiveFullAmt : effectiveDepositAmt}
                             currencySymbol={currency}
                             paymentChoice={paymentChoice}
@@ -2064,7 +2147,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <div className="p-4 bg-stone-900 text-white rounded-2xl text-left space-y-2 border border-stone-800 shadow-sm">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                            Your Unique Patient Passkey
+                            Your Appointment Reference
                           </span>
                           <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">
                             Save This Key
@@ -2088,7 +2171,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           </button>
                         </div>
                         <p className="text-[11px] text-stone-400 leading-snug">
-                          Use this unguessable reference passkey to log into your <strong>Patient Portal</strong>, print medical insurance receipts, or reschedule online.
+                          {isExplicitDemo()
+                            ? 'In this fictional demo, use your reference to explore the patient portal.'
+                            : 'Keep this reference for enquiries. To view private records or manage a booking, sign in to your verified patient account.'}
                         </p>
                       </div>
 

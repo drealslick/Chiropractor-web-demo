@@ -137,7 +137,8 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
           notificationPhone: phone,
           emailAlertsEnabled: emailAlerts,
           smsAlertsEnabled: smsAlerts,
-          webhookSecret: secret,
+          // Stripe webhook secret is provisioned in server environment /
+          // Secret Manager, never saved from the browser to Firestore.
           updatedAt: new Date().toISOString(),
         },
         { merge: true }
@@ -662,12 +663,13 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
                 <div className="relative">
                   <input
                     type={showSecretPlaintext ? 'text' : 'password'}
-                    value={webhookSecret}
+                    value={import.meta.env.VITE_DEMO_MODE === 'true' ? webhookSecret : ''}
+                    disabled={import.meta.env.VITE_DEMO_MODE !== 'true'}
                     onChange={(e) => {
+                      if (import.meta.env.VITE_DEMO_MODE !== 'true') return;
                       setWebhookSecret(e.target.value);
-                      triggerAutoSave(paymentPolicy, notificationEmail, notificationPhone, emailAlertsEnabled, smsAlertsEnabled, e.target.value);
                     }}
-                    placeholder="whsec_..."
+                    placeholder={import.meta.env.VITE_DEMO_MODE === 'true' ? 'whsec_demo_only' : 'Configured on server only'}
                     className="w-full bg-stone-950 border border-stone-750 rounded-xl pl-3.5 pr-20 py-2 text-xs font-mono text-stone-200 placeholder:text-stone-600 focus:outline-none focus:border-indigo-500"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -698,7 +700,7 @@ export const IntegrationsBillingManager: React.FC<IntegrationsBillingManagerProp
                   </div>
                 </div>
                 <span className="text-[11px] text-stone-500 mt-1 block">
-                  Stored server-side under <code className="text-stone-400 font-mono">clinic_settings/integrations</code> and restricted exclusively to Clinic Admin role by Firestore Security Rules.
+                  In production, configure <code className="text-stone-400 font-mono">STRIPE_WEBHOOK_SECRET</code> in the Firebase Functions server environment. Never enter live signing secrets into browser forms.
                 </span>
               </div>
 

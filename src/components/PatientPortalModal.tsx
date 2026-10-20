@@ -9,6 +9,8 @@ import {
   getStoredLeads,
 } from '../data/leadsStore';
 import { IntakeQuestionnaireModal } from './IntakeQuestionnaireModal';
+import { isExplicitDemo } from '../lib/mode';
+import { Link } from 'react-router-dom';
 import {
   X,
   Search,
@@ -66,6 +68,7 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
 
   // Reset or initialize on open
   useEffect(() => {
+    if (!isExplicitDemo()) return;
     if (isOpen) {
       if (initialQuery) {
         setSearchQuery(initialQuery);
@@ -87,6 +90,28 @@ export const PatientPortalModal: React.FC<PatientPortalModalProps> = ({
   }, [isOpen, initialQuery]);
 
   if (!isOpen) return null;
+  if (!isExplicitDemo()) {
+    return (
+      <div role="dialog" aria-modal="true" aria-label="Patient account sign in"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 p-4">
+        <div className="w-full max-w-md bg-white rounded-2xl p-6 space-y-4 text-stone-900">
+          <h2 className="text-xl font-bold">Sign in to your patient account</h2>
+          <p className="text-sm text-stone-600">
+            Medical records and appointment details are available only through verified account access.
+            Booking IDs and contact details cannot be used to bypass sign-in.
+          </p>
+          <div className="flex gap-3">
+            <Link to="/portal" onClick={onClose}
+              className="rounded-lg bg-emerald-800 px-4 py-2.5 text-white font-semibold text-sm">
+              Secure patient sign in
+            </Link>
+            <button type="button" onClick={onClose}
+              className="rounded-lg border border-stone-300 px-4 py-2.5 text-sm">Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handlePerformSearch = (query: string) => {
     const q = query.trim();

@@ -4,6 +4,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import * as crypto from 'crypto';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import { expectedCurrencyCode, requireSignedWebhook, verifyPaymentForAppointment } from './paymentSecurity';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -604,14 +605,11 @@ export async function createPaymentIntentHandler(data: any, context: any) {
   const {
     clinicId,
     appointmentId,
+    clientRequestId,
     currency = 'gbp',
     paymentChoice = 'full',
-    patientEmail,
-    patientName,
-    serviceTitle,
-    serviceId,
     attempt = 1,
-  } = data;
+  } = data || {};
 
   if (!clinicId || typeof clinicId !== 'string') {
     throw new functions.https.HttpsError('invalid-argument', 'clinicId is required.');
@@ -633,8 +631,50 @@ export async function createPaymentIntentHandler(data: any, context: any) {
     );
   }
 
-  // Look up clinic settings for Stripe Connect account
+  // Bind checkout to an existing, server-created appointment. Merely knowing a
+  // clinic ID must never allow creating a payable intent for someone else's slot.
   const sanitizedClinicId = clinicId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  if (typeof appointmentId !== 'string' || !appointmentId) {
+    throw new functions.https.HttpsError('invalid-argument', 'An existing appointmentId is required.');
+  }
+  if (!['full', 'deposit', 'balance', 'card_hold', 'card_on_file', 'setup_only'].includes(paymentChoice)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid payment choice.');
+  }
+  if (!Number.isInteger(attempt) || attempt < 1 || attempt > 5) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid payment attempt.');
+  }
+
+  const apptDoc = await db.collection('appointments').doc(appointmentId).get();
+  if (!apptDoc.exists) {
+    throw new functions.https.HttpsError('not-found', 'Appointment not found.');
+  }
+  const booked = apptDoc.data()!;
+  if (booked.clinicId !== sanitizedClinicId) {
+    throw new functions.https.HttpsError('permission-denied', 'Appointment does not belong to this clinic.');
+  }
+  if (['hold_expired', 'hold_expired_conflict', 'cancelled'].includes(booked.status)) {
+    throw new functions.https.HttpsError('failed-precondition', 'Appointment is no longer payable.');
+  }
+  const role = context?.auth?.token?.role;
+  const staffAccess = context?.auth &&
+    (context.auth.token?.superAdmin === true ||
+      (context.auth.token?.clinicId === sanitizedClinicId && ['admin', 'staff', 'practitioner'].includes(role)));
+  const ownsAppointment = context?.auth?.uid && booked.patientId === context.auth.uid;
+  const matchingBookingRequest = typeof clientRequestId === 'string' &&
+    clientRequestId.length >= 16 && booked.clientRequestId === clientRequestId;
+  if (!staffAccess && !ownsAppointment && !matchingBookingRequest) {
+    throw new functions.https.HttpsError('permission-denied', 'Booking request verification failed.');
+  }
+  const bookedCurrency = expectedCurrencyCode(booked.currency);
+  if (!['gbp', 'usd', 'eur'].includes(bookedCurrency) ||
+      expectedCurrencyCode(currency) !== bookedCurrency) {
+    throw new functions.https.HttpsError('invalid-argument', 'Currency does not match appointment settings.');
+  }
+  const patientEmail = booked.patientEmail;
+  const patientName = booked.patientName;
+  const serviceTitle = booked.serviceTitle;
+
+  // Look up clinic settings for Stripe Connect account
   const [settingsDoc, clinicDoc] = await Promise.all([
     db.collection('clinic_settings').doc(sanitizedClinicId).get(),
     db.collection('clinics').doc(sanitizedClinicId).get(),
@@ -658,73 +698,33 @@ export async function createPaymentIntentHandler(data: any, context: any) {
   }
 
   // Authoritative Server-Side Pricing Resolution
-  let serverPrice = 85;
-  let serverDeposit = 25;
+  let serverPrice: number;
+  let serverDeposit: number;
   let existingAmountPaid = 0;
   let existingPaymentStatus = 'unpaid';
 
-  if (appointmentId && typeof appointmentId === 'string') {
-    const apptDoc = await db.collection('appointments').doc(appointmentId).get();
-    if (apptDoc.exists) {
-      const apptData = apptDoc.data()!;
-      existingAmountPaid = typeof apptData.amountPaid === 'number' ? apptData.amountPaid : 0;
-      existingPaymentStatus = apptData.paymentStatus || 'unpaid';
-
-      // Idempotency check: Reject duplicate payment if already settled in full
-      if (existingPaymentStatus === 'paid_full') {
-        throw new functions.https.HttpsError(
-          'already-exists',
-          'Payment has already been recorded and settled in full for this appointment.'
-        );
-      }
-      if (paymentChoice === 'deposit' && existingPaymentStatus === 'deposit_paid') {
-        throw new functions.https.HttpsError(
-          'already-exists',
-          'Deposit has already been paid for this appointment.'
-        );
-      }
-
-      if (typeof apptData.priceAmount === 'number' && apptData.priceAmount > 0) {
-        serverPrice = apptData.priceAmount;
-      }
-      if (typeof apptData.depositAmount === 'number' && apptData.depositAmount > 0) {
-        serverDeposit = apptData.depositAmount;
-      }
-    }
-  } else if (clinicDoc.exists) {
-    const services = clinicDoc.data()?.services || [];
-    const matchedService = services.find((s: any) => s.id === serviceId || s.title === serviceTitle);
-    if (matchedService && typeof matchedService.price === 'number') {
-      serverPrice = matchedService.price;
-      serverDeposit = matchedService.deposit || 25;
-    }
+  existingAmountPaid = typeof booked.amountPaid === 'number' ? booked.amountPaid : 0;
+  existingPaymentStatus = booked.paymentStatus || 'unpaid';
+  if (existingPaymentStatus === 'paid_full' || existingPaymentStatus === 'refunded' ||
+      existingPaymentStatus === 'partially_refunded') {
+    throw new functions.https.HttpsError('already-exists', 'This appointment requires financial reconciliation before another payment.');
   }
-
-  // 0. PAY ON ARRIVAL (Zero Stripe API Calls)
-  if (paymentChoice === 'pay_on_arrival' || paymentChoice === 'pay_at_clinic') {
-    if (appointmentId) {
-      await db.collection('appointments').doc(appointmentId).set(
-        {
-          priceAmount: serverPrice,
-          depositAmount: serverDeposit,
-          currency: currency.toLowerCase(),
-          paymentChoice: 'pay_on_arrival',
-          paymentStatus: 'unpaid',
-          amountPaid: 0,
-          remainingBalance: serverPrice,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-    return {
-      isDemoMode: false,
-      isPayOnArrival: true,
-      amount: 0,
-      currency: currency.toLowerCase(),
-      message: 'Pay on arrival selected; no upfront payment charged.',
-    };
+  if (existingPaymentStatus === 'deposit_paid' && paymentChoice !== 'balance') {
+    throw new functions.https.HttpsError('failed-precondition', 'Use the remaining-balance payment option after a deposit.');
   }
+  if (booked.status === 'pending_payment' && booked.holdExpiresAt &&
+      new Date(booked.holdExpiresAt).getTime() <= Date.now()) {
+    throw new functions.https.HttpsError('deadline-exceeded', 'The checkout hold expired. Please select a new time.');
+  }
+  if (typeof booked.priceAmount !== 'number' || booked.priceAmount <= 0 ||
+      typeof booked.depositAmount !== 'number' || booked.depositAmount <= 0) {
+    throw new functions.https.HttpsError('failed-precondition', 'Appointment pricing is not configured.');
+  }
+  serverPrice = booked.priceAmount;
+  serverDeposit = booked.depositAmount;
+
+  // Pay-on-arrival must use a separate server-authoritative booking transition.
+  // The payment endpoint must never reset an existing paid appointment to unpaid.
 
   const stripe = getStripe();
   const publishableKey = getEnvConfig('STRIPE_PUBLISHABLE_KEY') || '';
@@ -781,7 +781,7 @@ export async function createPaymentIntentHandler(data: any, context: any) {
             paymentChoice: 'card_on_file',
             paymentStatus: 'unpaid',
             amountPaid: 0,
-            cardOnFile: true,
+            cardOnFile: false, // Only verified SetupIntent completion can enable card-on-file
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true }
@@ -1151,19 +1151,19 @@ export async function stripeWebhookHandler(req: any, res: any) {
   let event: Stripe.Event;
   const stripe = getStripe();
 
-  if (req.rawBody && sig && webhookSecret) {
-    try {
-      event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-    } catch (err: any) {
-      functions.logger.error('Stripe webhook signature verification failed:', err.message);
-      res.status(400).send(`Webhook Error: ${err.message}`);
-      return;
-    }
-  } else if (req.body && req.body.type && req.body.id) {
-    event = req.body as Stripe.Event;
-  } else {
-    functions.logger.error('Stripe webhook error: Missing stripe-signature Header.');
-    res.status(400).send('Missing stripe-signature Header');
+  // No unsigned JSON fallback, including in demo mode. The emulator must
+  // generate properly signed Stripe events for integration tests.
+  if (!webhookSecret) {
+    functions.logger.error('Stripe webhook signing secret is not configured.');
+    res.status(503).send('Webhook unavailable');
+    return;
+  }
+  try {
+    requireSignedWebhook(req.rawBody, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(req.rawBody, sig as string, webhookSecret);
+  } catch (err: any) {
+    functions.logger.error('Stripe webhook signature verification failed:', err.message);
+    res.status(400).send('Invalid Stripe webhook signature');
     return;
   }
 
@@ -1178,13 +1178,8 @@ export async function stripeWebhookHandler(req: any, res: any) {
       return;
     }
 
-    // Record event as processed
-    await eventRef.set({
-      eventId: event.id,
-      type: event.type,
-      processedAt: FieldValue.serverTimestamp(),
-    });
-
+    // Mark the event processed ONLY after the handler succeeds, otherwise a
+    // transient Firestore/email/refund failure would permanently suppress retries.
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
@@ -1212,6 +1207,16 @@ export async function stripeWebhookHandler(req: any, res: any) {
             ) {
               return;
             }
+
+            // Verify Stripe's authoritative state, appointment binding, and amount.
+            // Signed events alone are insufficient if their metadata refers to a
+            // different booking or a smaller charge.
+            verifyPaymentForAppointment(
+              paymentIntent,
+              apptData,
+              appointmentId,
+              paymentChoice as 'deposit' | 'full' | 'balance'
+            );
 
             // Check if hold is expired or slot occupied by someone else in schedules
             if (apptData.status === 'hold_expired') {
@@ -1314,6 +1319,11 @@ export async function stripeWebhookHandler(req: any, res: any) {
             const freshSnap = await apptRef.get();
             if (freshSnap.data()?.refundIssuedAutomatically === true) {
               functions.logger.info(`Refund already issued for ${appointmentId}, skipping`);
+              await eventRef.set({
+                eventId: event.id,
+                type: event.type,
+                processedAt: FieldValue.serverTimestamp(),
+              });
               res.status(200).json({ received: true, status: 'already_refunded' });
               return;
             }
@@ -1325,12 +1335,19 @@ export async function stripeWebhookHandler(req: any, res: any) {
                   reason: 'requested_by_customer',
                   metadata: { automatedRefundReason: 'hold_expired_slot_reclaimed', appointmentId },
                 },
-                { idempotencyKey: `refund_${appointmentId}` }
+                { idempotencyKey: `refund_${paymentIntent.id}` }
               );
               await apptRef.set({ refundIssuedAutomatically: true }, { merge: true });
             } catch (refErr) {
               functions.logger.error('Failed to automatically refund expired hold:', refErr);
+              res.status(500).send('Refund pending; webhook will retry');
+              return;
             }
+            await eventRef.set({
+              eventId: event.id,
+              type: event.type,
+              processedAt: FieldValue.serverTimestamp(),
+            });
             res.status(200).json({ received: true, status: 'hold_expired_refunded', conflictReason });
             return;
           }
@@ -1466,6 +1483,11 @@ export async function stripeWebhookHandler(req: any, res: any) {
         functions.logger.info(`Unhandled event type: ${event.type}`);
     }
 
+    await eventRef.set({
+      eventId: event.id,
+      type: event.type,
+      processedAt: FieldValue.serverTimestamp(),
+    });
     res.status(200).json({ received: true });
   } catch (err: any) {
     functions.logger.error('Error handling Stripe webhook event:', err);

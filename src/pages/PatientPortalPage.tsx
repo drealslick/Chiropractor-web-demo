@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { useClinic } from '../data/ClinicContext';
 import {
   PatientLead,
@@ -17,9 +19,12 @@ import {
   loginPatientWithFirebaseAuth,
   sendRealPasswordReset,
   fetchAppointmentsByEmailFromFirestore,
+  fetchMyAppointmentsFromFirestore,
   fetchAppointmentByIdFromFirestore,
   logoutPatientFromFirebase,
 } from '../services/firebaseSync';
+import { isExplicitDemo } from '../lib/mode';
+import { rescheduleAppointmentServer, cancelAppointmentServer } from '../lib/booking-client';
 import {
   Calendar,
   Clock,
@@ -187,8 +192,52 @@ export default function PatientPortalPage() {
     };
   };
 
+  // Restore an existing Firebase Auth session securely without trusting browser
+  // sessionStorage or an unverified email address.
+  useEffect(() => {
+    if (isExplicitDemo()) return;
+    let disposed = false;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        if (!disposed) {
+          setActivePatient(null);
+          setPatientAppointments([]);
+          setSelectedAppt(null);
+        }
+        return;
+      }
+      try {
+        const appointments = await fetchMyAppointmentsFromFirestore();
+        if (disposed) return;
+        setActivePatient({
+          name: user.displayName || user.email?.split('@')[0] || 'Patient',
+          email: user.email || undefined,
+          isAccount: true,
+        });
+        setPatientAppointments(appointments);
+        setSelectedAppt(appointments[0] || null);
+      } catch {
+        if (!disposed) setLoginError('We could not load your appointments. Please try signing in again.');
+      }
+    });
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
+  }, []);
+
   // Check existing session or URL query params on mount
   useEffect(() => {
+    // Never restore patient identity from unauthenticated browser session data.
+    // In live mode Firebase Auth, not sessionStorage or URL parameters, decides
+    // which private records are available.
+    if (!isExplicitDemo()) {
+      if (searchParams.get('ref') || searchParams.get('query')) {
+        setAuthMode('account');
+        setLoginError('For your privacy, sign in to your verified account to access appointment details.');
+      }
+      return;
+    }
     const urlRef = searchParams.get('ref') || searchParams.get('query');
     if (urlRef) {
       setAuthMode('quickRef');
@@ -215,6 +264,11 @@ export default function PatientPortalPage() {
   }, [searchParams]);
 
   const handleDirectRefLookup = async (query: string, phoneCheck?: string) => {
+    if (!isExplicitDemo()) {
+      setAuthMode('account');
+      setLoginError('Sign in to your verified account. Direct booking-reference access is unavailable for confidential records.');
+      return;
+    }
     setLoginError('');
     const cleanId = query.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
     if (!cleanId) {
@@ -247,7 +301,7 @@ export default function PatientPortalPage() {
       setPatientAppointments(matches);
       setSelectedAppt(primary);
       try {
-        sessionStorage.setItem(
+        if (isExplicitDemo()) sessionStorage.setItem(
           PATIENT_SESSION_KEY,
           JSON.stringify({ id: primary.id, name: primary.name, email: primary.email, isAccount: false })
         );
@@ -316,17 +370,16 @@ export default function PatientPortalPage() {
         setIsLoading(false);
         if (firebaseRes.success && firebaseRes.account) {
           // Fetch appointments from Cloud Firestore first, fallback to local store
-          let appts = await fetchAppointmentsByEmailFromFirestore(firebaseRes.account.email);
-          if (appts.length === 0) {
-            appts = findPatientAppointmentsByEmail(firebaseRes.account.email);
-          }
+          const appts = isExplicitDemo()
+            ? await fetchAppointmentsByEmailFromFirestore(firebaseRes.account.email)
+            : await fetchMyAppointmentsFromFirestore();
 
           setActivePatient({ name: firebaseRes.account.name, email: firebaseRes.account.email, isAccount: true });
           setPatientAppointments(appts);
           if (appts.length > 0) setSelectedAppt(appts[0]);
 
           try {
-            sessionStorage.setItem(
+            if (isExplicitDemo()) sessionStorage.setItem(
               PATIENT_SESSION_KEY,
               JSON.stringify({ id: firebaseRes.account.id, name: firebaseRes.account.name, email: firebaseRes.account.email, isAccount: true })
             );
@@ -355,17 +408,16 @@ export default function PatientPortalPage() {
         setIsLoading(false);
         if (authRes.success && authRes.account) {
           // Fetch live appointments from Cloud Firestore
-          let appts = await fetchAppointmentsByEmailFromFirestore(authRes.account.email);
-          if (appts.length === 0) {
-            appts = findPatientAppointmentsByEmail(authRes.account.email);
-          }
+          const appts = isExplicitDemo()
+            ? await fetchAppointmentsByEmailFromFirestore(authRes.account.email)
+            : await fetchMyAppointmentsFromFirestore();
 
           setActivePatient({ name: authRes.account.name, email: authRes.account.email, isAccount: true });
           setPatientAppointments(appts);
           if (appts.length > 0) setSelectedAppt(appts[0]);
 
           try {
-            sessionStorage.setItem(
+            if (isExplicitDemo()) sessionStorage.setItem(
               PATIENT_SESSION_KEY,
               JSON.stringify({ id: authRes.account.id, name: authRes.account.name, email: authRes.account.email, isAccount: true })
             );
@@ -419,9 +471,30 @@ export default function PatientPortalPage() {
     setLoginError('');
   };
 
-  const handleResubmitReschedule = (e: React.FormEvent) => {
+  const handleResubmitReschedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAppt || !newDate) return;
+    if (!selectedAppt || !newDate || !newTime) return;
+
+    if (!isExplicitDemo()) {
+      setLoginError('');
+      setIsLoading(true);
+      const result = await rescheduleAppointmentServer({
+        appointmentId: selectedAppt.id,
+        newDate,
+        newTime,
+        reason: rescheduleNote,
+      });
+      setIsLoading(false);
+      if (!result.success) {
+        setLoginError(result.error || 'Could not reschedule appointment.');
+        return;
+      }
+      const updated = { ...selectedAppt, date: newDate, time: newTime };
+      setSelectedAppt(updated);
+      setPatientAppointments((items) => items.map((p) => p.id === updated.id ? updated : p));
+      setRescheduleSuccess(true);
+      return;
+    }
 
     const res = requestPatientReschedule(selectedAppt.id, newDate, newTime, rescheduleNote);
     if (res.success && res.updatedLead) {
@@ -434,8 +507,23 @@ export default function PatientPortalPage() {
     }
   };
 
-  const handleConfirmCancellation = () => {
+  const handleConfirmCancellation = async () => {
     if (!selectedAppt) return;
+    if (!isExplicitDemo()) {
+      setLoginError('');
+      setIsLoading(true);
+      const result = await cancelAppointmentServer({ appointmentId: selectedAppt.id, reason: cancelReason });
+      setIsLoading(false);
+      if (!result.success) {
+        setLoginError(result.error || 'Could not cancel appointment.');
+        return;
+      }
+      const updated: PatientLead = { ...selectedAppt, status: 'cancelled', cancellationReason: cancelReason };
+      setSelectedAppt(updated);
+      setPatientAppointments((items) => items.map((p) => p.id === updated.id ? updated : p));
+      setCancelSuccess(true);
+      return;
+    }
     const res = requestPatientCancellation(selectedAppt.id, cancelReason);
     if (res.success && res.updatedLead) {
       setSelectedAppt(res.updatedLead);
@@ -563,7 +651,7 @@ export default function PatientPortalPage() {
                   <User className="w-3.5 h-3.5 text-emerald-700" />
                   <span>Patient Account</span>
                 </button>
-                <button
+                {isExplicitDemo() && <button
                   type="button"
                   onClick={() => {
                     setAuthMode('quickRef');
@@ -577,7 +665,7 @@ export default function PatientPortalPage() {
                 >
                   <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
                   <span>Quick Booking ID</span>
-                </button>
+                </button>}
               </div>
 
               {loginError && (
@@ -611,7 +699,7 @@ export default function PatientPortalPage() {
                           ? 'Access all your visits, receipts & recovery plan without booking IDs.'
                           : accountTab === 'forgot'
                           ? 'Enter your registered email address to request a secure password recovery link.'
-                          : 'Set up your credentials to automatically link all current and future bookings.'}
+                          : 'Sign up securely. Guest bookings must be linked to your account by reception.'}
                       </p>
                     </div>
                     <div className="flex gap-1 text-xs">
@@ -1093,7 +1181,7 @@ export default function PatientPortalPage() {
                         {selectedAppt.practitionerName || clinic.leadPractitionerName || 'Doctor of Chiropractic'}
                       </p>
                       <p className="text-xs text-emerald-800 font-medium">
-                        Board Licensed Practitioner
+                        Assigned practitioner
                       </p>
                     </div>
 
@@ -1103,11 +1191,11 @@ export default function PatientPortalPage() {
                         <span>Payment / Protection</span>
                       </span>
                       <p className="text-base font-bold text-stone-900">
-                        {selectedAppt.paymentAmount || '£49.00 Consultation'}
+                        {selectedAppt.paymentAmount || (selectedAppt.paymentStatus === 'unpaid' ? 'Payment due at clinic' : 'See your receipt for amount')}
                       </p>
                       <p className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>{selectedAppt.paymentStatus === 'paid_full' ? 'Paid in Full' : selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit Paid (£25)' : 'No-Show Card Protected'}</span>
+                        <span>{selectedAppt.paymentStatus === 'paid_full' ? 'Paid in Full' : selectedAppt.paymentStatus === 'deposit_paid' ? 'Deposit Paid' : 'Payment not yet recorded'}</span>
                       </p>
                     </div>
                   </div>
@@ -1148,9 +1236,17 @@ export default function PatientPortalPage() {
                     )}
                   </div>
 
-                  {activePatient?.isAccount === true && (
+                  {!isExplicitDemo() && activePatient?.isAccount === true && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+                      Personal treatment plans, recovery milestones and home exercises will appear here
+                      only when entered or approved by your licensed treating clinician. Contact reception
+                      for advice about your individual condition.
+                    </div>
+                  )}
+
+                  {isExplicitDemo() && activePatient?.isAccount === true && (
                     <>
-                      {/* HEALTH DASHBOARD INTERACTIVE SECTIONS */}
+                      {/* HEALTH DASHBOARD INTERACTIVE SECTIONS — DEMO EXAMPLES ONLY */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                         
                         {/* CARE PLAN PHASE & MILESTONES */}

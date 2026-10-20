@@ -12,6 +12,8 @@
 
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import Stripe from 'stripe';
+import { minorUnitsToMajorUnits, verifyPaymentForAppointment, verifySetupForAppointment } from './paymentSecurity';
 import {
   ScheduleInterval,
   parseTimeToMinutes,
@@ -167,13 +169,26 @@ export async function executeAuthoritativeBooking(
 
   const clinicServices: any[] = clinicData.services || [];
   const matchedService = clinicServices.find(
-    (s) => s.id === serviceId || s.title?.toLowerCase() === requestedServiceTitle?.toLowerCase()
+    (s) => s.active !== false && (s.id === serviceId || s.title?.toLowerCase() === requestedServiceTitle?.toLowerCase())
   );
 
   if (matchedService) {
-    trustedPrice = typeof matchedService.price === 'number' ? matchedService.price : 85;
-    trustedDeposit = typeof matchedService.deposit === 'number' ? matchedService.deposit : 25;
-    trustedDuration = typeof matchedService.duration === 'number' ? matchedService.duration : 45;
+    // ClinicService.price/deposit are canonically INTEGER MINOR UNITS.
+    // The appointment + UI layer uses major units; Stripe converts back
+    // exactly once. Never charge a cents-denominated service 100x its price.
+    try {
+      trustedPrice = minorUnitsToMajorUnits(matchedService.price);
+      trustedDeposit = minorUnitsToMajorUnits(matchedService.deposit);
+    } catch {
+      throw new functions.https.HttpsError('failed-precondition', 'Service pricing is invalid; contact clinic reception.');
+    }
+    if (trustedDeposit > trustedPrice) {
+      throw new functions.https.HttpsError('failed-precondition', 'Deposit cannot exceed the full service price.');
+    }
+    trustedDuration = matchedService.durationMinutes || matchedService.duration || 45;
+    if (!Number.isInteger(trustedDuration) || trustedDuration < 5 || trustedDuration > 240) {
+      throw new functions.https.HttpsError('failed-precondition', 'Service duration is invalid.');
+    }
     canonicalServiceTitle = matchedService.title || canonicalServiceTitle;
   } else if (DEFAULT_SERVICE_CATALOG[serviceId]) {
     const defaultItem = DEFAULT_SERVICE_CATALOG[serviceId];
@@ -411,84 +426,113 @@ export const bookAppointment = functions.https.onCall(async (data, context) => {
  * 3.5: Callable Function: confirmAppointmentHold
  * Idempotently upgrades hold reservation to confirmed upon verified payment completion
  */
-export const confirmAppointmentHold = functions.https.onCall(async (data, context) => {
+export const confirmAppointmentHold = functions.https.onCall(async (data) => {
   const { appointmentId, paymentIntentId, paymentChoice = 'full' } = data || {};
-
-  if (!appointmentId || !paymentIntentId) {
-    throw new functions.https.HttpsError('invalid-argument', 'appointmentId and paymentIntentId are required.');
+  if (typeof appointmentId !== 'string' || !appointmentId ||
+      typeof paymentIntentId !== 'string' || !paymentIntentId ||
+      !['full', 'deposit', 'card_hold'].includes(paymentChoice)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Valid appointmentId, Stripe intent ID, and payment choice are required.');
   }
 
   const activeDb = getDb();
   const apptRef = activeDb.collection('appointments').doc(appointmentId);
+  const initialSnap = await apptRef.get();
+  if (!initialSnap.exists) {
+    throw new functions.https.HttpsError('not-found', 'Appointment not found.');
+  }
+  const initialAppt = initialSnap.data()!;
+
+  // The browser does not prove payment. Retrieve the bound Stripe intent with
+  // server credentials before changing the schedule or any payment fields.
+  let secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    try { secretKey = (functions as any).config?.()?.stripe?.secret_key; } catch { /* no legacy config */ }
+  }
+  if (!secretKey) {
+    throw new functions.https.HttpsError('failed-precondition', 'Stripe is not configured for payment verification.');
+  }
+  const stripe = new Stripe(secretKey, { apiVersion: '2023-10-16' });
+  let paymentIntent: Stripe.PaymentIntent | null = null;
+  let setupIntent: Stripe.SetupIntent | null = null;
+
+  try {
+    if (paymentChoice === 'card_hold') {
+      setupIntent = await stripe.setupIntents.retrieve(paymentIntentId);
+      verifySetupForAppointment(setupIntent, initialAppt, appointmentId);
+    } else {
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      verifyPaymentForAppointment(paymentIntent, initialAppt, appointmentId, paymentChoice);
+    }
+  } catch (err: any) {
+    functions.logger.warn('Stripe verification failed for appointment confirmation:', err?.message);
+    throw new functions.https.HttpsError('failed-precondition', 'Payment has not been verified for this appointment.');
+  }
 
   await activeDb.runTransaction(async (transaction) => {
     const apptSnap = await transaction.get(apptRef);
     if (!apptSnap.exists) {
       throw new functions.https.HttpsError('not-found', 'Appointment not found.');
     }
-
     const appt = apptSnap.data()!;
 
-    // Idempotent: If already confirmed with same transaction, return early
-    if (appt.status === 'confirmed' && appt.transactionId === paymentIntentId) {
-      return;
+    // A webhook or previous verified callback may already have settled this intent.
+    if (paymentChoice === 'card_hold' && appt.cardOnFile === true &&
+        appt.stripeSetupIntentId === paymentIntentId && appt.status === 'confirmed') return;
+    if (paymentIntent && appt.stripePaymentIntentId === paymentIntentId &&
+        appt.status === 'confirmed' &&
+        (appt.paymentStatus === 'paid_full' || (paymentChoice === 'deposit' && appt.paymentStatus === 'deposit_paid'))) return;
+
+    // Recheck immutable payment association inside the transaction.
+    if (setupIntent) {
+      verifySetupForAppointment(setupIntent, appt, appointmentId);
+    } else if (paymentIntent) {
+      verifyPaymentForAppointment(paymentIntent, appt, appointmentId, paymentChoice);
     }
 
-    const scheduleDocId = `${appt.clinicId}_${appt.practitionerId}_${appt.date}`;
-    const scheduleRef = activeDb.collection('schedules').doc(scheduleDocId);
-    const scheduleSnap = await transaction.get(scheduleRef);
+    if (appt.status === 'hold_expired' || appt.status === 'hold_expired_conflict') {
+      throw new functions.https.HttpsError('deadline-exceeded', 'Appointment hold expired. Contact the clinic for refund support.');
+    }
 
+    const scheduleRef = activeDb.collection('schedules').doc(`${appt.clinicId}_${appt.practitionerId}_${appt.date}`);
+    const scheduleSnap = await transaction.get(scheduleRef);
     if (!scheduleSnap.exists) {
       throw new functions.https.HttpsError('failed-precondition', 'Schedule document missing for hold verification.');
     }
-
     const intervals: ScheduleInterval[] = scheduleSnap.data()?.intervals || [];
-    const targetIntervalIndex = intervals.findIndex((i) => i.appointmentId === appointmentId);
-
-    if (targetIntervalIndex === -1) {
-      // The hold expired and was pruned or claimed by another user
-      throw new functions.https.HttpsError(
-        'deadline-exceeded',
-        'Your reservation hold has expired and the slot is no longer available. A refund will be issued.'
-      );
+    const index = intervals.findIndex((interval) => interval.appointmentId === appointmentId);
+    if (index < 0) {
+      throw new functions.https.HttpsError('deadline-exceeded', 'Appointment hold is no longer available.');
+    }
+    const interval = intervals[index];
+    if (interval.status === 'hold' && interval.expiresAt &&
+        new Date(interval.expiresAt).getTime() < Date.now()) {
+      throw new functions.https.HttpsError('deadline-exceeded', 'Checkout hold expired before verified payment.');
     }
 
-    const targetInterval = intervals[targetIntervalIndex];
+    intervals[index] = { ...interval, status: 'confirmed', expiresAt: null };
+    transaction.update(scheduleRef, { intervals, updatedAt: new Date().toISOString() });
 
-    // Check if expired
-    if (targetInterval.status === 'hold' && targetInterval.expiresAt) {
-      if (new Date(targetInterval.expiresAt).getTime() < Date.now()) {
-        throw new functions.https.HttpsError(
-          'deadline-exceeded',
-          'Checkout hold expired before payment was confirmed. Slot cannot be confirmed.'
-        );
-      }
-    }
-
-    // Upgrade interval to confirmed
-    intervals[targetIntervalIndex] = {
-      ...targetInterval,
+    const amountPaid = paymentIntent ? paymentIntent.amount_received / 100 : 0;
+    const isDeposit = paymentChoice === 'deposit';
+    const updates: Record<string, any> = {
       status: 'confirmed',
-      expiresAt: null,
+      holdExpiresAt: null,
+      updatedAt: new Date().toISOString(),
     };
 
-    transaction.update(scheduleRef, {
-      intervals,
-      updatedAt: new Date().toISOString(),
-    });
-
-    const paymentStatus = paymentChoice === 'full' ? 'paid_full' : 'deposit_paid';
-    const amountPaid = paymentChoice === 'full' ? appt.priceAmount : appt.depositAmount;
-
-    transaction.update(apptRef, {
-      status: 'confirmed',
-      paymentStatus,
-      amountPaid,
-      transactionId: paymentIntentId,
-      holdExpiresAt: null,
-      paidAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+    if (setupIntent) {
+      updates.cardOnFile = true;
+      updates.paymentStatus = 'unpaid';
+      updates.stripePaymentMethodId = typeof setupIntent.payment_method === 'string' ? setupIntent.payment_method : null;
+      updates.stripeCustomerId = typeof setupIntent.customer === 'string' ? setupIntent.customer : null;
+    } else {
+      updates.paymentStatus = isDeposit ? 'deposit_paid' : 'paid_full';
+      updates.amountPaid = amountPaid;
+      updates.remainingBalance = isDeposit ? Math.max(0, Number(appt.priceAmount) - amountPaid) : 0;
+      updates.transactionId = paymentIntentId;
+      updates.paidAt = new Date().toISOString();
+    }
+    transaction.update(apptRef, updates);
   });
 
   return { success: true, appointmentId, status: 'confirmed' };

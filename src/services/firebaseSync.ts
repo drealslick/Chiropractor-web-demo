@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   setDoc,
+  updateDoc,
   getDoc,
   getDocs,
   onSnapshot,
@@ -175,6 +176,72 @@ export async function fetchAppointmentsByEmailFromFirestore(email: string): Prom
   } catch (error) {
     console.error('Failed to query appointments by email:', error);
     return [];
+  }
+}
+
+/**
+ * Patient portal: only fetch appointments bound to the currently authenticated
+ * Firebase UID. Never grant access from an email address or browser session.
+ * Guest bookings must be linked by verified clinic staff first.
+ */
+export async function fetchMyAppointmentsFromFirestore(): Promise<PatientLead[]> {
+  if (isSandboxMode()) {
+    return sandbox.list<PatientLead>('appointments');
+  }
+  const user = auth.currentUser;
+  if (!user || !isFirebaseConfigured) return [];
+  try {
+    const clinicId = import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    const q = query(collection(db, APPOINTMENTS_COLLECTION), where('patientId', '==', user.uid));
+    const snapshot = await getDocs(q);
+    return snapshot.docs
+      .map((entry) => {
+        const appointment = entry.data();
+        if (appointment.clinicId !== clinicId) return null;
+        return {
+          ...appointment,
+          id: entry.id,
+          name: appointment.patientName || appointment.name || '',
+          email: appointment.patientEmail || appointment.email || '',
+          phone: appointment.patientPhone || appointment.phone || '',
+        } as PatientLead;
+      })
+      .filter((item): item is PatientLead => item !== null);
+  } catch (error) {
+    console.error('Unable to retrieve patient-owned appointments:', error);
+    throw new Error('We could not load your appointments. Please try signing in again.');
+  }
+}
+
+/**
+ * Submit medical intake only on an appointment owned by the signed-in user.
+ * Firestore rules independently check this restriction and allow only intake data.
+ */
+export async function saveMyIntakeToFirestore(
+  appointmentId: string,
+  intakeForm: PatientLead['intakeForm']
+): Promise<{ success: boolean; error?: string }> {
+  if (isSandboxMode()) {
+    const saved = sandbox.update('appointments', appointmentId, { intakeForm });
+    return { success: Boolean(saved), error: saved ? undefined : 'Demo appointment not found.' };
+  }
+  if (!auth.currentUser || !isFirebaseConfigured) {
+    return { success: false, error: 'Please sign in to submit confidential medical intake.' };
+  }
+  try {
+    const appointmentRef = doc(db, APPOINTMENTS_COLLECTION, appointmentId);
+    const record = await getDoc(appointmentRef);
+    if (!record.exists() || record.data().patientId !== auth.currentUser.uid) {
+      return { success: false, error: 'This appointment is not linked to your verified patient account.' };
+    }
+    await updateDoc(appointmentRef, {
+      intakeForm,
+      updatedAt: serverTimestamp(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Secure clinical intake submission failed:', error);
+    return { success: false, error: 'Medical intake could not be saved. Please try again or contact the clinic.' };
   }
 }
 

@@ -45,8 +45,7 @@ describe('Cloud Storage Security Rules Matrix', () => {
         },
       });
     } catch (err) {
-      console.warn('Could not initialize storage test environment:', err);
-      testEnv = null;
+      throw new Error('Storage emulator initialization failed: privacy tests cannot be skipped.', { cause: err });
     }
   });
 
@@ -92,6 +91,42 @@ describe('Cloud Storage Security Rules Matrix', () => {
     });
   });
 
+  describe('1.5 Patient clinic claims and legacy paths', () => {
+    it('DENIES a patient whose clinic claim does not match the destination clinic even when UID matches', async () => {
+      const patientFromB = testEnv!.authenticatedContext(PATIENT_A, {
+        role: 'patient',
+        clinicId: CLINIC_B,
+      });
+      const file = patientFromB.storage().ref(`patients/${CLINIC_A}/${PATIENT_A}/report.pdf`);
+      await assertFails(file.put(new Uint8Array([0x25, 0x50, 0x44, 0x46]), { contentType: 'application/pdf' }));
+      await assertFails(file.getDownloadURL());
+    });
+
+    it('DENIES unauthenticated writes and disallows legacy unscoped patient uploads', async () => {
+      const anonymous = testEnv!.unauthenticatedContext();
+      const unscopedPatient = testEnv!.authenticatedContext(PATIENT_A, {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+      await assertFails(anonymous.storage().ref(`patients/${CLINIC_A}/${PATIENT_A}/new.pdf`).put(
+        new Uint8Array([0x25]), { contentType: 'application/pdf' }
+      ));
+      await assertFails(unscopedPatient.storage().ref(`patients/${PATIENT_A}/legacy.pdf`).put(
+        new Uint8Array([0x25]), { contentType: 'application/pdf' }
+      ));
+    });
+
+    it('DENIES executable content and oversized patient files', async () => {
+      const patient = testEnv!.authenticatedContext(PATIENT_A, {
+        role: 'patient',
+        clinicId: CLINIC_A,
+      });
+      const ref = patient.storage().ref(`patients/${CLINIC_A}/${PATIENT_A}/upload.bin`);
+      await assertFails(ref.put(new Uint8Array([0x00, 0x01]), { contentType: 'application/octet-stream' }));
+      // Only MIME whitelist is asserted here; size enforcement remains in isValidDocument.
+    });
+  });
+
   describe('2. Multi-Tenant Cross-Clinic Isolation', () => {
     it('DENIES Clinic A staff from reading Clinic B patient uploads', async () => {
       const clinicAStaff = testEnv!.authenticatedContext('staff_columbus_01', {
@@ -134,6 +169,16 @@ describe('Cloud Storage Security Rules Matrix', () => {
       const unauthContext = testEnv!.unauthenticatedContext();
       const fileRef = unauthContext.storage().ref(`clinics/${CLINIC_A}/public/hero-banner.jpg`);
       await assertSucceeds(fileRef.getDownloadURL());
+    });
+
+    it('DENIES script-capable SVG uploads to publicly readable clinic media', async () => {
+      const staff = testEnv!.authenticatedContext('staff_columbus_01', {
+        role: 'staff',
+        clinicId: CLINIC_A,
+      });
+      const publicRef = staff.storage().ref(`clinics/${CLINIC_A}/public/active.svg`);
+      const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+      await assertFails(publicRef.put(svg, { contentType: 'image/svg+xml' }));
     });
 
     it('DENIES regular staff from reading or writing /clinics/{clinicId}/staff/**', async () => {

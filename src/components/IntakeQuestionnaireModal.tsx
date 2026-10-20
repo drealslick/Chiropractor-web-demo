@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PatientLead, savePatientIntakeForm } from '../data/leadsStore';
+import { saveMyIntakeToFirestore } from '../services/firebaseSync';
+import { isExplicitDemo } from '../lib/mode';
 import { BodyPainLocator } from './BodyPainLocator';
 import { DigitalSignaturePad } from './DigitalSignaturePad';
 
@@ -96,6 +98,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -122,7 +125,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!informedConsentAgreed) {
@@ -131,33 +134,41 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
     }
 
     setIsSubmitting(true);
+    setSaveError(null);
+    const isSigned = Boolean(signatureDataUrl && signatureDataUrl.trim().length > 0);
+    const intakePayload = {
+      painArea: painArea || 'General Consultation Assessment',
+      bodyRegions: selectedBodyRegions,
+      painLevel,
+      painDuration,
+      painType,
+      symptoms: selectedSymptoms,
+      aggravatingFactors: selectedAggravators,
+      priorSurgeries,
+      contraindications,
+      hasRedFlags,
+      informedConsentAgreed,
+      signatureDataUrl: signatureDataUrl || undefined,
+      signedAt: isSigned ? new Date().toISOString() : undefined,
+      completedAt: new Date().toISOString(),
+    };
 
-    setTimeout(() => {
-      const isSigned = Boolean(signatureDataUrl && signatureDataUrl.trim().length > 0);
-      const intakePayload = {
-        painArea: painArea || 'General Consultation Assessment',
-        bodyRegions: selectedBodyRegions,
-        painLevel,
-        painDuration,
-        painType,
-        symptoms: selectedSymptoms,
-        aggravatingFactors: selectedAggravators,
-        priorSurgeries,
-        contraindications,
-        hasRedFlags,
-        informedConsentAgreed,
-        signatureDataUrl: signatureDataUrl || undefined,
-        signedAt: isSigned ? new Date().toISOString() : undefined,
-        completedAt: new Date().toISOString(),
-      };
-
-      const res = savePatientIntakeForm(lead.id, intakePayload);
-      setIsSubmitting(false);
-      setSuccess(true);
-      if (res.success && res.updatedLead && onIntakeCompleted) {
-        onIntakeCompleted(res.updatedLead);
+    try {
+      if (isExplicitDemo()) {
+        const result = savePatientIntakeForm(lead.id, intakePayload);
+        if (!result.success) throw new Error('Unable to save demo intake.');
+        if (result.updatedLead && onIntakeCompleted) onIntakeCompleted(result.updatedLead);
+      } else {
+        const result = await saveMyIntakeToFirestore(lead.id, intakePayload);
+        if (!result.success) throw new Error(result.error || 'Clinical intake could not be saved.');
+        if (onIntakeCompleted) onIntakeCompleted({ ...lead, intakeForm: intakePayload });
       }
-    }, 500);
+      setSuccess(true);
+    } catch (error: any) {
+      setSaveError(error?.message || 'Clinical intake could not be saved. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -213,7 +224,7 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
               </h4>
               <p className="text-stone-600 text-sm max-w-md mx-auto leading-relaxed">
                 Thank you, <strong>{lead.name}</strong>. Your anatomical pain mapping, triage markers,
-                and digital signature have been securely encrypted and attached to your appointment record.
+                and digital signature have been saved to your appointment record.
               </p>
 
               <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-xl max-w-sm mx-auto text-left text-xs space-y-1 text-stone-600">
@@ -243,6 +254,11 @@ export const IntakeQuestionnaireModal: React.FC<IntakeQuestionnaireModalProps> =
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {saveError && (
+                <div role="alert" className="p-3 rounded-xl bg-rose-50 text-rose-800 border border-rose-200 text-sm">
+                  {saveError}
+                </div>
+              )}
               {/* Clinical Flow Step Tracker */}
               <div className="flex items-center justify-between text-xs font-semibold text-stone-500 border-b border-stone-200 pb-3">
                 <button

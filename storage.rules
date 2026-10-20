@@ -14,6 +14,13 @@ service firebase.storage {
       );
     }
 
+    function isPatientInClinic(clinicId, patientId) {
+      return isAuthenticated()
+        && request.auth.uid == patientId
+        && 'clinicId' in request.auth.token
+        && request.auth.token.clinicId == clinicId;
+    }
+
     function isClinicAdmin(clinicId) {
       return isAuthenticated() && (
         ('superAdmin' in request.auth.token && request.auth.token.superAdmin == true) ||
@@ -23,9 +30,11 @@ service firebase.storage {
       );
     }
 
+    // Public images must not accept active formats (SVG/XML), which can
+    // execute script when served from an untrusted public URL.
     function isValidImage() {
-      return request.resource.contentType.matches('image/.*')
-        && request.resource.size < 5 * 1024 * 1024; // 5MB limit
+      return request.resource.contentType in ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        && request.resource.size < 5 * 1024 * 1024;
     }
 
     function isValidDocument() {
@@ -47,19 +56,18 @@ service firebase.storage {
 
     // Patient records / intake uploads (strictly private to patient and staff of same clinic)
     match /patients/{clinicId}/{patientId}/{allPaths=**} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == patientId ||
-        isClinicStaff(clinicId)
-      );
-      allow write: if isAuthenticated() && (
-        request.auth.uid == patientId ||
-        isClinicStaff(clinicId)
-      ) && isValidDocument();
+      allow read: if isPatientInClinic(clinicId, patientId) || isClinicStaff(clinicId);
+      allow create, update: if (isPatientInClinic(clinicId, patientId) || isClinicStaff(clinicId))
+        && isValidDocument();
+      allow delete: if isPatientInClinic(clinicId, patientId) || isClinicAdmin(clinicId);
     }
 
-    // General patient uploads fallback (strictly private to authenticated owner)
+    // Legacy unscoped uploads are read-only for their actual owner until
+    // migrated to /patients/{clinicId}/{patientId}/... .
+    // No more unscoped writes or unchecked MIME/size evaluations on reads.
     match /patients/{patientId}/{allPaths=**} {
-      allow read, write: if isAuthenticated() && request.auth.uid == patientId && isValidDocument();
+      allow read: if isAuthenticated() && request.auth.uid == patientId;
+      allow write: if false;
     }
   }
 }

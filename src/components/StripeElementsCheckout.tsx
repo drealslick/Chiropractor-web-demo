@@ -10,6 +10,7 @@ import { Lock, ShieldCheck, RefreshCw, AlertCircle, CreditCard, RotateCcw } from
 interface StripeElementsCheckoutProps {
   clinicId: string;
   appointmentId: string;
+  clientRequestId: string;
   amount: number;
   currencySymbol: string;
   paymentChoice: 'deposit' | 'full' | 'card_hold' | 'pay_at_clinic';
@@ -22,7 +23,7 @@ interface StripeElementsCheckoutProps {
     amount: number;
     last4?: string;
     brand?: string;
-  }) => void;
+  }) => Promise<void> | void;
   onFallbackToDemo?: (reason?: string) => void;
 }
 
@@ -65,7 +66,7 @@ const CheckoutForm: React.FC<{
           setErrorMessage(result.error.message || 'Card authorization failed. Please check your card details.');
           setIsProcessing(false);
         } else if (result.setupIntent && result.setupIntent.status === 'succeeded') {
-          onSuccess({
+          await onSuccess({
             paymentIntentId: result.setupIntent.id,
             status: 'card_saved',
             amount: 0,
@@ -90,7 +91,7 @@ const CheckoutForm: React.FC<{
           setIsProcessing(false);
         } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
           const pi = result.paymentIntent;
-          onSuccess({
+          await onSuccess({
             paymentIntentId: pi.id,
             status: pi.status,
             amount: (pi.amount || 0) / 100,
@@ -98,13 +99,9 @@ const CheckoutForm: React.FC<{
             brand: 'Verified Card',
           });
         } else if (result.paymentIntent && result.paymentIntent.status === 'processing') {
-          onSuccess({
-            paymentIntentId: result.paymentIntent.id,
-            status: 'processing',
-            amount: amount / 100,
-            last4: '••••',
-            brand: 'Processing',
-          });
+          // Processing is not settled. Stripe webhook will confirm asynchronously.
+          setErrorMessage('Your payment is still processing. Do not pay again yet; contact reception if the status does not update.');
+          setIsProcessing(false);
         } else {
           // Do NOT synthesize a successful transaction if status is not verified
           setErrorMessage(
@@ -201,6 +198,7 @@ const CheckoutForm: React.FC<{
 export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
   clinicId,
   appointmentId,
+  clientRequestId,
   amount,
   currencySymbol,
   paymentChoice,
@@ -211,6 +209,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
   onFallbackToDemo,
 }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [serverAmount, setServerAmount] = useState<number | null>(null);
   const [isSetupIntent, setIsSetupIntent] = useState<boolean>(false);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [isLoadingIntent, setIsLoadingIntent] = useState<boolean>(true);
@@ -240,6 +239,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
       const result: any = await createIntentFn({
         clinicId,
         appointmentId,
+        clientRequestId,
         amount,
         currency: currencyCode,
         paymentChoice,
@@ -258,12 +258,13 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
       }
 
       if (data?.clientSecret && data?.publishableKey) {
-        const stripeInstance = loadStripe(
-          data.publishableKey,
-          data.stripeAccountId ? { stripeAccount: data.stripeAccountId } : undefined
-        );
+        // Backend creates destination-charge intents on the platform account
+        // (transfer_data.destination), NOT direct charges on a connected account.
+        // Using stripeAccount here would look up the client secret in the wrong account.
+        const stripeInstance = loadStripe(data.publishableKey);
         setStripePromise(stripeInstance);
         setClientSecret(data.clientSecret);
+        setServerAmount(data.amount);
         setIsSetupIntent(data.isSetupIntent === true);
       } else {
         setInitError('Live Stripe public keys are not configured on this deployment.');
@@ -279,7 +280,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
 
   useEffect(() => {
     initializeIntent();
-  }, [clinicId, appointmentId, amount, currencySymbol, paymentChoice, patientEmail, patientName, serviceTitle]);
+  }, [clinicId, appointmentId, clientRequestId, amount, currencySymbol, paymentChoice, patientEmail, patientName, serviceTitle]);
 
   if (isLoadingIntent) {
     return (
@@ -335,7 +336,7 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
         }}
       >
         <CheckoutForm
-          amount={amount}
+          amount={serverAmount ?? amount * 100}
           currencySymbol={currencySymbol}
           paymentChoice={paymentChoice}
           isSetupIntent={isSetupIntent}
