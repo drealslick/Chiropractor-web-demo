@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateReceptionStatus } from '../functions/src/receptionPolicy';
+import { canManageReceptionAppointment, validateReceptionStatus } from '../functions/src/receptionPolicy';
 
 describe('clinic reception status transitions', () => {
   it('allows confirming a new booking and checking in a confirmed patient', () => {
@@ -18,6 +18,15 @@ describe('clinic reception status transitions', () => {
     expect(() => validateReceptionStatus('confirmed', 'paid_full')).toThrow();
     expect(() => validateReceptionStatus('confirmed', 'refunded')).toThrow();
     expect(() => validateReceptionStatus('new', 'checked_in')).toThrow();
+  });
+
+  it('restricts reception access to the authenticated clinic', () => {
+    expect(canManageReceptionAppointment({ role: 'staff', clinicId: 'clinic-a' }, 'clinic-a')).toBe(true);
+    expect(canManageReceptionAppointment({ role: 'admin', clinicId: 'clinic-a' }, 'clinic-b')).toBe(false);
+    expect(canManageReceptionAppointment({ role: 'patient', clinicId: 'clinic-a' }, 'clinic-a')).toBe(false);
+    expect(canManageReceptionAppointment({ role: 'staff' }, 'clinic-a')).toBe(false);
+    expect(canManageReceptionAppointment({ role: 'editor', clinicId: 'clinic-a' }, 'clinic-a')).toBe(false);
+    expect(canManageReceptionAppointment({ superAdmin: true }, 'clinic-b')).toBe(true);
   });
 
   it('cannot roll a checked-in patient back to confirmed', () => {
