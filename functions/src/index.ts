@@ -1127,6 +1127,7 @@ export {
   confirmAppointmentHold,
   rescheduleAppointmentSlot,
   cancelAppointmentSlot,
+  setReceptionAppointmentStatus,
 } from './booking';
 import { bookAppointment as authoritativeBookAppointment } from './booking';
 
