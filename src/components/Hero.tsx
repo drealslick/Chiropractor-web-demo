@@ -109,7 +109,9 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
                         key={opt.id}
                         type="button"
                         onClick={() => setActiveTriage(opt)}
-                        className={`px-2 py-2 text-xs font-semibold rounded-lg transition-all text-center truncate cursor-pointer ${
+                        aria-pressed={isActive}
+                        title={opt.label}
+                        className={`min-h-[44px] px-2 py-2 text-xs font-semibold rounded-lg transition-all text-center cursor-pointer ${
                           isActive
                             ? 'bg-white text-stone-900 shadow-xs ring-1 ring-black/5 font-bold'
                             : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
@@ -182,16 +184,14 @@ export const Hero: React.FC<HeroProps> = ({ clinic, onBookClick }) => {
             className="lg:col-span-5 relative"
           >
             <div className="relative rounded-3xl overflow-hidden shadow-xl border border-stone-200/90 bg-stone-100">
-              <picture>
-                <source srcSet={'/images/hero-placeholder.svg'} type="image/svg+xml" />
-                <img
-                  src={'/images/hero-placeholder.svg'}
-                  alt={`Treatment studio at ${clinic.name}`}
-                  className="w-full h-[280px] sm:h-[380px] lg:h-[440px] object-cover object-center"
-                  loading="eager"
-                  referrerPolicy="no-referrer"
-                />
-              </picture>
+              <img
+                src={clinic.heroImage || '/images/clinic_hero_care.jpg'}
+                alt={clinic.heroImageAlt || `Clinic treatment space and care environment`}
+                className="w-full h-[280px] sm:h-[380px] lg:h-[440px] object-cover object-center"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
               
               {/* Subtle bottom gradient scrim */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent pointer-events-none" />
