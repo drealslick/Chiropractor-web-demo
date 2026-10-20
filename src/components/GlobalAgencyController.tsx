@@ -33,6 +33,7 @@ export function GlobalAgencyController() {
     return isDemo ? ({ email: 'demo-admin@columbuschiropractic.com', uid: 'demo-admin-uid' } as any) : null;
   });
   const [isAdminOrStaff, setIsAdminOrStaff] = useState<boolean>(() => isDemo);
+  const [verifiedRole, setVerifiedRole] = useState<'admin' | 'staff' | null>(isDemo ? 'admin' : null);
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(!isDemo);
 
   // Deployment onboarding state
@@ -83,18 +84,20 @@ export function GlobalAgencyController() {
   }, [isOpen]);
 
   // Verify whether a Firebase Auth user has admin or staff privileges via JWT custom claims
-  const verifyUserRole = async (user: User | null): Promise<boolean> => {
-    if (!user) return false;
+  const verifyUserRole = async (user: User | null): Promise<'admin' | 'staff' | null> => {
+    if (!user) return null;
     try {
       // Check cryptographic custom claims in JWT token directly (no document fallback)
       const tokenResult = await getIdTokenResult(user);
       const role = tokenResult.claims.role;
       const isSuperAdmin = tokenResult.claims.superAdmin === true;
 
-      return role === 'admin' || role === 'staff' || isSuperAdmin;
+      if (role === 'admin' || isSuperAdmin) return 'admin';
+      if (role === 'staff') return 'staff';
+      return null;
     } catch (err) {
       console.warn('Error verifying admin authorization:', err);
-      return false;
+      return null;
     }
   };
 
@@ -108,10 +111,12 @@ export function GlobalAgencyController() {
       setIsCheckingAuth(true);
       if (user) {
         setCurrentUser(user);
-        const authorized = await verifyUserRole(user);
-        setIsAdminOrStaff(authorized);
+        const verified = await verifyUserRole(user);
+        setVerifiedRole(verified);
+        setIsAdminOrStaff(verified !== null);
       } else {
         setCurrentUser(null);
+        setVerifiedRole(null);
         setIsAdminOrStaff(false);
       }
       setIsCheckingAuth(false);
@@ -238,6 +243,7 @@ export function GlobalAgencyController() {
   const handleFirebaseLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isDemo) {
+      setVerifiedRole('admin');
       setIsAdminOrStaff(true);
       setCurrentUser({
         email: adminEmail.trim() || 'demo-admin@columbuschiropractic.com',
@@ -256,14 +262,16 @@ export function GlobalAgencyController() {
 
     try {
       const cred = await signInWithEmailAndPassword(auth, adminEmail.trim().toLowerCase(), adminPassword);
-      const authorized = await verifyUserRole(cred.user);
+      const verified = await verifyUserRole(cred.user);
 
-      if (authorized) {
+      if (verified) {
+        setVerifiedRole(verified);
         setIsAdminOrStaff(true);
         setCurrentUser(cred.user);
       } else {
         // Sign out immediately if role check fails
         await signOut(auth);
+        setVerifiedRole(null);
         setIsAdminOrStaff(false);
         setCurrentUser(null);
         setError('Access Denied: Your account role does not have administrative privileges for this clinic.');
@@ -318,9 +326,10 @@ export function GlobalAgencyController() {
 
       // Force token refresh to pick up new admin custom claims
       await getIdToken(user, true);
-      const authorized = await verifyUserRole(user);
+      const verified = await verifyUserRole(user);
 
-      if (authorized) {
+      if (verified) {
+        setVerifiedRole(verified);
         setIsAdminOrStaff(true);
         setCurrentUser(user);
         setIsUnclaimedDeployment(false);
@@ -344,6 +353,7 @@ export function GlobalAgencyController() {
       console.warn('Sign-out note:', err);
     }
     setIsAdminOrStaff(false);
+    setVerifiedRole(null);
     setCurrentUser(null);
     setIsOpen(false);
   };
@@ -408,6 +418,7 @@ export function GlobalAgencyController() {
                     type="button"
                     onClick={() => {
                       setIsAdminOrStaff(true);
+                      setVerifiedRole('admin');
                       setCurrentUser({ email: 'demo-admin@columbuschiropractic.com', uid: 'demo-admin-uid' } as any);
                     }}
                     className="mt-1 w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-[11px] transition text-center cursor-pointer shadow active:scale-95"
@@ -640,6 +651,7 @@ export function GlobalAgencyController() {
             <AgencyWorkspace
               isOpen={isOpen}
               onClose={() => setIsOpen(false)}
+              authenticatedRole={verifiedRole || 'staff'}
               clinic={clinic}
               onUpdateClinic={updateClinic}
               onResetDefault={resetClinic}
