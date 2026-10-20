@@ -10,6 +10,18 @@ export function expectedCurrencyCode(value: unknown): string {
   return known[normalized] || normalized;
 }
 
+/**
+ * The canonical ClinicService schema stores prices in integer minor units.
+ * Appointment records/payment handlers use major currency units and Stripe
+ * receives integer minor units; convert exactly once at this boundary.
+ */
+export function minorUnitsToMajorUnits(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
+    throw new Error('Service price must be a positive integer number of cents/pence');
+  }
+  return value / 100;
+}
+
 export function requireSignedWebhook(
   rawBody: unknown,
   signature: unknown,
