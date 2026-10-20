@@ -25,6 +25,9 @@ import { ClinicInfo, UserRole } from '../../types';
 import { getStoredLeads, saveLead, PatientLead } from '../../data/leadsStore';
 import { resolvePalette } from '../../data/colorPalettes';
 import { BookingEngineManager } from './BookingEngineManager';
+import { isExplicitDemo } from '../../lib/mode';
+import { db, isFirebaseConfigured } from '../../lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 interface ExecutiveDashboardProps {
   clinic: ClinicInfo;
@@ -49,6 +52,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const [testLeadAdded, setTestLeadAdded] = useState(false);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const isStaff = role === 'staff';
+  const demoMode = isExplicitDemo();
+  const [liveAppointments, setLiveAppointments] = useState<PatientLead[]>([]);
+  const [liveInquiries, setLiveInquiries] = useState<PatientLead[]>([]);
+  const [cloudReadStatus, setCloudReadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -58,23 +65,82 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     return () => window.removeEventListener('leads_updated', handleUpdate);
   }, []);
 
+  useEffect(() => {
+    if (demoMode) return;
+    if (!isFirebaseConfigured) {
+      setCloudReadStatus('error');
+      return;
+    }
+    let appointmentsLoaded = false;
+    let inquiriesLoaded = false;
+    const markReady = () => {
+      if (appointmentsLoaded && inquiriesLoaded) setCloudReadStatus('ready');
+    };
+    const clinicId = clinic.id || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    const unsubscribeAppointments = onSnapshot(
+      query(collection(db, 'appointments'), where('clinicId', '==', clinicId)),
+      (snapshot) => {
+        setLiveAppointments(snapshot.docs.map((document) => {
+          const data = document.data();
+          return {
+            id: document.id,
+            source: 'booking',
+            name: data.patientName || data.name || 'Patient',
+            email: data.patientEmail || '',
+            phone: data.patientPhone || '',
+            date: data.date || '',
+            time: data.time || '',
+            status: data.status || 'new',
+            createdAt: data.createdAt || new Date().toISOString(),
+          } as PatientLead;
+        }));
+        appointmentsLoaded = true;
+        markReady();
+      },
+      () => setCloudReadStatus('error')
+    );
+    const unsubscribeInquiries = onSnapshot(
+      query(collection(db, 'inquiries'), where('clinicId', '==', clinicId)),
+      (snapshot) => {
+        setLiveInquiries(snapshot.docs.map((document) => {
+          const data = document.data();
+          return {
+            id: document.id,
+            source: 'contact',
+            name: data.name || 'Visitor',
+            email: data.email || '',
+            phone: data.phone || '',
+            status: data.status || 'new',
+            createdAt: data.createdAt || new Date().toISOString(),
+          } as PatientLead;
+        }));
+        inquiriesLoaded = true;
+        markReady();
+      },
+      () => setCloudReadStatus('error')
+    );
+    return () => {
+      unsubscribeAppointments();
+      unsubscribeInquiries();
+    };
+  }, [clinic.id, demoMode]);
+
+  // Demo fixtures never masquerade as real patients or live appointment counts.
+  const displayedRecords = demoMode ? leads : [...liveAppointments, ...liveInquiries];
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Reception / Staff metrics calculation
-  const pendingRequests = leads.filter(
-    (l) => l.status === 'new' && (!l.date || l.date !== todayStr)
+  const pendingRequests = displayedRecords.filter((lead) => lead.status === 'new');
+  const pendingCount = pendingRequests.length;
+
+  const todayAppointments = displayedRecords.filter(
+    (lead) => lead.source === 'booking' && lead.date === todayStr &&
+      lead.status !== 'cancelled' && lead.status !== 'archived' && lead.status !== 'waitlist'
   );
-  const pendingCount = pendingRequests.length > 0 ? pendingRequests.length : 3;
-
-  const todayAppointments = leads.filter(
-    (l) => l.date === todayStr && l.status !== 'cancelled' && l.status !== 'archived' && l.status !== 'waitlist'
-  );
-  const todayCount = todayAppointments.length > 0 ? todayAppointments.length : 8;
-
-  const unconfirmedCount = todayAppointments.filter((l) => l.status === 'new').length || 2;
-  const checkedInCount = todayAppointments.filter((l) => l.status === 'checked_in').length || 1;
-
-  const newLeadsCount = leads.filter((l) => l.status === 'new').length;
+  const todayCount = todayAppointments.length;
+  const unconfirmedCount = todayAppointments.filter((lead) => lead.status === 'new').length;
+  const checkedInCount = todayAppointments.filter((lead) => lead.status === 'checked_in').length;
+  const newLeadsCount = pendingCount;
   const currentPalette = resolvePalette(clinic.colorPalette);
 
   const isExternalSync = clinic.bookingEmbedMode === 'iframe' || clinic.bookingEmbedMode === 'redirect';
@@ -97,12 +163,20 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     Boolean(clinic.externalBookingUrl || clinic.bookingEmbedMode),
     Boolean(clinic.examFee),
     Boolean(clinic.seoTitle),
-    Boolean(clinic.customConditions?.length || true),
+    Boolean(clinic.customConditions?.length || clinic.customFeeItems?.length),
   ];
   const passedCount = checks.filter(Boolean).length;
   const healthPercent = Math.round((passedCount / checks.length) * 100);
+  const cloudNotice = !demoMode && cloudReadStatus !== 'ready' ? (
+    <div role="status" className="rounded-xl border border-amber-800 bg-amber-950/30 px-4 py-3 text-xs text-amber-200">
+      {cloudReadStatus === 'loading'
+        ? 'Loading verified clinic records… dashboard totals are not yet available.'
+        : 'Could not load clinic records. Do not rely on dashboard totals until connectivity and permissions are restored.'}
+    </div>
+  ) : null;
 
   const handleSimulateLead = () => {
+    if (!demoMode) return;
     const mockNames = ['Sarah Mitchell', 'David Chen', 'Emily Watson', 'James Thorne', 'Elena Rossi'];
     const mockConditions = [
       'Lower Back & Sciatica',
@@ -158,6 +232,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   if (isStaff) {
     return (
       <div className="space-y-6">
+        {cloudNotice}
         {/* Reception Header */}
         <div className="p-4 sm:p-5 rounded-2xl bg-stone-900 border border-stone-800 shadow-md space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
@@ -520,6 +595,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
   return (
     <div className="space-y-6">
+      {cloudNotice}
       {/* Executive Command Header */}
       <div className="p-4 sm:p-5 rounded-2xl bg-stone-900 border border-stone-800 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
@@ -596,7 +672,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <Inbox className="w-3.5 h-3.5 text-stone-500" />
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-serif font-bold text-white tabular-nums">{leads.length}</span>
+              <span className="text-xl font-serif font-bold text-white tabular-nums">{displayedRecords.length}</span>
               {newLeadsCount > 0 && (
                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500 text-stone-950">
                   +{newLeadsCount} new
