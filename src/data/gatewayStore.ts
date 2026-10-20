@@ -255,46 +255,7 @@ export async function sendLiveOrSimulatedSms(
     };
   }
 
-  // 2. CUSTOM WEBHOOK DISPATCH
-  if (settings.smsProvider === 'custom_webhook' && settings.webhookUrl) {
-    try {
-      const resp = await fetch(settings.webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(settings.webhookSecret ? { 'X-Webhook-Secret': settings.webhookSecret } : {}),
-        },
-        body: JSON.stringify({
-          event: 'sms_dispatch',
-          eventType,
-          to: cleanPhone,
-          message: messageText,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      if (resp.ok) {
-        const log = logGatewayEvent({
-          channel: 'webhook',
-          provider: 'Custom Webhook (Make/Zapier)',
-          recipient: cleanPhone,
-          eventType,
-          status: 'delivered',
-          payloadPreview: messageText,
-        });
-
-        return {
-          success: true,
-          message: `SMS payload transmitted to external webhook (${resp.status} OK)`,
-          logId: log.id,
-          status: 'delivered',
-        };
-      }
-    } catch (err: any) {
-      // Ignore webhook error fallback to simulation
-    }
-  }
-
+  // Demo is isolated: never dispatch to external providers or webhooks.
   // 3. SIMULATED DISPATCH (Zero-Config Immediate Preview)
   await new Promise((resolve) => setTimeout(resolve, 400));
   const log = logGatewayEvent({
@@ -365,46 +326,7 @@ export async function sendLiveOrSimulatedEmail(
     return { success: false, message: 'Email could not be delivered by the secure server.', logId: '', status: 'failed' };
   }
 
-  // 1. DEMO-ONLY RESEND PREVIEW DISPATCH
-  if (settings.emailProvider === 'resend' && settings.resendApiKey) {
-    try {
-      const resp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${settings.resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: `${settings.sendgridFromName || 'Practice'} <${settings.sendgridFromEmail || 'onboarding@resend.dev'}>`,
-          to: cleanEmail,
-          subject,
-          html: `<p>${bodyHtmlOrText.replace(/\n/g, '<br/>')}</p>`,
-        }),
-      });
-
-      const data = await resp.json();
-      if (resp.ok && data.id) {
-        const log = logGatewayEvent({
-          channel: 'email',
-          provider: `Resend Live (${data.id})`,
-          recipient: cleanEmail,
-          eventType,
-          status: 'delivered',
-          payloadPreview: `Subject: ${subject} • Body: ${bodyHtmlOrText.slice(0, 100)}...`,
-        });
-
-        return {
-          success: true,
-          message: `Live Email delivered via Resend (ID: ${data.id})`,
-          logId: log.id,
-          status: 'delivered',
-        };
-      }
-    } catch (err: any) {
-      // Fallback
-    }
-  }
-
+  // Demo is isolated: never use real Resend or SendGrid API keys.
   // 2. SIMULATED EMAIL
   await new Promise((resolve) => setTimeout(resolve, 350));
   const log = logGatewayEvent({
