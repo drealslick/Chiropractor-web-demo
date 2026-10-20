@@ -607,7 +607,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm sm:text-base text-white">Practice Executive Overview</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-800/80">
-                  Live Operations
+                  {demoMode ? 'Demo Preview' : cloudReadStatus === 'ready' ? 'Clinic Records' : 'Data Unavailable'}
                 </span>
               </div>
               <p className="text-xs text-stone-400 mt-0.5">
@@ -617,8 +617,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-3 self-start sm:self-auto">
-            {/* Mode Switcher */}
-            <button
+            {/* The visible toggle never changes the actual deployment environment. */}
+            {demoMode ? <button
               type="button"
               onClick={() =>
                 onUpdateClinic({
@@ -631,15 +631,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   ? 'bg-emerald-950/80 border-emerald-700 text-emerald-300 hover:bg-emerald-900'
                   : 'bg-amber-950/70 border-amber-700 text-amber-300 hover:bg-amber-900'
               }`}
-              title="Toggle between Sandbox Demo mode and Live Production mode"
+              title="Preview a website production badge; this does not deploy the backend"
             >
               <span
                 className={`w-2 h-2 rounded-full ${
                   clinic.isProductionMode ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'
                 }`}
               />
-              <span>{clinic.isProductionMode ? '🟢 Live Production' : '🧪 Demo Sandbox'}</span>
-            </button>
+              <span>{clinic.isProductionMode ? 'Preview: Published' : 'Demo Preview'}</span>
+            </button> : <span className="text-xs text-amber-300 border border-amber-900 rounded-xl px-3 py-2">Release requires verified backend deployment</span>}
 
             {/* Clickable Setup Health Badge */}
             <button
@@ -649,7 +649,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               title="Click to view Setup & Launch Checklist"
             >
               <div className="text-xs font-bold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-1">
-                <span>{healthPercent}% Setup Health</span>
+                <span>{healthPercent}% Content Setup</span>
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </div>
               <div className="text-[10px] text-stone-500 font-mono">
@@ -761,7 +761,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Action 1: Simulate Lead */}
-          {clinic.isProductionMode ? (
+          {!demoMode || clinic.isProductionMode ? (
             <div className="p-3 rounded-xl bg-stone-850/60 border border-stone-800 text-left flex items-center justify-between opacity-80">
               <div>
                 <div className="font-bold text-xs flex items-center gap-1.5 text-stone-400">
@@ -769,11 +769,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   <span>Production Safeguard Active</span>
                 </div>
                 <div className="text-[11px] text-stone-500 mt-0.5">
-                  Demo simulation paused in Live Production mode to protect CRM data.
+                  Demo inquiry creation is available only in the explicitly isolated sandbox.
                 </div>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
-                Live Safe
+                Disabled
               </span>
             </div>
           ) : (
