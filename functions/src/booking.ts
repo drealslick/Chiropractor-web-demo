@@ -14,7 +14,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 import { minorUnitsToMajorUnits, verifyPaymentForAppointment, verifySetupForAppointment } from './paymentSecurity';
-import { validateReceptionStatus } from './receptionPolicy';
+import { canManageReceptionAppointment, validateReceptionStatus } from './receptionPolicy';
 import {
   ScheduleInterval,
   parseTimeToMinutes,
@@ -768,10 +768,7 @@ export const setReceptionAppointmentStatus = functions.https.onCall(async (data,
     }
     const appointment = snapshot.data()!;
     const claims = context.auth!.token;
-    const authorized = claims.superAdmin === true ||
-      (claims.clinicId === appointment.clinicId &&
-        ['admin', 'staff', 'practitioner'].includes(String(claims.role)));
-    if (!authorized) {
+    if (!canManageReceptionAppointment(claims, appointment.clinicId)) {
       throw new functions.https.HttpsError('permission-denied', 'No clinic staff access to this appointment.');
     }
     let validatedStatus;
