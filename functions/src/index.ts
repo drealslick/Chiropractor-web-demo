@@ -705,11 +705,16 @@ export async function createPaymentIntentHandler(data: any, context: any) {
 
   existingAmountPaid = typeof booked.amountPaid === 'number' ? booked.amountPaid : 0;
   existingPaymentStatus = booked.paymentStatus || 'unpaid';
-  if (existingPaymentStatus === 'paid_full' || existingPaymentStatus === 'refunded') {
-    throw new functions.https.HttpsError('already-exists', 'This appointment has already been paid.');
+  if (existingPaymentStatus === 'paid_full' || existingPaymentStatus === 'refunded' ||
+      existingPaymentStatus === 'partially_refunded') {
+    throw new functions.https.HttpsError('already-exists', 'This appointment requires financial reconciliation before another payment.');
   }
-  if (paymentChoice === 'deposit' && existingPaymentStatus === 'deposit_paid') {
-    throw new functions.https.HttpsError('already-exists', 'Deposit has already been paid.');
+  if (existingPaymentStatus === 'deposit_paid' && paymentChoice !== 'balance') {
+    throw new functions.https.HttpsError('failed-precondition', 'Use the remaining-balance payment option after a deposit.');
+  }
+  if (booked.status === 'pending_payment' && booked.holdExpiresAt &&
+      new Date(booked.holdExpiresAt).getTime() <= Date.now()) {
+    throw new functions.https.HttpsError('deadline-exceeded', 'The checkout hold expired. Please select a new time.');
   }
   if (typeof booked.priceAmount !== 'number' || booked.priceAmount <= 0 ||
       typeof booked.depositAmount !== 'number' || booked.depositAmount <= 0) {
