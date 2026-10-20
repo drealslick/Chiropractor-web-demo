@@ -65,6 +65,10 @@ import {
 } from '../../data/leadsStore';
 import { ReceptionDayView } from './ReceptionDayView';
 import { WaitlistDrawer } from './WaitlistDrawer';
+import { isExplicitDemo } from '../../lib/mode';
+import { db, isFirebaseConfigured } from '../../lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { cancelAppointmentServer, rescheduleAppointmentServer, setReceptionStatusServer } from '../../lib/booking-client';
 
 interface PlatformPresetItem {
   id: BookingPlatformPreset;
@@ -159,6 +163,8 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
 
   // Leads & Appointments
   const [leads, setLeads] = useState<PatientLead[]>(getStoredLeads);
+  const demoMode = isExplicitDemo();
+  const [operationError, setOperationError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<DispatchedNotification[]>(getDispatchedNotifications);
 
   // Calendar View State: Default to 'day' view for staff, or based on initial mode
@@ -207,6 +213,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
   // Listen to storage events
   useEffect(() => {
     const handleLeadsUpdate = (e: Event) => {
+      if (!demoMode) return;
       const custom = e as CustomEvent<PatientLead[]>;
       setLeads(custom.detail || getStoredLeads());
     };
@@ -221,7 +228,37 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
       window.removeEventListener('leads_updated', handleLeadsUpdate);
       window.removeEventListener('notifications_updated', handleNotifsUpdate);
     };
-  }, []);
+  }, [demoMode]);
+
+  useEffect(() => {
+    if (demoMode) return;
+    if (!isFirebaseConfigured) {
+      setOperationError('Clinic backend is not configured. Live bookings cannot be loaded.');
+      return;
+    }
+    const clinicId = clinic.id || import.meta.env.VITE_CLINIC_ID || 'columbus-chiropractic';
+    return onSnapshot(
+      query(collection(db, 'appointments'), where('clinicId', '==', clinicId)),
+      (snapshot) => {
+        const records: PatientLead[] = snapshot.docs.map((document) => {
+          const data = document.data();
+          return {
+            id: document.id, source: 'booking', name: data.patientName || data.name || 'Patient',
+            email: data.patientEmail || data.email || '',
+            phone: data.patientPhone || data.phone || '', condition: data.condition || '',
+            practitionerId: data.practitionerId, practitionerName: data.practitionerName,
+            serviceTitle: data.serviceTitle, date: data.date || '', time: data.time || '',
+            status: data.status || 'new', notes: data.notes || '',
+            paymentStatus: data.paymentStatus,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
+          } as PatientLead;
+        });
+        setLeads(records);
+        setOperationError(null);
+      },
+      (error) => setOperationError(`Could not load clinic bookings: ${error.message}`)
+    );
+  }, [clinic.id, demoMode]);
 
   // Practitioners list
   const practitioners: PublicTeamMember[] = useMemo(() => {
@@ -233,6 +270,11 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
   // Handle incoming lead assignment from Patient Inquiries or Waitlist
   useEffect(() => {
     if (assignedLead) {
+      if (!demoMode) {
+        setOperationError('Live reception booking is not configured. Create a secure appointment before marking the inquiry as booked.');
+        onClearAssignedLead?.();
+        return;
+      }
       setCalendarMode('day');
       setNewBookingData({
         name: assignedLead.name,
@@ -249,7 +291,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
         onClearAssignedLead();
       }
     }
-  }, [assignedLead, practitioners, onClearAssignedLead]);
+  }, [assignedLead, practitioners, onClearAssignedLead, demoMode]);
 
   // Update scheduling rules in clinic data
   const handleUpdateRules = (updatedRules: ClinicSchedulingRules) => {
@@ -259,9 +301,31 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
     });
   };
 
+  const openNewBooking = () => {
+    if (!demoMode) {
+      setOperationError('Live front-desk booking is unavailable until the secured walk-in workflow is configured.');
+      return;
+    }
+    setIsAddBookingOpen(true);
+  };
+
+  const openWaitlist = () => {
+    if (!demoMode) {
+      setOperationError('The live waitlist is not connected to the booking backend yet.');
+      return;
+    }
+    setIsWaitlistOpen(true);
+  };
+
   // Status Change
-  const handleConfirmAppointment = (lead: PatientLead) => {
-    updateLeadStatus(lead.id, 'confirmed');
+  const handleConfirmAppointment = async (lead: PatientLead) => {
+    const result = await setReceptionStatusServer({ appointmentId: lead.id, status: 'confirmed' });
+    if (!result.success) {
+      setOperationError(result.error || 'The server could not confirm this appointment.');
+      return;
+    }
+    if (demoMode) setLeads(updateLeadStatus(lead.id, 'confirmed'));
+    setOperationError(null);
   };
 
   const handleOpenReschedule = (lead: PatientLead) => {
@@ -271,15 +335,25 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
     setRescheduleDoctor(lead.practitionerName || practitioners[0]?.name || 'Lead Practitioner');
   };
 
-  const handleSaveReschedule = () => {
+  const handleSaveReschedule = async () => {
     if (!reschedulingLead) return;
-    updateLeadDetails(reschedulingLead.id, {
-      date: rescheduleDate,
-      time: rescheduleTime,
-      practitionerName: rescheduleDoctor,
-      status: 'confirmed',
+    const targetPractitioner = practitioners.find((person) => person.name === rescheduleDoctor);
+    const result = await rescheduleAppointmentServer({
+      appointmentId: reschedulingLead.id, newDate: rescheduleDate, newTime: rescheduleTime,
+      newPractitionerId: targetPractitioner?.id || reschedulingLead.practitionerId,
+      reason: 'Reception calendar reschedule',
     });
+    if (!result.success) {
+      setOperationError(result.error || 'The booking server rejected the new time.');
+      return;
+    }
+    if (demoMode) setLeads(updateLeadDetails(reschedulingLead.id, {
+      date: rescheduleDate, time: rescheduleTime,
+      practitionerName: rescheduleDoctor,
+      practitionerId: targetPractitioner?.id || reschedulingLead.practitionerId,
+    }));
     setReschedulingLead(null);
+    setOperationError(null);
   };
 
   const handleOpenCancel = (lead: PatientLead) => {
@@ -287,14 +361,25 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
     setCancellationReason('Patient requested schedule change');
   };
 
-  const handleConfirmCancel = () => {
+  const handleConfirmCancel = async () => {
     if (!cancellingLead) return;
-    updateLeadStatus(cancellingLead.id, 'cancelled', cancellationReason);
+    const result = await cancelAppointmentServer({ appointmentId: cancellingLead.id, reason: cancellationReason });
+    if (!result.success) {
+      setOperationError(result.error || 'Cancellation was not confirmed by the server.');
+      return;
+    }
+    if (demoMode) setLeads(updateLeadStatus(cancellingLead.id, 'cancelled', cancellationReason));
     setCancellingLead(null);
+    setOperationError(null);
   };
 
   const handleCreateWalkInBooking = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!demoMode) {
+      setOperationError('Live walk-in bookings require a verified server scheduling workflow. Use secure online booking instead.');
+      setIsAddBookingOpen(false);
+      return;
+    }
     if (!newBookingData.name || !newBookingData.phone) {
       alert('Please enter patient name and phone number.');
       return;
@@ -353,6 +438,10 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
 
   // Test Notification Trigger
   const handleTestNotification = () => {
+    if (!demoMode) {
+      setOperationError('Simulated notifications do not send live SMS or email. Use the configured provider dashboard.');
+      return;
+    }
     logNotification({
       type: 'clinic_alert',
       recipient: currentRules.notifications?.clinicAlertRecipient || 'reception@vancehealth.co.uk',
@@ -502,6 +591,8 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
 
   return (
     <div className="space-y-6 max-w-5xl text-stone-900">
+      {operationError && <div role="alert" className="rounded-xl border border-rose-400 bg-rose-50 p-3 text-sm text-rose-950">{operationError}</div>}
+      {!demoMode && <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">Live booking changes require confirmation from the server. Walk-in creation and notification simulations are unavailable until their verified workflows are configured.</p>}
       {/* Top Engine Banner */}
       <div className="bg-stone-50 border border-stone-200 rounded-2xl p-5 sm:p-6 relative overflow-hidden shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -528,7 +619,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
             {!isExternalSync ? (
               <button
                 type="button"
-                onClick={() => setIsAddBookingOpen(true)}
+                onClick={openNewBooking}
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-sm transition active:scale-[0.99] cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -705,7 +796,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsWaitlistOpen(true)}
+                onClick={openWaitlist}
                 className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
               >
                 <Clock className="w-3.5 h-3.5 text-amber-600" />
@@ -724,8 +815,8 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
               leads={leads}
               practitioners={practitioners}
               clinicName={clinic.name || 'Clinic'}
-              onOpenNewBookingModal={() => setIsAddBookingOpen(true)}
-              onOpenWaitlistModal={() => setIsWaitlistOpen(true)}
+              onOpenNewBookingModal={openNewBooking}
+              onOpenWaitlistModal={openWaitlist}
               waitlistCount={leads.filter((l) => l.status === 'waitlist').length}
             />
           ) : (
@@ -2750,7 +2841,7 @@ export const BookingSettings: React.FC<BookingSettingsProps> = ({
             time: '3:00 PM',
             notes: `Waitlist slot offer: ${patient.notes || ''}`,
           });
-          setIsAddBookingOpen(true);
+          openNewBooking();
         }}
       />
     </div>
