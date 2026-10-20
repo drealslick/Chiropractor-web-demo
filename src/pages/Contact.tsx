@@ -33,7 +33,11 @@ export default function Contact() {
     const name = String(data.get('name') || '');
     const phone = String(data.get('phone') || '');
     const email = String(data.get('email') || '');
-    const message = String(data.get('message') || '');
+    const message = String(data.get('message') || '').trim();
+    if (!phone.trim() && !email.trim()) {
+      setErrorMessage('Please provide a phone number or email address so the clinic can respond.');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage('');
@@ -225,13 +229,14 @@ export default function Contact() {
         <h2 className="text-xl font-bold text-stone-900">Send a message</h2>
         <p className="text-xs text-stone-500">No health details. Name and how to reach you is enough.</p>
         {sent ? (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-sm flex items-center gap-2">
+          <div role="status" className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-sm flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>Thank you! Your message was received and logged. Our team will get back to you shortly.</span>
+            <button type="button" className="ml-auto underline font-semibold whitespace-nowrap" onClick={() => setSent(false)}>Send another</button>
           </div>
         ) : null}
         {errorMessage ? (
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 text-sm flex items-center justify-between gap-2">
+          <div role="alert" className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 text-sm flex items-center justify-between gap-2">
             <span className="text-xs">{errorMessage}</span>
             <button
               type="submit"
@@ -242,10 +247,23 @@ export default function Contact() {
             </button>
           </div>
         ) : null}
-        <input name="name" required placeholder="Name" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
-        <input name="phone" placeholder="Phone" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
-        <input name="email" type="email" placeholder="Email" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
-        <textarea name="message" rows={4} placeholder="How can we help?" className="w-full border border-stone-300 rounded-lg p-2 text-sm" />
+        <div>
+          <label htmlFor="contact-name" className="block text-sm font-semibold text-stone-800 mb-1">Your name *</label>
+          <input id="contact-name" name="name" autoComplete="name" required placeholder="Name" className="w-full border border-stone-300 rounded-lg p-3 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="contact-phone" className="block text-sm font-semibold text-stone-800 mb-1">Phone number</label>
+          <input id="contact-phone" name="phone" type="tel" autoComplete="tel" placeholder="Phone" className="w-full border border-stone-300 rounded-lg p-3 text-sm" />
+        </div>
+        <div>
+          <label htmlFor="contact-email" className="block text-sm font-semibold text-stone-800 mb-1">Email address</label>
+          <input id="contact-email" name="email" type="email" autoComplete="email" placeholder="Email" className="w-full border border-stone-300 rounded-lg p-3 text-sm" />
+          <p className="mt-1 text-xs text-stone-500">Provide a phone number or email address so we can reply.</p>
+        </div>
+        <div>
+          <label htmlFor="contact-message" className="block text-sm font-semibold text-stone-800 mb-1">Message</label>
+          <textarea id="contact-message" name="message" rows={4} placeholder="How can we help? Please don't include private medical details." className="w-full border border-stone-300 rounded-lg p-3 text-sm" />
+        </div>
         <button
           type="submit"
           disabled={isSubmitting || sent}
