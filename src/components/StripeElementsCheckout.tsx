@@ -258,10 +258,10 @@ export const StripeElementsCheckout: React.FC<StripeElementsCheckoutProps> = ({
       }
 
       if (data?.clientSecret && data?.publishableKey) {
-        const stripeInstance = loadStripe(
-          data.publishableKey,
-          data.stripeAccountId ? { stripeAccount: data.stripeAccountId } : undefined
-        );
+        // Backend creates destination-charge intents on the platform account
+        // (transfer_data.destination), NOT direct charges on a connected account.
+        // Using stripeAccount here would look up the client secret in the wrong account.
+        const stripeInstance = loadStripe(data.publishableKey);
         setStripePromise(stripeInstance);
         setClientSecret(data.clientSecret);
         setServerAmount(data.amount);
