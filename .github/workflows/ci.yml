@@ -56,7 +56,7 @@ jobs:
       - name: Run Cloud Functions handler and payment security tests
         run: |
           npm run test:handlers
-          npx vitest run tests/payment-security.test.ts
+          npx vitest run tests/payment-security.test.ts tests/reception-policy.test.ts
 
       - name: Build Production Bundle & Prerender
         run: |
