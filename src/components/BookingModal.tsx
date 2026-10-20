@@ -915,6 +915,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleExecutePayment = (method: 'card' | 'apple_pay' | 'google_pay' | 'clinic_cash' = 'card') => {
+    // No simulated payments or pay-on-arrival confirmation in live checkout.
+    // The latter needs its own server-authoritative reservation transition.
+    if (import.meta.env.VITE_DEMO_MODE !== 'true') {
+      setBookingError('This payment option is unavailable. Please use the secure Stripe checkout.');
+      return;
+    }
     if (method === 'card' && paymentChoice !== 'pay_at_clinic') {
       const cleanNum = cardNumber.replace(/\s+/g, '');
       if (cleanNum.length < 15) {
@@ -1806,7 +1812,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           </button>
 
                           {/* Option 4: Pay at Clinic */}
-                          {paymentPolicy.allowPayAtClinic && (
+                          {paymentPolicy.allowPayAtClinic && import.meta.env.VITE_DEMO_MODE === 'true' && (
                             <button
                               type="button"
                               onClick={() => setPaymentChoice('pay_at_clinic')}
