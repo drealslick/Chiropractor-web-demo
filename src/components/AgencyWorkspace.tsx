@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
   RotateCcw,
@@ -12,11 +12,8 @@ import {
   Inbox,
   Sparkles,
   Download,
-  Copy,
   Check,
   Bell,
-  CloudCheck,
-  AlertCircle,
   Calendar,
   CalendarCheck2,
   Zap,
@@ -38,14 +35,10 @@ import {
   Shield,
   Layers,
   MapPin,
-  Phone,
-  Mail,
-  ExternalLink,
   UploadCloud,
   FileCheck,
   Users,
   CreditCard,
-  Plus,
   Stethoscope,
   User,
   ChevronDown,
@@ -83,6 +76,8 @@ import { LocationManager } from './admin/LocationManager';
 import { SectionVisibilityManager } from './admin/SectionVisibilityManager';
 import { IntegrationsBillingManager } from './admin/IntegrationsBillingManager';
 import { ClientOnboardingWizard } from './admin/ClientOnboardingWizard';
+import { useModalFocus } from '../hooks/useModalFocus';
+import { getSaveFeedback, type WorkspaceRole } from '../lib/admin-state';
 import { getStoredLeads, PatientLead } from '../data/leadsStore';
 
 interface AgencyWorkspaceProps {
@@ -95,6 +90,9 @@ interface AgencyWorkspaceProps {
   lastSaved?: string | null;
   isCloudSynced?: boolean;
   onSignOut?: () => void;
+  authenticatedRole?: WorkspaceRole;
+  saveError?: string | null;
+  onRetrySave?: () => void;
 }
 
 // Single Sidebar Navigation IDs
@@ -147,16 +145,42 @@ export function AgencyWorkspace({
   isOpen,
   onClose,
   clinic,
-  onUpdateClinic,
+  onUpdateClinic: persistClinic,
   onResetDefault,
   syncStatus = 'idle',
   lastSaved = null,
   isCloudSynced = false,
   onSignOut,
+  authenticatedRole = 'staff',
+  saveError,
+  onRetrySave,
 }: AgencyWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeRolePreview, setActiveRolePreview] = useState<UserRole>('admin');
+  const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
+  const [previewRole, setActiveRolePreview] = useState<UserRole>(authenticatedRole);
+  const activeRolePreview = authenticatedRole === 'admin' ? previewRole : authenticatedRole;
+  const canEdit = authenticatedRole === 'admin' && activeRolePreview === 'admin';
+  const onUpdateClinic = (updated: ClinicInfo) => { if (canEdit) persistClinic(updated); };
+  const closeWorkspace = useCallback(() => onClose(), [onClose]);
+  const dialogRef = useModalFocus(isOpen, closeWorkspace);
+  const [resetError, setResetError] = useState('');
+  const saveFeedback = getSaveFeedback(syncStatus, isDemo);
+  const handleReset = () => {
+    if (!canEdit || !window.confirm('Restore factory defaults? Your current website settings will be backed up first.')) return;
+    try {
+      const key = 'clinic_site_snapshots_v1';
+      const snapshots = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!Array.isArray(snapshots)) throw new Error('Invalid snapshot data');
+      const now = new Date();
+      snapshots.unshift({ id: `snapshot_${Date.now()}`, name: 'Before factory reset', description: 'Automatic safety backup', createdAt: now.toISOString(), formattedDate: now.toLocaleString(), clinicName: clinic.name, doctorName: clinic.doctorName, colorPalette: clinic.colorPalette, cityState: clinic.cityState || clinic.city, blogPostsCount: clinic.customPosts?.length || 0, data: clinic });
+      localStorage.setItem(key, JSON.stringify(snapshots));
+      setResetError('');
+      onResetDefault();
+    } catch {
+      setResetError('Reset cancelled: a safety backup could not be saved. Export a backup and free device storage first.');
+    }
+  };
   const [selectedLeadToSchedule, setSelectedLeadToSchedule] = useState<PatientLead | null>(null);
 
   const [leadsCount, setLeadsCount] = useState<number>(() => getStoredLeads().length);
@@ -170,16 +194,6 @@ export function AgencyWorkspace({
     window.addEventListener('leads_updated', handleUpdate);
     return () => window.removeEventListener('leads_updated', handleUpdate);
   }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isOpen) window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const currentPalette = resolvePalette(clinic.colorPalette);
   const hasCustomColors = Boolean(
@@ -204,7 +218,7 @@ export function AgencyWorkspace({
       collapsible: false,
       items: [
         { id: 'overview' as AdminTabId, label: 'Overview', icon: Layout, badge: clinic.isProductionMode ? 'Live' : 'Demo' },
-        { id: 'onboarding' as AdminTabId, label: 'Client Onboarding Launchpad', icon: Sparkles, badge: 'Handoff', highlight: true },
+        { id: 'onboarding' as AdminTabId, minRole: 'admin' as UserRole, label: 'Client Onboarding', icon: Sparkles, badge: 'Handoff', highlight: true },
         { id: 'checklist' as AdminTabId, label: 'Setup Checklist', icon: Sparkles, minRole: 'admin' as UserRole },
         { id: 'leads' as AdminTabId, label: 'Patient Inquiries', icon: Inbox, badge: leadsCount > 0 ? leadsCount : undefined },
         ...(!isExternalSync ? [{ id: 'booking' as AdminTabId, label: 'Booking & EHR', icon: Calendar }] : []),
@@ -298,12 +312,12 @@ export function AgencyWorkspace({
   const [openAccordion, setOpenAccordion] = useState<string>(() => findGroupForTab(activeTab));
 
   // Automatically expand parent accordion when activeTab changes (e.g. from internal page links)
+  const parentGroup = findGroupForTab(activeTab);
   useEffect(() => {
-    const parentGroup = findGroupForTab(activeTab);
     if (parentGroup && parentGroup !== 'DASHBOARD') {
       setOpenAccordion(parentGroup);
     }
-  }, [activeTab]);
+  }, [parentGroup]);
 
   const toggleGroup = (groupName: string) => {
     setOpenAccordion((prev) => (prev === groupName ? '' : groupName));
@@ -325,6 +339,7 @@ export function AgencyWorkspace({
         return userRank >= itemMinRank;
       }),
     }))
+    .map(g => ({ ...g, items: g.items.filter(item => activeRolePreview !== 'editor' || (item.id !== 'leads' && item.id !== 'booking')) }))
     .filter((g) => g.items.length > 0);
 
   // Flat array of accessible tab IDs for quick lookup
@@ -337,21 +352,27 @@ export function AgencyWorkspace({
     }
   }, [activeRolePreview, accessibleTabIds, activeTab]);
 
+  if (!isOpen) return null;
+
   const banner = clinic.announcementBanner || { enabled: false, message: '', variant: 'amber' };
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
+    <div className="admin-ui fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
       <div
         className="w-full md:w-[860px] lg:w-[980px] xl:w-[1080px] max-w-full bg-stone-900 text-stone-100 h-full flex flex-col shadow-2xl border-l border-stone-800 overflow-hidden"
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby="admin-workspace-title"
+        tabIndex={-1}
       >
         {/* Persistent Top Header with Save Status */}
-        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-b border-stone-800 flex items-center justify-between bg-stone-950 shrink-0">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-b border-stone-800 flex flex-wrap items-center justify-between gap-2 bg-stone-950 shrink-0">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-expanded={mobileMenuOpen}
               className="md:hidden p-1.5 rounded-lg bg-stone-900 text-stone-300 hover:text-white"
               aria-label="Toggle navigation menu"
             >
@@ -360,7 +381,7 @@ export function AgencyWorkspace({
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-sm sm:text-base text-white tracking-tight">
+                <h2 id="admin-workspace-title" className="font-bold text-sm sm:text-base text-white tracking-tight">
                   {clinic.name || 'Private Practice'} Admin
                 </h2>
                 <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-stone-800 text-stone-300 border border-stone-700">
@@ -368,8 +389,8 @@ export function AgencyWorkspace({
                 </span>
               </div>
               <div className="flex items-center gap-2 text-[11px] text-stone-400 mt-0.5">
-                <span className="text-emerald-400 font-medium">
-                  {isCloudSynced ? (syncStatus === 'synced' ? '🟢 Cloud Synced' : '🔄 Syncing...') : '💾 Local Storage'}
+                <span role="status" aria-live="polite" className={saveFeedback.error ? "text-rose-300 font-medium" : "text-stone-300 font-medium"}>
+                  {saveFeedback.label}
                 </span>
                 {lastSaved && (
                   <>
@@ -383,37 +404,38 @@ export function AgencyWorkspace({
 
           <div className="flex items-center gap-2">
             {/* Reception Notification Hub (Top Bar Bell & Alerts Dropdown) */}
-            <NotificationHub
+            {activeRolePreview !== 'editor' && <NotificationHub
               onNavigateTab={(tab) => {
                 if (tab === 'leads') setActiveTab('leads');
                 else if (tab === 'booking') setActiveTab('booking');
                 else if (tab === 'setup') setActiveTab('checklist');
               }}
-            />
+            />}
 
             {/* Quick Role Preview Switcher */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
+            {authenticatedRole === 'admin' && <div className="hidden sm:flex items-center gap-1.5 bg-stone-900 border border-stone-800 px-2.5 py-1 rounded-xl text-xs">
               <span className="text-[10px] uppercase font-bold text-stone-400">Role:</span>
               <select
                 value={activeRolePreview}
                 onChange={(e) => setActiveRolePreview(e.target.value as UserRole)}
                 className="bg-transparent text-emerald-400 font-bold text-xs cursor-pointer outline-none capitalize"
+                aria-label="Preview workspace role"
                 title="Preview admin interface from perspective of staff, editor, or owner"
               >
                 <option value="admin" className="bg-stone-900 text-stone-200">Admin (Full)</option>
                 <option value="editor" className="bg-stone-900 text-stone-200">Editor (Content)</option>
                 <option value="staff" className="bg-stone-900 text-stone-200">Staff (Front Desk)</option>
               </select>
-            </div>
+            </div>}
 
-            <button
-              onClick={onResetDefault}
+            {canEdit && <button
+              onClick={handleReset}
               className="px-2.5 py-1 text-stone-400 hover:text-amber-400 transition hover:bg-stone-850 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer border border-transparent hover:border-amber-900/50"
               title="Reset to Factory Defaults"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span className="hidden sm:inline text-xs font-medium">Reset Defaults</span>
-            </button>
+            </button>}
             <button
               onClick={onClose}
               className="p-1.5 text-stone-400 hover:text-white transition hover:bg-stone-800 rounded-lg cursor-pointer"
@@ -428,12 +450,13 @@ export function AgencyWorkspace({
         <div className="flex-1 flex overflow-hidden relative">
           {/* Left Sidebar Navigation */}
           <aside
+            aria-label="Workspace navigation"
             className={`
               absolute md:relative z-30 md:z-auto inset-y-0 left-0
               w-64 md:w-56 lg:w-60 shrink-0 bg-stone-950 border-r border-stone-800/90
               flex flex-col justify-between overflow-y-auto no-scrollbar
               transition-transform duration-200 ease-in-out
-              ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}
+              ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : 'hidden md:flex'}
             `}
           >
             <div className="p-3 space-y-3">
@@ -450,6 +473,7 @@ export function AgencyWorkspace({
                       <button
                         type="button"
                         onClick={() => toggleGroup(group.group)}
+                        aria-expanded={isGroupOpen}
                         className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between text-[11px] font-bold tracking-wider uppercase transition cursor-pointer text-left select-none ${
                           isGroupOpen || hasActiveItem
                             ? 'text-stone-200 bg-stone-900/80 hover:bg-stone-900'
@@ -491,6 +515,7 @@ export function AgencyWorkspace({
                           return (
                             <button
                               key={item.id}
+                              aria-current={isActive ? 'page' : undefined}
                               type="button"
                               onClick={() => {
                                 setActiveTab(item.id);
@@ -535,14 +560,19 @@ export function AgencyWorkspace({
                   <span>Instant Live Preview</span>
                 </div>
                 <p className="text-[10px] text-stone-400 leading-tight">
-                  Every change auto-saves and updates the live website instantly.
+                  {isDemo ? 'Changes stay in this browser demo.' : 'Changes publish when cloud saving succeeds.'}
                 </p>
               </div>
             </div>
           </aside>
 
           {/* Right Content Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-6 bg-stone-900">
+          <div className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-7 space-y-6 bg-stone-900">
+            {(saveError || resetError) && <div role="alert" className="p-4 rounded-xl bg-rose-950 border border-rose-800 text-rose-200 text-sm">
+              <p>{resetError || saveError}</p>
+              {saveError && canEdit && <button type="button" onClick={onRetrySave} className="mt-2 underline font-semibold">Retry cloud save</button>}
+            </div>}
+            {authenticatedRole !== 'admin' && <p className="text-sm text-stone-300 p-3 bg-stone-800 rounded-xl">{authenticatedRole === 'editor' ? 'Content preview: publishing website changes requires a clinic administrator.' : 'Front desk workspace: patient inquiries and bookings. Website settings are managed by your administrator.'}</p>}
             {/* Mobile Tab Dropdown Selector */}
             <div className="md:hidden pb-3 border-b border-stone-800 space-y-2">
               <div className="flex items-center justify-between">
@@ -564,6 +594,7 @@ export function AgencyWorkspace({
 
               {/* Clean Section Dropdown */}
               <select
+                aria-label="Admin section"
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value as AdminTabId)}
                 className="w-full bg-stone-850 border border-stone-750 rounded-xl p-2.5 text-xs text-stone-200 font-bold cursor-pointer focus:border-emerald-500 focus:outline-none"
@@ -579,8 +610,11 @@ export function AgencyWorkspace({
                 ))}
               </select>
             </div>
+            {authenticatedRole === 'admin' && activeRolePreview !== 'admin' && <p role="status" className="p-3 rounded-xl bg-amber-950 text-amber-200 text-sm">Previewing the {activeRolePreview} workspace. This does not change account permissions.</p>}
+            {accessibleTabIds.includes(activeTab) && <fieldset disabled={!canEdit && !['overview', 'leads', 'booking'].includes(activeTab)} className="min-w-0 space-y-6">
             {/* 1. OVERVIEW */}
-            {activeTab === 'overview' && (
+            {activeTab === 'overview' && activeRolePreview === 'editor' && <div><h3 className="text-xl font-bold">Content workspace</h3><p className="mt-2 text-stone-300">Preview website content using the page sections in navigation. Ask your administrator to publish changes.</p></div>}
+            {activeTab === 'overview' && activeRolePreview !== 'editor' && (
               <ExecutiveDashboard
                 clinic={clinic}
                 onUpdateClinic={onUpdateClinic}
@@ -594,6 +628,7 @@ export function AgencyWorkspace({
                     else if (subTab === 'blog') setActiveTab('blog');
                     else if (subTab === 'branding') setActiveTab('themes');
                     else if (subTab === 'lists') setActiveTab('discomforts');
+                    else if (subTab === 'pricing') setActiveTab('pricing');
                     else setActiveTab('clinic_info');
                   }
                 }}
@@ -2059,18 +2094,19 @@ export function AgencyWorkspace({
             {activeTab === 'presets' && (
               <PresetBackupManager clinic={clinic} onUpdateClinic={onUpdateClinic} />
             )}
+            </fieldset>}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 bg-stone-950 border-t border-stone-850 flex items-center justify-between text-xs text-stone-400 shrink-0">
+        <div className="px-4 py-3 bg-stone-950 border-t border-stone-850 flex flex-wrap gap-2 items-center justify-between text-xs text-stone-400 shrink-0">
           <div className="flex items-center gap-2">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="text-[11px] text-stone-300">
-              <strong className="text-emerald-400 font-semibold">Firebase Cloud Active</strong> • Cloud Firestore & Auth Online
+              <strong className="text-stone-300 font-semibold">{isDemo ? 'Demo workspace' : saveFeedback.label}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+import { isExplicitDemo } from '../../lib/mode';
 import React, { useState, useEffect } from 'react';
 import {
   Inbox,
@@ -224,6 +225,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
           <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
           <input
             type="text"
+            aria-label="Search patient inquiries"
             placeholder="Search name, phone, condition..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -233,7 +235,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
 
         <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
           {/* "Add Sample" only visible to Admin role */}
-          {!isStaff && (
+          {!isStaff && isExplicitDemo() && (
             <button
               onClick={handleAddDemoLead}
               className="px-2.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700 rounded-lg text-xs font-medium flex items-center gap-1 transition cursor-pointer"
@@ -282,7 +284,7 @@ export function LeadsInbox({ clinicName, role = 'admin', onAssignToCalendar }: L
           <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
             Inquiries from booking modal and contact form appear here.
           </p>
-          {!isStaff && (
+          {!isStaff && isExplicitDemo() && (
             <button
               onClick={handleAddDemoLead}
               className="mt-3 px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs rounded-lg inline-flex items-center gap-1.5 border border-stone-700 cursor-pointer"

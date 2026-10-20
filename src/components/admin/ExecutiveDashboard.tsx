@@ -9,21 +9,17 @@ import {
   AlertCircle,
   ExternalLink,
   RotateCcw,
-  Globe,
-  Sliders,
   ShieldCheck,
-  Download,
-  Eye,
   Bell,
   ArrowRight,
   TrendingUp,
   Settings2,
-  Check,
-  Link2,
 } from 'lucide-react';
 import { ClinicInfo, UserRole } from '../../types';
 import { getStoredLeads, saveLead, PatientLead } from '../../data/leadsStore';
 import { resolvePalette } from '../../data/colorPalettes';
+import { isExplicitDemo } from '../../lib/mode';
+import { getSaveFeedback, getReceptionMetrics } from '../../lib/admin-state';
 import { BookingEngineManager } from './BookingEngineManager';
 
 interface ExecutiveDashboardProps {
@@ -40,10 +36,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   clinic,
   onUpdateClinic,
   onNavigateTab,
-  isCloudSynced,
   syncStatus,
   role = 'admin',
-  onOpenNewBookingModal,
 }) => {
   const [leads, setLeads] = useState<PatientLead[]>(() => getStoredLeads());
   const [testLeadAdded, setTestLeadAdded] = useState(false);
@@ -58,21 +52,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     return () => window.removeEventListener('leads_updated', handleUpdate);
   }, []);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  // Reception / Staff metrics calculation
-  const pendingRequests = leads.filter(
-    (l) => l.status === 'new' && (!l.date || l.date !== todayStr)
-  );
-  const pendingCount = pendingRequests.length > 0 ? pendingRequests.length : 3;
-
-  const todayAppointments = leads.filter(
-    (l) => l.date === todayStr && l.status !== 'cancelled' && l.status !== 'archived' && l.status !== 'waitlist'
-  );
-  const todayCount = todayAppointments.length > 0 ? todayAppointments.length : 8;
-
-  const unconfirmedCount = todayAppointments.filter((l) => l.status === 'new').length || 2;
-  const checkedInCount = todayAppointments.filter((l) => l.status === 'checked_in').length || 1;
+  const { pendingCount, todayCount, unconfirmedCount, checkedInCount } = getReceptionMetrics(leads);
 
   const newLeadsCount = leads.filter((l) => l.status === 'new').length;
   const currentPalette = resolvePalette(clinic.colorPalette);
@@ -97,12 +77,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     Boolean(clinic.externalBookingUrl || clinic.bookingEmbedMode),
     Boolean(clinic.examFee),
     Boolean(clinic.seoTitle),
-    Boolean(clinic.customConditions?.length || true),
+    Boolean(clinic.customConditions?.length),
   ];
   const passedCount = checks.filter(Boolean).length;
   const healthPercent = Math.round((passedCount / checks.length) * 100);
 
   const handleSimulateLead = () => {
+    if (!isExplicitDemo()) return;
     const mockNames = ['Sarah Mitchell', 'David Chen', 'Emily Watson', 'James Thorne', 'Elena Rossi'];
     const mockConditions = [
       'Lower Back & Sciatica',
@@ -531,7 +512,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm sm:text-base text-white">Practice Executive Overview</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-800/80">
-                  Live Operations
+                  {isExplicitDemo() ? 'Demo workspace' : 'Practice operations'}
                 </span>
               </div>
               <p className="text-xs text-stone-400 mt-0.5">
@@ -577,7 +558,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </div>
               <div className="text-[10px] text-stone-500 font-mono">
-                {isCloudSynced ? (syncStatus === 'synced' ? 'Cloud Synced' : 'Syncing...') : 'Local Database'}
+                {getSaveFeedback(syncStatus, isExplicitDemo()).label}
               </div>
             </button>
           </div>
@@ -650,7 +631,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           {/* Metric 4: Pricing */}
           <button
             type="button"
-            onClick={() => onNavigateTab('site', 'lists')}
+            onClick={() => onNavigateTab('site', 'pricing')}
             className="p-3 bg-stone-850 hover:bg-stone-800 border border-stone-800 hover:border-emerald-500/40 rounded-xl text-left transition cursor-pointer group"
           >
             <div className="flex items-center justify-between text-stone-400 mb-1">
@@ -685,7 +666,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Action 1: Simulate Lead */}
-          {clinic.isProductionMode ? (
+          {!isExplicitDemo() ? (
             <div className="p-3 rounded-xl bg-stone-850/60 border border-stone-800 text-left flex items-center justify-between opacity-80">
               <div>
                 <div className="font-bold text-xs flex items-center gap-1.5 text-stone-400">

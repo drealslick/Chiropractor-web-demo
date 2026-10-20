@@ -1,3 +1,4 @@
+import { localDateKey } from '../../lib/admin-state';
 import React, { useState, useEffect } from 'react';
 import {
   Calendar as CalendarIcon,
@@ -86,7 +87,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
 }) => {
   // Selected date for Day View (defaults to today)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
+    return localDateKey();
   });
 
   // Authoritative real-time Firestore appointments subscription
@@ -228,7 +229,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
   };
 
   const handleToday = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setSelectedDate(localDateKey());
   };
 
   // Format date display
@@ -239,7 +240,7 @@ export const ReceptionDayView: React.FC<ReceptionDayViewProps> = ({
     year: 'numeric',
   });
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === localDateKey();
 
   // Drag & drop handlers
   const handleDragStart = (e: React.DragEvent, lead: PatientLead) => {

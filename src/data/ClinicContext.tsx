@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, type ReactNode, useCallback, useRef } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth, isFirebaseConfigured } from '../lib/firebase';
@@ -99,6 +99,8 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isConfigLoaded, setIsConfigLoaded] = useState<boolean>(() => getInitialClinic().hasCache);
   const [isAuthReady, setIsAuthReady] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(isFirebaseConfigured ? 'idle' : 'local_only');
+  const saveVersion = useRef(0);
+  const pendingSave = useRef(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
@@ -164,7 +166,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   const isCloudConnected = Boolean(isFirebaseConfigured);
-  const isCloudSynced = isCloudConnected;
+  const isCloudSynced = isCloudConnected && syncStatus === 'synced' && import.meta.env.VITE_DEMO_MODE !== 'true';
 
   const openBookingModal = useCallback((
     initialConditionOrTitle?: string,
@@ -232,7 +234,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     let cancelled = false;
     const activeId = getActiveClinicId();
 
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || import.meta.env.VITE_DEMO_MODE === 'true') {
       setIsConfigLoaded(true);
       setSyncStatus('local_only');
       return;
@@ -243,7 +245,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const unsubscribe = onSnapshot(
         docRef,
         (docSnap) => {
-          if (cancelled) return;
+          if (cancelled || pendingSave.current || docSnap.metadata.hasPendingWrites) return;
           if (docSnap.exists()) {
             const data = docSnap.data();
             setClinicData((prev) => {
@@ -269,7 +271,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               return merged;
             });
             setIsConfigLoaded(true);
-            setSyncStatus('synced');
+            setSyncStatus(docSnap.metadata.fromCache ? 'local_only' : 'synced');
             setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
           } else {
             // First time clinic setup: initialize clinic document
@@ -280,7 +282,8 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         (err) => {
           console.warn('Firestore clinic real-time snapshot note:', err);
           setIsConfigLoaded(true);
-          setSyncStatus('local_only');
+          setSyncStatus('error');
+          setErrorMessage('Cloud connection unavailable. Changes may only be on this device. Retry when connected.');
         }
       );
 
@@ -293,56 +296,56 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, []);
 
+  useEffect(() => {
+    const handleOffline = () => {
+      if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) return;
+      setSyncStatus('error');
+      setErrorMessage('You are offline. Cloud changes are pending; keep this page open and reconnect to finish saving.');
+    };
+    window.addEventListener('offline', handleOffline);
+    return () => window.removeEventListener('offline', handleOffline);
+  }, []);
+
   const persist = useCallback((clinic: ClinicInfo) => {
     const payload = sanitize(clinic);
     const activeId = getActiveClinicId();
-
+    const version = ++saveVersion.current;
+    const demo = import.meta.env.VITE_DEMO_MODE === 'true';
+    let localSaved = false;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
-      setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      localSaved = true;
     } catch {
-      // ignore
+      // Cloud writes may still succeed when device storage is full.
     }
-
-    if (import.meta.env.VITE_DEMO_MODE === 'true' || !isFirebaseConfigured) {
-      setSyncStatus('synced');
+    if (demo || !isFirebaseConfigured) {
+      pendingSave.current = false;
+      setSyncStatus(localSaved ? 'local_only' : 'error');
+      setErrorMessage(localSaved ? null : 'Device storage is unavailable. Your changes have not been saved.');
+      if (localSaved) setLastSaved(new Date().toLocaleTimeString());
       return;
     }
-
+    pendingSave.current = true;
     setSyncStatus('saving');
-
-    // Sync clinic customization settings to Cloud Firestore
-    try {
-      const docRef = doc(db, 'clinics', activeId);
-      setDoc(
-        docRef,
-        {
-          ...payload,
-          id: activeId,
-          name: clinic.name || 'Columbus Chiropractic & Wellness',
-          doctorName: clinic.doctorName || 'Dr. Marcus Reed',
-          ownerEmail: clinic.ownerEmail || clinic.email || 'care@columbuschiropractic.com',
-          phone: clinic.phone || '(614) 555-0192',
-          city: clinic.city || 'Columbus',
-          state: clinic.state || 'OH',
-          lastActive: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      )
-        .then(() => {
-          setSyncStatus('synced');
-          setErrorMessage(null);
-        })
-        .catch((err) => {
-          console.warn('Firestore clinic sync warning:', err);
-          setSyncStatus('local_only');
-        });
-    } catch (err) {
-      console.warn('Firestore write init error:', err);
-      setSyncStatus('local_only');
-    }
+    setErrorMessage(null);
+    setDoc(doc(db, 'clinics', activeId), {
+      ...payload, id: activeId,
+      lastActive: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    }, { merge: true }).then(() => {
+      if (version !== saveVersion.current) return;
+      pendingSave.current = false;
+      setSyncStatus('synced');
+      setLastSaved(new Date().toLocaleTimeString());
+      setErrorMessage(null);
+    }).catch(() => {
+      if (version !== saveVersion.current) return;
+      pendingSave.current = false;
+      setSyncStatus('error');
+      setErrorMessage(localSaved
+        ? 'Cloud save failed. A copy is saved on this device. Check your connection and permissions, then retry.'
+        : 'Saving failed in the cloud and on this device. Keep this page open and retry.');
+    });
   }, []);
 
   const updateClinic = useCallback(

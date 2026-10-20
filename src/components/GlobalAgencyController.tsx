@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useModalFocus } from '../hooks/useModalFocus';
+import { resolveWorkspaceRole, type WorkspaceRole } from '../lib/admin-state';
+import { getActiveClinicId } from '../data/ClinicContext';
 import { useClinic } from '../data/ClinicContext';
 import { AgencyWorkspace } from './AgencyWorkspace';
 import { ErrorBoundary } from './ErrorBoundary';
 import { resolvePalette, generateCustomShades } from '../data/colorPalettes';
-import { Lock, Sliders, Shield, AlertCircle, RefreshCw, Mail, LogOut, CheckCircle2, Sparkles, Building2, X } from 'lucide-react';
+import { Lock, Sliders, Shield, AlertCircle, RefreshCw, Mail, Sparkles, Building2, X } from 'lucide-react';
 import { auth, db, functions, isFirebaseConfigured } from '../lib/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
+  onIdTokenChanged,
   getIdToken,
   getIdTokenResult,
   User,
@@ -25,11 +28,14 @@ export function GlobalAgencyController() {
     syncStatus,
     lastSaved,
     isCloudSynced,
+    errorMessage,
   } = useClinic();
 
   const isDemo = import.meta.env.VITE_DEMO_MODE === 'true';
   const [isOpen, setIsOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+  const [verifiedRole, setVerifiedRole] = useState<WorkspaceRole | null>(isDemo ? 'admin' : null);
+  const closeLogin = useCallback(() => { setIsOpen(false); }, []);
+  const [_currentUser, setCurrentUser] = useState<User | null>(() => {
     return isDemo ? ({ email: 'demo-admin@columbuschiropractic.com', uid: 'demo-admin-uid' } as any) : null;
   });
   const [isAdminOrStaff, setIsAdminOrStaff] = useState<boolean>(() => isDemo);
@@ -45,6 +51,9 @@ export function GlobalAgencyController() {
   // Sign-in form state
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [acceptInvitation, setAcceptInvitation] = useState(false);
+  const [inviteId, setInviteId] = useState('');
+  const [inviteToken, setInviteToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -84,27 +93,27 @@ export function GlobalAgencyController() {
 
   // Verify whether a Firebase Auth user has admin or staff privileges via JWT custom claims
   const verifyUserRole = async (user: User | null): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) { setVerifiedRole(null); return false; }
     try {
       // Check cryptographic custom claims in JWT token directly (no document fallback)
       const tokenResult = await getIdTokenResult(user);
-      const role = tokenResult.claims.role;
-      const isSuperAdmin = tokenResult.claims.superAdmin === true;
-
-      return role === 'admin' || role === 'staff' || isSuperAdmin;
+      const role = resolveWorkspaceRole(tokenResult.claims, getActiveClinicId());
+      setVerifiedRole(role);
+      return role !== null;
     } catch (err) {
       console.warn('Error verifying admin authorization:', err);
+      setVerifiedRole(null);
       return false;
     }
   };
 
   // Listen to Firebase Auth state directly
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    if (isDemo || !isFirebaseConfigured) {
       setIsCheckingAuth(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onIdTokenChanged(auth, async (user) => {
       setIsCheckingAuth(true);
       if (user) {
         setCurrentUser(user);
@@ -112,13 +121,14 @@ export function GlobalAgencyController() {
         setIsAdminOrStaff(authorized);
       } else {
         setCurrentUser(null);
+        setVerifiedRole(null);
         setIsAdminOrStaff(false);
       }
       setIsCheckingAuth(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isDemo]);
 
   // 1. URL params (?admin=true), Keyboard shortcut (Cmd+Shift+C), and custom events
   useEffect(() => {
@@ -234,6 +244,8 @@ export function GlobalAgencyController() {
     }
   }, [clinic.fontPairing]);
 
+  const loginDialogRef = useModalFocus(isOpen && !isAdminOrStaff, closeLogin);
+
   // Production Firebase Auth Sign-in (Strict custom claims verification)
   const handleFirebaseLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,6 +268,10 @@ export function GlobalAgencyController() {
 
     try {
       const cred = await signInWithEmailAndPassword(auth, adminEmail.trim().toLowerCase(), adminPassword);
+      if (acceptInvitation) {
+        await httpsCallable(functions, 'acceptStaffInvitation')({ clinicId: getActiveClinicId(), inviteId: inviteId.trim(), token: inviteToken.trim() });
+        await getIdToken(cred.user, true);
+      }
       const authorized = await verifyUserRole(cred.user);
 
       if (authorized) {
@@ -269,7 +285,7 @@ export function GlobalAgencyController() {
         setError('Access Denied: Your account role does not have administrative privileges for this clinic.');
       }
     } catch (err: any) {
-      let msg = 'Invalid administrative credentials.';
+      let msg = acceptInvitation ? (err.message || 'Invitation could not be accepted. Verify your email and invitation details.') : 'Invalid administrative credentials.';
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         msg = 'Invalid email or password. Please verify your administrator credentials.';
       } else if (err.code === 'auth/too-many-requests') {
@@ -344,6 +360,7 @@ export function GlobalAgencyController() {
       console.warn('Sign-out note:', err);
     }
     setIsAdminOrStaff(false);
+    setVerifiedRole(null);
     setCurrentUser(null);
     setIsOpen(false);
   };
@@ -366,15 +383,15 @@ export function GlobalAgencyController() {
       {/* Admin Gating: Never render admin shell unless authenticated with admin or staff role */}
       {isOpen && (
         !isAdminOrStaff ? (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md">
-            <div className="w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-2xl border border-stone-800 bg-stone-900 p-4 sm:p-6 text-stone-100 shadow-2xl">
+          <div className="admin-ui fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-3 sm:p-4 backdrop-blur-md">
+            <div ref={loginDialogRef} role="dialog" aria-modal="true" aria-labelledby="admin-login-title" tabIndex={-1} className="w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-2xl border border-stone-800 bg-stone-900 p-4 sm:p-6 text-stone-100 shadow-2xl">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
                     <Shield className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">
+                    <h3 id="admin-login-title" className="text-lg font-bold text-white">
                       {claimMode ? 'Claim Clinic Deployment' : 'Practice Admin Portal'}
                     </h3>
                     <p className="text-[11px] text-stone-400">
@@ -443,7 +460,7 @@ export function GlobalAgencyController() {
                 <div className="p-2.5 my-3 rounded-xl bg-stone-950/80 border border-stone-800 text-[11px] text-stone-400 flex items-center gap-2">
                   <Lock className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>
-                    Sign in with your verified clinic administrator or staff account. Role claims are enforced via Firebase Auth.
+                    Sign in with your clinic account. Your assigned role determines which tools you can use.
                   </span>
                 </div>
               )}
@@ -457,12 +474,11 @@ export function GlobalAgencyController() {
                 /* First-Run Claim Form */
                 <form onSubmit={handleClaimClinic} className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Clinic ID (e.g. clinic_columbus_01)</label>
+                    <label htmlFor="claim-clinic-id" className="text-sm font-medium text-stone-300 block mb-1">Clinic ID (e.g. clinic_columbus_01)</label>
                     <div className="relative">
                       <Building2 className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
-                      <input
+                      <input id="claim-clinic-id"
                         type="text"
-                        autoFocus
                         required
                         placeholder="clinic_columbus_01"
                         value={newClinicId}
@@ -473,8 +489,8 @@ export function GlobalAgencyController() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Clinic Name</label>
-                    <input
+                    <label htmlFor="claim-clinic-name" className="text-sm font-medium text-stone-300 block mb-1">Clinic Name</label>
+                    <input id="claim-clinic-name"
                       type="text"
                       placeholder="Columbus Chiropractic Care London"
                       value={newClinicName}
@@ -484,13 +500,13 @@ export function GlobalAgencyController() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1 flex items-center justify-between">
+                    <label htmlFor="claim-setup-token" className="text-sm font-medium text-stone-300 block mb-1 flex items-center justify-between">
                       <span>Deployment Setup Secret</span>
                       <span className="text-[10px] text-amber-400 font-mono">CLINIC_SETUP_TOKEN</span>
                     </label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
-                      <input
+                      <input id="claim-setup-token"
                         type="password"
                         required
                         placeholder="Master key from environment variables"
@@ -505,11 +521,12 @@ export function GlobalAgencyController() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Admin Email</label>
+                    <label htmlFor="claim-admin-email" className="text-sm font-medium text-stone-300 block mb-1">Admin Email</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
-                      <input
+                      <input id="claim-admin-email"
                         type="email"
+                        autoComplete="username"
                         required
                         placeholder="doctor@columbuschiropractic.com"
                         value={adminEmail}
@@ -520,10 +537,10 @@ export function GlobalAgencyController() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Set Admin Password</label>
+                    <label htmlFor="claim-admin-password" className="text-sm font-medium text-stone-300 block mb-1">Set Admin Password</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
-                      <input
+                      <input id="claim-admin-password"
                         type="password"
                         required
                         placeholder="••••••••••••"
@@ -535,7 +552,7 @@ export function GlobalAgencyController() {
                   </div>
 
                   {error && (
-                    <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+                    <div role="alert" className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{error}</span>
                     </div>
@@ -572,12 +589,13 @@ export function GlobalAgencyController() {
                 /* Standard Verified Admin Sign In */
                 <form onSubmit={handleFirebaseLogin} className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Staff / Director Email</label>
+                    <label htmlFor="admin-email" className="text-sm font-medium text-stone-300 block mb-1">Staff / Director Email</label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
-                      <input
+                      <input id="admin-email"
                         type="email"
-                        autoFocus
+                        autoComplete="username"
+                        required
                         placeholder="admin@columbuschiropractic.com"
                         value={adminEmail}
                         onChange={(e) => setAdminEmail(e.target.value)}
@@ -587,11 +605,13 @@ export function GlobalAgencyController() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-medium text-stone-300 block mb-1">Password</label>
+                    <label htmlFor="admin-password" className="text-sm font-medium text-stone-300 block mb-1">Password</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-stone-500 absolute left-3 top-2.5" />
-                      <input
+                      <input id="admin-password"
                         type="password"
+                        autoComplete="current-password"
+                        required
                         placeholder="••••••••••••"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
@@ -600,8 +620,18 @@ export function GlobalAgencyController() {
                     </div>
                   </div>
 
+                  <label className="flex items-center gap-2 text-sm text-stone-300">
+                    <input type="checkbox" checked={acceptInvitation} onChange={event => setAcceptInvitation(event.target.checked)} />
+                    Accept a staff invitation
+                  </label>
+                  {acceptInvitation && <div className="space-y-3">
+                    <p className="text-sm text-stone-300">Use your existing account with a verified email. Invitation clinic: {getActiveClinicId()}.</p>
+                    <label className="block text-sm">Invitation ID<input required value={inviteId} onChange={event => setInviteId(event.target.value)} className="mt-1 w-full p-3 rounded-lg bg-stone-950 border border-stone-700" /></label>
+                    <label className="block text-sm">Invitation token<input required type="password" autoComplete="off" value={inviteToken} onChange={event => setInviteToken(event.target.value)} className="mt-1 w-full p-3 rounded-lg bg-stone-950 border border-stone-700" /></label>
+                  </div>}
+
                   {error && (
-                    <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+                    <div role="alert" className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 shrink-0" />
                       <span>{error}</span>
                     </div>
@@ -619,7 +649,7 @@ export function GlobalAgencyController() {
                           <span>Verifying Credentials...</span>
                         </>
                       ) : (
-                        <span>Sign In to Admin Workspace</span>
+                        <span>{acceptInvitation ? 'Accept invitation & sign in' : 'Sign In to Admin Workspace'}</span>
                       )}
                     </button>
                     <button
@@ -646,6 +676,9 @@ export function GlobalAgencyController() {
               syncStatus={syncStatus}
               lastSaved={lastSaved}
               isCloudSynced={isCloudSynced}
+              authenticatedRole={verifiedRole || 'staff'}
+              saveError={errorMessage}
+              onRetrySave={() => updateClinic(clinic)}
               onSignOut={handleSignOut}
             />
           </ErrorBoundary>

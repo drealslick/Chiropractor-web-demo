@@ -1,3 +1,5 @@
+import { LiveTeamManager } from './LiveTeamManager';
+import { isExplicitDemo } from '../../lib/mode';
 import React, { useState } from 'react';
 import {
   Users,
@@ -59,7 +61,7 @@ const defaultTeam: TeamMember[] = [
   },
 ];
 
-export const TeamManager: React.FC<TeamManagerProps> = ({
+const DemoTeamManager: React.FC<TeamManagerProps> = ({
   clinic,
   onUpdateClinic,
   activeRolePreview,
@@ -177,10 +179,10 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
         <div>
           <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-400" />
-            <span>Team Management & Role-Based Permissions</span>
+            <span>Demo team & role preview</span>
           </h3>
           <p className="text-xs text-stone-400 mt-0.5">
-            Configure access tiers for receptionists, editors, and clinical doctors with dedicated permission boundaries.
+            Demo only: these sample people do not have real accounts or access.
           </p>
         </div>
 
@@ -285,7 +287,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
         <div className="flex items-center justify-between border-b border-stone-800 pb-3">
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5" /> Active Practice Accounts ({teamMembers.length})
+              <Users className="w-3.5 h-3.5" /> Demo Team Members ({teamMembers.length})
             </h4>
             <p className="text-[11px] text-stone-400 mt-0.5">
               Users assigned to this practice workspace and their permission levels.
@@ -364,7 +366,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                 type="submit"
                 className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs cursor-pointer"
               >
-                Create Account
+                Add Demo Member
               </button>
             </div>
           </form>
@@ -426,3 +428,8 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
     </div>
   );
 };
+
+
+export const TeamManager: React.FC<TeamManagerProps> = props => isExplicitDemo()
+  ? <DemoTeamManager {...props} />
+  : <LiveTeamManager />;
