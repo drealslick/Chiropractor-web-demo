@@ -4,7 +4,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import * as crypto from 'crypto';
 import Stripe from 'stripe';
 import { Resend } from 'resend';
-import { requireSignedWebhook, verifyPaymentForAppointment } from './paymentSecurity';
+import { expectedCurrencyCode, requireSignedWebhook, verifyPaymentForAppointment } from './paymentSecurity';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -605,14 +605,11 @@ export async function createPaymentIntentHandler(data: any, context: any) {
   const {
     clinicId,
     appointmentId,
+    clientRequestId,
     currency = 'gbp',
     paymentChoice = 'full',
-    patientEmail,
-    patientName,
-    serviceTitle,
-    serviceId,
     attempt = 1,
-  } = data;
+  } = data || {};
 
   if (!clinicId || typeof clinicId !== 'string') {
     throw new functions.https.HttpsError('invalid-argument', 'clinicId is required.');
@@ -634,8 +631,50 @@ export async function createPaymentIntentHandler(data: any, context: any) {
     );
   }
 
-  // Look up clinic settings for Stripe Connect account
+  // Bind checkout to an existing, server-created appointment. Merely knowing a
+  // clinic ID must never allow creating a payable intent for someone else's slot.
   const sanitizedClinicId = clinicId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  if (typeof appointmentId !== 'string' || !appointmentId) {
+    throw new functions.https.HttpsError('invalid-argument', 'An existing appointmentId is required.');
+  }
+  if (!['full', 'deposit', 'balance', 'card_hold', 'card_on_file', 'setup_only', 'pay_at_clinic', 'pay_on_arrival'].includes(paymentChoice)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid payment choice.');
+  }
+  if (!Number.isInteger(attempt) || attempt < 1 || attempt > 5) {
+    throw new functions.https.HttpsError('invalid-argument', 'Invalid payment attempt.');
+  }
+
+  const apptDoc = await db.collection('appointments').doc(appointmentId).get();
+  if (!apptDoc.exists) {
+    throw new functions.https.HttpsError('not-found', 'Appointment not found.');
+  }
+  const booked = apptDoc.data()!;
+  if (booked.clinicId !== sanitizedClinicId) {
+    throw new functions.https.HttpsError('permission-denied', 'Appointment does not belong to this clinic.');
+  }
+  if (['hold_expired', 'hold_expired_conflict', 'cancelled'].includes(booked.status)) {
+    throw new functions.https.HttpsError('failed-precondition', 'Appointment is no longer payable.');
+  }
+  const role = context?.auth?.token?.role;
+  const staffAccess = context?.auth &&
+    (context.auth.token?.superAdmin === true ||
+      (context.auth.token?.clinicId === sanitizedClinicId && ['admin', 'staff', 'practitioner'].includes(role)));
+  const ownsAppointment = context?.auth?.uid && booked.patientId === context.auth.uid;
+  const matchingBookingRequest = typeof clientRequestId === 'string' &&
+    clientRequestId.length >= 16 && booked.clientRequestId === clientRequestId;
+  if (!staffAccess && !ownsAppointment && !matchingBookingRequest) {
+    throw new functions.https.HttpsError('permission-denied', 'Booking request verification failed.');
+  }
+  const bookedCurrency = expectedCurrencyCode(booked.currency);
+  if (!['gbp', 'usd', 'eur'].includes(bookedCurrency) ||
+      expectedCurrencyCode(currency) !== bookedCurrency) {
+    throw new functions.https.HttpsError('invalid-argument', 'Currency does not match appointment settings.');
+  }
+  const patientEmail = booked.patientEmail;
+  const patientName = booked.patientName;
+  const serviceTitle = booked.serviceTitle;
+
+  // Look up clinic settings for Stripe Connect account
   const [settingsDoc, clinicDoc] = await Promise.all([
     db.collection('clinic_settings').doc(sanitizedClinicId).get(),
     db.collection('clinics').doc(sanitizedClinicId).get(),
@@ -659,47 +698,25 @@ export async function createPaymentIntentHandler(data: any, context: any) {
   }
 
   // Authoritative Server-Side Pricing Resolution
-  let serverPrice = 85;
-  let serverDeposit = 25;
+  let serverPrice: number;
+  let serverDeposit: number;
   let existingAmountPaid = 0;
   let existingPaymentStatus = 'unpaid';
 
-  if (appointmentId && typeof appointmentId === 'string') {
-    const apptDoc = await db.collection('appointments').doc(appointmentId).get();
-    if (apptDoc.exists) {
-      const apptData = apptDoc.data()!;
-      existingAmountPaid = typeof apptData.amountPaid === 'number' ? apptData.amountPaid : 0;
-      existingPaymentStatus = apptData.paymentStatus || 'unpaid';
-
-      // Idempotency check: Reject duplicate payment if already settled in full
-      if (existingPaymentStatus === 'paid_full') {
-        throw new functions.https.HttpsError(
-          'already-exists',
-          'Payment has already been recorded and settled in full for this appointment.'
-        );
-      }
-      if (paymentChoice === 'deposit' && existingPaymentStatus === 'deposit_paid') {
-        throw new functions.https.HttpsError(
-          'already-exists',
-          'Deposit has already been paid for this appointment.'
-        );
-      }
-
-      if (typeof apptData.priceAmount === 'number' && apptData.priceAmount > 0) {
-        serverPrice = apptData.priceAmount;
-      }
-      if (typeof apptData.depositAmount === 'number' && apptData.depositAmount > 0) {
-        serverDeposit = apptData.depositAmount;
-      }
-    }
-  } else if (clinicDoc.exists) {
-    const services = clinicDoc.data()?.services || [];
-    const matchedService = services.find((s: any) => s.id === serviceId || s.title === serviceTitle);
-    if (matchedService && typeof matchedService.price === 'number') {
-      serverPrice = matchedService.price;
-      serverDeposit = matchedService.deposit || 25;
-    }
+  existingAmountPaid = typeof booked.amountPaid === 'number' ? booked.amountPaid : 0;
+  existingPaymentStatus = booked.paymentStatus || 'unpaid';
+  if (existingPaymentStatus === 'paid_full' || existingPaymentStatus === 'refunded') {
+    throw new functions.https.HttpsError('already-exists', 'This appointment has already been paid.');
   }
+  if (paymentChoice === 'deposit' && existingPaymentStatus === 'deposit_paid') {
+    throw new functions.https.HttpsError('already-exists', 'Deposit has already been paid.');
+  }
+  if (typeof booked.priceAmount !== 'number' || booked.priceAmount <= 0 ||
+      typeof booked.depositAmount !== 'number' || booked.depositAmount <= 0) {
+    throw new functions.https.HttpsError('failed-precondition', 'Appointment pricing is not configured.');
+  }
+  serverPrice = booked.priceAmount;
+  serverDeposit = booked.depositAmount;
 
   // 0. PAY ON ARRIVAL (Zero Stripe API Calls)
   if (paymentChoice === 'pay_on_arrival' || paymentChoice === 'pay_at_clinic') {
