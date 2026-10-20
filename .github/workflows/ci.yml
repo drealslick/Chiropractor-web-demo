@@ -53,8 +53,10 @@ jobs:
         run: |
           npx --yes firebase-tools@14.15.2 emulators:exec --project demo-practice-os --only firestore "npm run test:rules && npm run test:security"
 
-      - name: Run Cloud Functions handler tests
-        run: npm run test:handlers
+      - name: Run Cloud Functions handler and payment security tests
+        run: |
+          npm run test:handlers
+          npx vitest run tests/payment-security.test.ts
 
       - name: Build Production Bundle & Prerender
         run: |
