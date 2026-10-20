@@ -1196,13 +1196,8 @@ export async function stripeWebhookHandler(req: any, res: any) {
       return;
     }
 
-    // Record event as processed
-    await eventRef.set({
-      eventId: event.id,
-      type: event.type,
-      processedAt: FieldValue.serverTimestamp(),
-    });
-
+    // Mark the event processed ONLY after the handler succeeds, otherwise a
+    // transient Firestore/email/refund failure would permanently suppress retries.
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
@@ -1342,6 +1337,11 @@ export async function stripeWebhookHandler(req: any, res: any) {
             const freshSnap = await apptRef.get();
             if (freshSnap.data()?.refundIssuedAutomatically === true) {
               functions.logger.info(`Refund already issued for ${appointmentId}, skipping`);
+              await eventRef.set({
+                eventId: event.id,
+                type: event.type,
+                processedAt: FieldValue.serverTimestamp(),
+              });
               res.status(200).json({ received: true, status: 'already_refunded' });
               return;
             }
@@ -1353,12 +1353,19 @@ export async function stripeWebhookHandler(req: any, res: any) {
                   reason: 'requested_by_customer',
                   metadata: { automatedRefundReason: 'hold_expired_slot_reclaimed', appointmentId },
                 },
-                { idempotencyKey: `refund_${appointmentId}` }
+                { idempotencyKey: `refund_${paymentIntent.id}` }
               );
               await apptRef.set({ refundIssuedAutomatically: true }, { merge: true });
             } catch (refErr) {
               functions.logger.error('Failed to automatically refund expired hold:', refErr);
+              res.status(500).send('Refund pending; webhook will retry');
+              return;
             }
+            await eventRef.set({
+              eventId: event.id,
+              type: event.type,
+              processedAt: FieldValue.serverTimestamp(),
+            });
             res.status(200).json({ received: true, status: 'hold_expired_refunded', conflictReason });
             return;
           }
@@ -1494,6 +1501,11 @@ export async function stripeWebhookHandler(req: any, res: any) {
         functions.logger.info(`Unhandled event type: ${event.type}`);
     }
 
+    await eventRef.set({
+      eventId: event.id,
+      type: event.type,
+      processedAt: FieldValue.serverTimestamp(),
+    });
     res.status(200).json({ received: true });
   } catch (err: any) {
     functions.logger.error('Error handling Stripe webhook event:', err);
