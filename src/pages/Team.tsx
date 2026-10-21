@@ -71,7 +71,7 @@ export default function Team() {
             <h2 id="support-team">Beyond the treatment room.</h2>
           </div>
           <div className="pv2-support-list">
-            {staff.map((member, i) => <div key={member.id || i}><strong>{member.name}</strong><span>{member.role || member.title || 'Practice team'}</span></div>)}
+            {staff.map((member, i) => <div key={member.id || i}><strong>{member.name}</strong><span>{member.role || 'Practice team'}</span></div>)}
           </div>
         </section>}
         <section className="pv2-inline-cta">
