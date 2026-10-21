@@ -2,8 +2,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
 import { usePageMeta } from '../data/usePageMeta';
-import { defaultPublicTeamMembers } from '../data/defaultTeamData';
-import { isExplicitDemo } from '../lib/mode';
+import { isExplicitDemo, isUnconfiguredMode } from '../lib/mode';
 import type { PublicTeamMember, BlogBlock } from '../types';
 
 function BioBlock({ block }: { block: BlogBlock }) {
@@ -20,7 +19,15 @@ export default function TeamMemberDetail() {
   const { memberSlug } = useParams<{ memberSlug: string }>();
   const { clinicData: clinic, openBookingModal } = useClinic();
   const custom: PublicTeamMember[] = clinic.publicTeamMembers || [];
-  const practitioners: PublicTeamMember[] = custom.length ? custom : isExplicitDemo() ? defaultPublicTeamMembers : [];
+  const preview = isExplicitDemo() || isUnconfiguredMode();
+  const practitioners: PublicTeamMember[] = custom.length ? custom : preview ? [{
+    id: 'sample-practitioner', slug: 'sample-practitioner',
+    name: clinic.doctorName || 'Example practitioner',
+    role: clinic.doctorTitle || 'Illustrative clinician profile',
+    photoUrl: clinic.doctorImage || '/images/doctor_portrait.jpg',
+    shortSummary: 'This is an illustrative practitioner profile. A clinic owner replaces it with genuine qualifications, a portrait and a biography.',
+    areasOfFocus: [], showOnWebsite: true,
+  }] : [];
   const member = practitioners.find(item => item.slug === memberSlug || item.id === memberSlug);
   usePageMeta(member ? member.name + ' | ' + (clinic.name || 'The practice') : 'Team member',
     member?.shortSummary || 'Get to know the people behind the practice.');
@@ -42,7 +49,7 @@ export default function TeamMemberDetail() {
               ? <img src={member.photoUrl} alt={member.photoAlt || 'Portrait of ' + member.name}
                   loading="eager" decoding="async" />
               : <div className="pv2-empty-photo" aria-label="Portrait not available">{member.name.charAt(0)}</div>}
-            <figcaption>{isExplicitDemo() && !custom.length ? 'Illustrative demo practitioner' : member.role}</figcaption>
+            <figcaption>{preview && !custom.length ? 'Illustrative demo practitioner' : member.role}</figcaption>
           </figure>
           <div className="pv2-profile-intro">
             <span className="pv2-kicker">The people behind the practice</span>
