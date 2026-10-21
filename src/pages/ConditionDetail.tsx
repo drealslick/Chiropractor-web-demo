@@ -172,7 +172,7 @@ export default function ConditionDetail() {
   const displaySpecialists = specialists.length > 0 ? specialists : allTeamMembers.slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-stone-50/60 py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
+    <div className="page-v2 page-v2--condition-detail min-h-screen bg-stone-50/60 py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-10 sm:space-y-12">
         {/* Navigation Breadcrumbs */}
         <div className="flex items-center justify-between text-xs text-stone-500">
