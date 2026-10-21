@@ -423,3 +423,30 @@
   .public-v2 .pv2-feature-photo img { aspect-ratio: 5/4; }
   .public-v2 .pv2-page-header h1 { font-size: clamp(2.9rem,11vw,4rem); }
 }
+
+
+/* Optional homepage chapters retain their separate clinic-admin toggles. */
+.public-v2 .pv2-essentials { background: #fff; border-bottom: 1px solid var(--pv2-rule); }
+.public-v2 .pv2-essentials > div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.public-v2 .pv2-essentials > div > div { padding: 1.4rem 1.6rem; border-right: 1px solid var(--pv2-rule); display: flex; gap: .5rem; flex-direction: column; }
+.public-v2 .pv2-essentials > div > div:first-child { padding-left: 0; }
+.public-v2 .pv2-essentials > div > div:last-child { border-right: 0; }
+.public-v2 .pv2-essentials span { color: var(--pv2-mute); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.public-v2 .pv2-essentials strong { color: var(--pv2-ink); font-size: .9rem; line-height: 1.4; font-weight: 650; }
+.public-v2 .pv2-arrive { border-bottom: 1px solid var(--pv2-rule); padding: clamp(3.5rem,6vw,6rem) 0; background: #f3f4ee; }
+.public-v2 .pv2-arrive-grid { display: grid; grid-template-columns: .5fr 1.15fr .9fr; align-items: start; gap: clamp(2rem,5vw,6rem); }
+.public-v2 .pv2-arrive h2 { font-size: clamp(2.3rem,3.7vw,4.3rem); line-height: 1.13; }
+.public-v2 .pv2-arrive p { margin: 0 0 1.5rem; }
+.public-v2 .pv2-voices { background: #fff; }
+.public-v2 .pv2-voices h2 { margin-bottom: 2.7rem; }
+.public-v2 .pv2-voice-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: clamp(1.5rem,3.5vw,4rem); }
+.public-v2 .pv2-voice-list blockquote { border-top: 1px solid var(--pv2-ink); padding-top: 1.6rem; margin: 0; }
+.public-v2 .pv2-voice-list blockquote p { font: 500 clamp(1.2rem,1.8vw,1.7rem)/1.48 var(--pv2-font-display); color: var(--pv2-ink); letter-spacing: -.02em; }
+.public-v2 .pv2-voice-list blockquote footer { margin-top: 1.8rem; color: var(--pv2-mute); font-size: .8rem; }
+@media (max-width: 760px) {
+  .public-v2 .pv2-arrive-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .public-v2 .pv2-voice-list { grid-template-columns: 1fr; }
+  .public-v2 .pv2-essentials > div { grid-template-columns: 1fr; }
+  .public-v2 .pv2-essentials > div > div { border-right: 0; border-bottom: 1px solid var(--pv2-rule); padding: .85rem 0; flex-direction: row; align-items: baseline; justify-content: space-between; text-align: right; }
+  .public-v2 .pv2-essentials > div > div:last-child { border-bottom: 0; }
+}
