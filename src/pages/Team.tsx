@@ -38,7 +38,7 @@ export default function Team() {
       : defaultSupportStaff;
 
   return (
-    <div className="min-h-screen bg-stone-50/70 py-10 sm:py-16 px-4 sm:px-6 lg:px-8">
+    <div className="page-v2 page-v2--team min-h-screen bg-stone-50/70 py-10 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-16 sm:space-y-20">
 
         {/* 1. HERO SECTION */}
