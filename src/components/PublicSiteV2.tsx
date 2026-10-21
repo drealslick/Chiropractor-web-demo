@@ -220,3 +220,57 @@ export function PracticeFinal({ clinic, onBookClick }: PublicSectionProps) {
     </section>
   );
 }
+
+
+/** Simple factual wayfinding in place of unverifiable star and registration badges. */
+export function PracticeEssentials({ clinic }: { clinic: ClinicInfo }) {
+  const info = [
+    { label: 'Find us', detail: clinic.cityState || clinic.city },
+    { label: 'Opening hours', detail: clinic.hoursWeekday },
+    { label: 'Speak to us', detail: clinic.phone },
+  ].filter(entry => Boolean(entry.detail));
+  if (!info.length) return null;
+  return (
+    <aside className="pv2-essentials" aria-label="Practice details">
+      <div className="pv2-wrap">
+        {info.map(item => <div key={item.label}><span>{item.label}</span><strong>{item.detail}</strong></div>)}
+      </div>
+    </aside>
+  );
+}
+
+/** Arrival logistics remain editable separately from the care-process chapter. */
+export function PracticeArrivalPreview({ clinic }: { clinic: ClinicInfo }) {
+  return (
+    <section className="pv2-arrive" aria-labelledby="pv2-arrive-title">
+      <div className="pv2-wrap pv2-arrive-grid">
+        <span className="pv2-kicker">Before you come in</span>
+        <h2 id="pv2-arrive-title">{clinic.firstVisitTitle || 'A little preparation goes a long way.'}</h2>
+        <div>
+          <p>{clinic.firstVisitWear || 'You can wear comfortable clothes, bring any previous reports that might be relevant, and come with your questions.'}</p>
+          <Link to="/first-visit" className="pv2-text-link">Prepare for your visit ↗</Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Real, clinic-supplied testimonials only; never silently invent social proof. */
+export function PracticePatientVoices({ clinic }: { clinic: ClinicInfo }) {
+  const notes = clinic.customTestimonials || [];
+  if (!notes.length) return null;
+  return (
+    <section className="pv2-section pv2-voices" aria-labelledby="pv2-voices-title">
+      <div className="pv2-wrap">
+        <span className="pv2-kicker">Patient perspectives</span>
+        <h2 id="pv2-voices-title">{clinic.patientsSectionTitle || 'What patients have shared.'}</h2>
+        <div className="pv2-voice-list">
+          {notes.slice(0, 3).map((note, i) => <blockquote key={note.id || i}>
+            <p>“{note.quote}”</p>
+            <footer>{note.author || note.name || 'Patient feedback'}</footer>
+          </blockquote>)}
+        </div>
+      </div>
+    </section>
+  );
+}
