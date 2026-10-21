@@ -115,7 +115,7 @@ export default function Pricing() {
   };
 
   return (
-    <div className="space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+    <div className="page-v2 page-v2--pricing space-y-16 py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* 1. Header Section */}
       <section className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200/80">
