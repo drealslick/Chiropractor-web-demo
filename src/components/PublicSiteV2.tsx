@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import type { ClinicInfo, ProblemCondition } from '../types';
+import type { ClinicInfo, ProblemCondition, HeroTriageOption, ProcessStep, PatientTestimonial } from '../types';
 import { conditionsData, firstVisitSteps } from '../data/clinicData';
 
 type BookAction = () => void;
@@ -51,8 +51,8 @@ export function PracticeHero({ clinic, onBookClick }: PublicSectionProps) {
 }
 
 export function PracticeCareIndex({ clinic, onBookClick }: PublicSectionProps) {
-  const conditions = (clinic.customConditions?.length ? clinic.customConditions : conditionsData).slice(0, 6);
-  const triage = clinic.showHeroTriage !== false && clinic.customTriageOptions?.length
+  const conditions: ProblemCondition[] = (clinic.customConditions?.length ? clinic.customConditions : conditionsData).slice(0, 6);
+  const triage: HeroTriageOption[] = clinic.showHeroTriage !== false && clinic.customTriageOptions?.length
     ? clinic.customTriageOptions : [];
   return (
     <section id="care" className="pv2-section pv2-care" aria-labelledby="pv2-care-title">
@@ -115,7 +115,7 @@ export function PracticeApproach({ clinic }: { clinic: ClinicInfo }) {
 }
 
 export function PracticeJourney({ clinic }: { clinic: ClinicInfo }) {
-  const steps = (clinic.customFirstVisitSteps?.length ? clinic.customFirstVisitSteps : firstVisitSteps).slice(0, 4);
+  const steps: ProcessStep[] = (clinic.customFirstVisitSteps?.length ? clinic.customFirstVisitSteps : firstVisitSteps).slice(0, 4);
   return (
     <section className="pv2-section pv2-journey" aria-labelledby="pv2-journey-title">
       <div className="pv2-wrap pv2-editorial-split">
@@ -257,7 +257,7 @@ export function PracticeArrivalPreview({ clinic }: { clinic: ClinicInfo }) {
 
 /** Real, clinic-supplied testimonials only; never silently invent social proof. */
 export function PracticePatientVoices({ clinic }: { clinic: ClinicInfo }) {
-  const notes = clinic.customTestimonials || [];
+  const notes: PatientTestimonial[] = clinic.customTestimonials || [];
   if (!notes.length) return null;
   return (
     <section className="pv2-section pv2-voices" aria-labelledby="pv2-voices-title">
