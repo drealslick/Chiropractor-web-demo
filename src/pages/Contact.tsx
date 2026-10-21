@@ -67,7 +67,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="space-y-10 py-8 px-4 max-w-5xl mx-auto">
+    <div className="page-v2 page-v2--contact space-y-10 py-8 px-4 max-w-5xl mx-auto">
       <section className="text-center space-y-3">
         <h1 className="text-3xl font-bold text-stone-900">Contact & Location</h1>
         <p className="text-stone-600 max-w-xl mx-auto">

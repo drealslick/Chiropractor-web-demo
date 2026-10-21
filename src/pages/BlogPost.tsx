@@ -75,7 +75,7 @@ export default function BlogPost() {
     '#059669';
 
   return (
-    <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="page-v2 page-v2--blog-post min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
       <article className="max-w-3xl mx-auto space-y-8">
         {/* Draft Notice Banner if viewed as draft */}
         {isDraft && (

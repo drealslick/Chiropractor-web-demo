@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import './styles/public-v2.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Phone, MapPin } from 'lucide-react';
 import { ClinicSchema } from './components/ClinicSchema';
@@ -34,14 +35,13 @@ const PatientPortalPage = React.lazy(() => import('./pages/PatientPortalPage'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 function AppShell() {
-  const [, setMobileMenuOpen] = useState(false);
-  const { clinicData: clinic, isPatientPortalOpen, closePatientPortal, patientPortalInitialQuery } = useClinic();
+  const { clinicData: clinic, openBookingModal, isPatientPortalOpen, closePatientPortal, patientPortalInitialQuery } = useClinic();
 
   return (
     <Router>
       <ScrollToTop />
       <GlobalThemeApplier />
-      <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
+      <div className="public-v2 min-h-screen flex flex-col bg-stone-50 text-stone-900 selection:bg-emerald-500 selection:text-white">
         <ClinicSchema />
         <GlobalAnnouncementBanner banner={clinic.announcementBanner} />
         <header className="bg-stone-900 text-stone-400 text-[11px] py-1.5 px-3 border-b border-stone-800">
@@ -61,9 +61,10 @@ function AppShell() {
           </div>
         </header>
 
-        <Navbar onBookClick={() => setMobileMenuOpen(false)} />
+        <a className="pv2-skip-link" href="#main-content">Skip to main content</a>
+        <Navbar onBookClick={() => openBookingModal()} />
 
-        <main className="flex-grow">
+        <main id="main-content" className="flex-grow">
           <React.Suspense fallback={<div className="p-8 text-center text-stone-500">Loading...</div>}>
             <Routes>
               <Route path="/" element={<Home />} />
