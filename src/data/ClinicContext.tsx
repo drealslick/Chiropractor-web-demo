@@ -80,11 +80,41 @@ function sanitize(clinic: ClinicInfo) {
   return out;
 }
 
+/**
+ * Preset identities must never inherit an unrelated clinic's Columbus locations.
+ * Build one consistent default branch; persisted/remote clinic configuration still wins.
+ */
+function composeClinicPreset(preset: Partial<ClinicInfo>): ClinicInfo {
+  const clinic = { ...defaultClinic, ...preset };
+  if (!preset.locations && preset.address && preset.city) {
+    const location: ClinicLocation = {
+      id: 'preset-primary',
+      name: preset.name || 'Main practice',
+      isPrimary: true,
+      address: preset.address,
+      city: preset.city,
+      state: preset.state || '',
+      cityState: preset.cityState || preset.city,
+      zip: preset.zip || '',
+      phone: preset.phone || '',
+      phoneRaw: preset.phoneRaw || '',
+      email: preset.email,
+      hoursWeekday: preset.hoursWeekday,
+      hoursSaturday: preset.hoursSaturday,
+      parkingNote: preset.parkingNote,
+      active: true,
+    };
+    clinic.locations = [location];
+    clinic.activeLocationId = location.id;
+  }
+  return clinic;
+}
+
 function getInitialClinic(): { data: ClinicInfo; hasCache: boolean } {
   const rawPreset = import.meta.env.VITE_DEFAULT_PRESET || 'austin';
   const defaultPresetKey = String(rawPreset).toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'austin';
   const presetData = agencyDemoPresets[defaultPresetKey] || {};
-  const baseClinic = { ...defaultClinic, ...presetData };
+  const baseClinic = composeClinicPreset(presetData);
   try {
     const saved = localStorage.getItem(CACHE_KEY) || localStorage.getItem(STORAGE_KEY);
     if (saved) return { data: { ...baseClinic, ...JSON.parse(saved) }, hasCache: true };
@@ -359,7 +389,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const resetClinic = useCallback(() => {
     const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
     const presetData = agencyDemoPresets[defaultPresetKey] || {};
-    const baseClinic = { ...defaultClinic, ...presetData };
+    const baseClinic = composeClinicPreset(presetData);
     setClinicData(baseClinic);
     persist(baseClinic);
   }, [persist]);
@@ -368,7 +398,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     (id: string) => {
       const preset = agencyDemoPresets[id.toLowerCase()];
       if (!preset) return;
-      const next = { ...defaultClinic, ...preset };
+      const next = composeClinicPreset(preset);
       setClinicData(next);
       persist(next);
     },
@@ -380,7 +410,7 @@ export const ClinicProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       try {
         const defaultPresetKey = (import.meta.env.VITE_DEFAULT_PRESET || 'austin').toLowerCase();
         const presetData = agencyDemoPresets[defaultPresetKey] || {};
-        const baseClinic = { ...defaultClinic, ...presetData };
+        const baseClinic = composeClinicPreset(presetData);
         const next: ClinicInfo = { ...baseClinic, ...blueprint };
         setClinicData(next);
         persist(next);
