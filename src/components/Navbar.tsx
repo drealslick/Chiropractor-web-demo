@@ -1,295 +1,84 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, Phone, Menu, X, CalendarCheck2 } from 'lucide-react';
-import { ClinicContext } from '../data/ClinicContext';
+import { Menu, X } from 'lucide-react';
+import { useClinic } from '../data/ClinicContext';
 
-interface NavbarProps {
-  onBookClick: () => void;
-}
+interface NavbarProps { onBookClick: () => void }
 
 export const Navbar: React.FC<NavbarProps> = ({ onBookClick }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { clinicData: clinic, allLocations, activeLocation, setActiveLocationId, openPatientPortal } = useClinic();
   const location = useLocation();
-
-  useEffect(() => setMobileMenuOpen(false), [location.pathname]);
-
+  const [open, setOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  const logo = clinic.logoUrl || clinic.logoImage || clinic.logo;
+  useEffect(() => setOpen(false), [location.pathname]);
+  useEffect(() => setLogoError(false), [logo]);
   useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileMenuOpen(false);
-    };
-    window.addEventListener('keydown', onEscape);
-    return () => window.removeEventListener('keydown', onEscape);
-  }, [mobileMenuOpen]);
-  
-  // 📻 Tuning into our central brain!
-  const context = useContext(ClinicContext);
-  
-  // Safety check in case the context hasn't loaded
-  if (!context) {
-    return null; 
-  }
-  
-  const { clinicData: clinic, activeLocation, setActiveLocationId, allLocations } = context; 
-  const activeLogo = clinic.logoUrl || clinic.logoImage || (clinic as any).logo;
-  const [logoImageError, setLogoImageError] = useState(false);
+    if (!open) return;
+    const dismiss = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', dismiss);
+    return () => window.removeEventListener('keydown', dismiss);
+  }, [open]);
+
+  const links = [
+    { href: '/', label: 'Home', enabled: true },
+    { href: '/conditions', label: 'Care', enabled: clinic.showPageConditions !== false && clinic.showNavConditions !== false },
+    { href: '/first-visit', label: 'First visit', enabled: clinic.showPageFirstVisit !== false && clinic.showNavFirstVisit !== false },
+    { href: '/about', label: 'About', enabled: clinic.showPageAbout !== false && clinic.showNavAbout !== false },
+    { href: '/team', label: 'People', enabled: clinic.showPageTeam !== false && clinic.showNavTeam !== false },
+    { href: '/pricing', label: 'Fees', enabled: clinic.showPagePricing !== false && clinic.showNavPricing !== false },
+    { href: '/blog', label: 'Journal', enabled: clinic.showPageBlog !== false && clinic.showNavBlog !== false },
+    { href: '/contact', label: 'Contact', enabled: true },
+  ].filter(link => link.enabled);
 
   return (
-    <nav aria-label="Main Navigation" className="sticky top-0 z-40 bg-stone-50/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
-      {/* Top Multi-Location Utility Ribbon */}
-      {allLocations && allLocations.length > 1 && (
-        <div className="bg-stone-900 text-stone-300 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between border-b border-stone-800">
-          <div className="max-w-6xl mx-auto w-full flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-emerald-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
-                <span>📍 Active Clinic Branch:</span>
-              </span>
-              <select
-                aria-label="Select active clinic location branch"
-                value={activeLocation.id}
-                onChange={(e) => setActiveLocationId(e.target.value)}
-                className="bg-stone-800 border border-stone-700 text-stone-100 text-xs rounded-md px-2.5 py-0.5 font-semibold cursor-pointer focus:outline-none focus:border-emerald-500"
-              >
-                {allLocations.map((loc) => (
-                  <option key={loc.id} value={loc.id} className="bg-stone-900 text-stone-100">
-                    {loc.name} ({loc.city})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="hidden sm:flex items-center gap-4 text-[11px] text-stone-400">
-              <span>{activeLocation.address}, {activeLocation.city}</span>
-              <span className="font-mono text-emerald-300">{activeLocation.phone}</span>
-            </div>
+    <nav aria-label="Main navigation" className="pv2-nav">
+      {allLocations?.length > 1 && (
+        <div className="pv2-location-switch">
+          <div className="pv2-wrap">
+            <label htmlFor="pv2-active-clinic">Location</label>
+            <select id="pv2-active-clinic" value={activeLocation?.id || allLocations[0]?.id}
+              onChange={(event) => setActiveLocationId(event.target.value)}>
+              {allLocations.map((item) => <option key={item.id} value={item.id}>{item.name} — {item.city}</option>)}
+            </select>
           </div>
         </div>
       )}
+      <div className="pv2-wrap pv2-nav-inner">
+        <Link to="/" className="pv2-brand" aria-label={(clinic.name || 'Clinic') + ' home'}>
+          {logo && !logoError && <img src={logo} alt={clinic.logoUrlAlt || clinic.name || 'Practice logo'}
+            style={{ maxWidth: clinic.logoWidth ? Math.min(Number(clinic.logoWidth), 180) + 'px' : '168px' }}
+            onError={() => setLogoError(true)} />}
+          {!clinic.hideLogoText && <span className="pv2-brand-name">
+            <strong>{clinic.logoText || clinic.name || 'The practice'}</strong>
+            <small>{clinic.cityState || clinic.city || 'Chiropractic care'}</small>
+          </span>}
+          {(!logo || logoError) && clinic.hideLogoText && <span className="pv2-brand-name"><strong>{clinic.name || 'The practice'}</strong></span>}
+        </Link>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        
-        {/* LOGO & Home Link */}
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            {activeLogo && !logoImageError ? (
-              <div className="flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105 shrink-0 max-h-[52px]">
-                <img
-                  src={activeLogo}
-                  alt={clinic.logoUrlAlt || clinic.logoImageAlt || clinic.logoText || clinic.name || 'Practice Logo'}
-                  onError={() => setLogoImageError(true)}
-                  style={{
-                    maxWidth: clinic.logoWidth ? `${clinic.logoWidth}px` : '320px',
-                    maxHeight: '52px',
-                  }}
-                  className="h-10 sm:h-12 w-auto max-w-[220px] sm:max-w-[320px] object-contain rounded-lg"
-                />
-              </div>
-            ) : (
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-stone-900 text-stone-50 flex items-center justify-center font-serif text-xl font-bold tracking-tight shadow-sm transition-transform group-hover:scale-105 shrink-0">
-                <span>{(clinic.logoText || clinic.name || 'C').charAt(0) || 'C'}</span>
-              </div>
-            )}
-            {!clinic.hideLogoText && (
-              <div className="flex flex-col min-w-0">
-                <span className="font-serif font-bold text-base sm:text-lg leading-tight tracking-tight text-stone-900 group-hover:text-emerald-800 transition-colors truncate max-w-[180px] sm:max-w-xs">
-                  {clinic.logoText || clinic.name}
-                </span>
-                <span className="text-[11px] sm:text-xs tracking-wider uppercase text-stone-500 font-medium truncate">
-                  {clinic.cityState || clinic.city || ''}
-                </span>
-              </div>
-            )}
-          </Link>
+        <div className="pv2-nav-links" aria-label="Pages">
+          {links.map(link => <Link key={link.href} to={link.href}
+            aria-current={location.pathname === link.href ? 'page' : undefined}>{link.label}</Link>)}
         </div>
-
-        {/* Desktop Navigation Links (Multi-Page Routes) */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
-          <Link to="/" className="hover:text-stone-900 transition-colors">Home</Link>
-          {clinic.showPageConditions !== false && clinic.showNavConditions !== false && (
-            <Link to="/conditions" className="hover:text-stone-900 transition-colors">Conditions</Link>
-          )}
-          {clinic.showPageFirstVisit !== false && clinic.showNavFirstVisit !== false && (
-            <Link to="/first-visit" className="hover:text-stone-900 transition-colors">First Visit</Link>
-          )}
-          {clinic.showPageAbout !== false && clinic.showNavAbout !== false && (
-            <Link to="/about" className="hover:text-stone-900 transition-colors">About</Link>
-          )}
-          {clinic.showPageTeam !== false && clinic.showNavTeam !== false && (
-            <Link to="/team" className="hover:text-stone-900 transition-colors">Team</Link>
-          )}
-          {clinic.showPagePricing !== false && clinic.showNavPricing !== false && (
-            <Link to="/pricing" className="hover:text-stone-900 transition-colors">Pricing</Link>
-          )}
-          {clinic.showPageBlog !== false && clinic.showNavBlog !== false && (
-            <Link to="/blog" className="hover:text-stone-900 transition-colors">Blog</Link>
-          )}
-          <Link to="/contact" className="hover:text-stone-900 transition-colors">Contact</Link>
-          {clinic.showPagePortal !== false && (
-            <Link
-              to="/portal"
-              className="text-emerald-800 hover:text-emerald-950 font-semibold transition-colors flex items-center gap-1"
-            >
-              <span>Patient Portal</span>
-            </Link>
-          )}
-        </nav>
-
-        {/* Action Buttons & Mobile Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={() => context.openPatientPortal()}
-            className="hidden xl:inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-950 px-2.5 py-1.5 rounded-lg hover:bg-stone-200/50 transition cursor-pointer"
-            title="Lookup booking, reschedule, or view receipt"
-          >
-            <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Manage Booking</span>
+        <div className="pv2-nav-actions">
+          {clinic.showPagePortal !== false && <button type="button" className="pv2-nav-portal" onClick={() => openPatientPortal()}>My booking</button>}
+          <button type="button" className="pv2-nav-book" id="nav-book-now-button" onClick={onBookClick}>
+            {clinic.navButtonText || 'Book a visit'} <span aria-hidden="true">↗</span>
           </button>
-
-          <a
-            href={`tel:${activeLocation.phoneRaw}`}
-            className="hidden lg:flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-700 hover:text-emerald-800 px-3 py-2 rounded-md hover:bg-stone-200/60 transition-all"
-          >
-            <Phone className="w-3.5 h-3.5 text-emerald-700" />
-            <span>{activeLocation.phone}</span>
-          </a>
-
-          <button
-            type="button"
-            onClick={() => {
-              context.openBookingModal();
-              if (onBookClick) onBookClick();
-            }}
-            id="nav-book-now-button"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-stone-900 hover:bg-emerald-900 text-stone-50 text-xs sm:text-sm font-semibold tracking-wide rounded-md shadow-sm transition-all active:scale-[0.98] cursor-pointer"
-          >
-            <Calendar className="w-4 h-4 text-emerald-400" />
-            <span>{clinic.navButtonText || "BOOK NOW"}</span>
-          </button>
-
-          {/* Mobile Hamburger Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-stone-700 hover:text-stone-900 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-700"
-            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-navigation-links"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          <button type="button" className="pv2-menu-toggle" aria-expanded={open}
+            aria-controls="pv2-mobile-nav" aria-label={open ? 'Close menu' : 'Open menu'}
+            onClick={() => setOpen(value => !value)}>
+            {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
           </button>
         </div>
-
       </div>
-
-      {/* Mobile Slide-down Multi-Page Dropdown Menu */}
-      {mobileMenuOpen && (
-        <div id="mobile-navigation-links" className="md:hidden bg-stone-50 border-t border-stone-200/80 px-4 pt-3 pb-5 space-y-2 shadow-lg max-h-[70dvh] overflow-y-auto">
-          <Link
-            to="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            Home
-          </Link>
-          {clinic.showPageConditions !== false && clinic.showNavConditions !== false && (
-          <Link
-            to="/conditions"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            Conditions We Treat
-          </Link>
-          )}
-          {clinic.showPageFirstVisit !== false && clinic.showNavFirstVisit !== false && (
-          <Link
-            to="/first-visit"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            First Visit Guide
-          </Link>
-          )}
-          {clinic.showPagePricing !== false && clinic.showNavPricing !== false && (
-          <Link
-            to="/pricing"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            Pricing
-          </Link>
-          )}
-          {clinic.showPageBlog !== false && clinic.showNavBlog !== false && (
-          <Link
-            to="/blog"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            Blog
-          </Link>
-          )}
-          {clinic.showPageAbout !== false && clinic.showNavAbout !== false && (
-          <Link
-            to="/about"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            About
-          </Link>
-          )}
-          {clinic.showPageTeam !== false && clinic.showNavTeam !== false && (
-          <Link
-            to="/team"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            Our Team
-          </Link>
-          )}
-          <Link
-            to="/contact"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 px-3 text-base font-medium text-stone-800 hover:bg-stone-200/60 rounded-md transition"
-          >
-            Contact
-          </Link>
-          {clinic.showPagePortal !== false && (
-          <Link
-            to="/portal"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-between py-2.5 px-3 text-base font-semibold text-emerald-900 bg-emerald-50/80 hover:bg-emerald-100/80 rounded-xl transition border border-emerald-200/80"
-          >
-            <div className="flex items-center gap-2">
-              <CalendarCheck2 className="w-5 h-5 text-emerald-700" />
-              <span>Patient Portal / Login</span>
-            </div>
-            <span className="text-[10px] uppercase font-bold tracking-wider bg-emerald-800 text-white px-2 py-0.5 rounded-full">
-              Access
-            </span>
-          </Link>
-          )}
-          <div className="pt-2 border-t border-stone-200 space-y-1">
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                context.openPatientPortal();
-              }}
-              className="w-full flex items-center gap-2 py-2 px-3 text-sm font-semibold text-stone-800 hover:bg-stone-200/60 rounded-md transition text-left cursor-pointer"
-            >
-              <CalendarCheck2 className="w-4 h-4 text-emerald-700" />
-              <span>Quick Booking Lookup</span>
-            </button>
-            <a
-              href={`tel:${activeLocation.phoneRaw || clinic.phoneRaw}`}
-              className="flex items-center gap-2 py-2 px-3 text-sm font-semibold text-emerald-800"
-            >
-              <Phone className="w-4 h-4 text-emerald-700" />
-              <span>{activeLocation.phone || clinic.phone}</span>
-            </a>
-          </div>
+      {open && <div className="pv2-mobile-nav" id="pv2-mobile-nav">
+        <div className="pv2-wrap">
+          {links.map(link => <Link key={link.href} to={link.href} onClick={() => setOpen(false)}
+            aria-current={location.pathname === link.href ? 'page' : undefined}>{link.label}<span aria-hidden="true">↗</span></Link>)}
+          {clinic.showPagePortal !== false && <button type="button" onClick={() => {setOpen(false);openPatientPortal();}}>Manage your booking ↗</button>}
         </div>
-      )}
+      </div>}
     </nav>
   );
 };
