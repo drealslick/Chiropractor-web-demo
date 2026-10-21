@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
 import { defaultBlogPosts } from '../data/defaultPosts';
-import { isExplicitDemo } from '../lib/mode';
+import { isExplicitDemo, isUnconfiguredMode } from '../lib/mode';
 import type { ClinicPost } from '../types';
 
 export default function Blog() {
   const { clinicData: clinic } = useClinic();
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
-  const isDemo = isExplicitDemo();
+  const isDemo = isExplicitDemo() || isUnconfiguredMode();
   const posts: ClinicPost[] = ((clinic.customPosts !== undefined ? clinic.customPosts : isDemo ? defaultBlogPosts : []) as ClinicPost[])
     .filter((post) => post.status !== 'draft');
   const categories = ['all', ...Array.from(new Set(posts.map(post => post.category).filter((entry): entry is string => Boolean(entry))))];
