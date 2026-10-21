@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
 import { conditionsData } from '../data/clinicData';
 import { usePageMeta } from '../data/usePageMeta';
+import type { ProblemCondition } from '../types';
 
 function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -10,7 +11,7 @@ function slugify(s: string) {
 
 export default function Conditions() {
   const { clinicData: clinic, openBookingModal } = useClinic();
-  const conditions = clinic.customConditions?.length ? clinic.customConditions : conditionsData;
+  const conditions: ProblemCondition[] = clinic.customConditions?.length ? clinic.customConditions : conditionsData;
   usePageMeta(clinic.conditionsTitle || 'Areas of Care',
     clinic.conditionsSubtitle || 'Explore common reasons patients seek a chiropractic consultation.');
 
