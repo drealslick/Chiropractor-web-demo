@@ -1,85 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { conditionsData } from '../data/clinicData';
-import { resolvePalette } from '../data/colorPalettes';
+import React from 'react';
 import { useClinic } from '../data/ClinicContext';
+import { usePageMeta } from '../data/usePageMeta';
 import { StickyOfferBanner } from '../components/StickyOfferBanner';
-import { Hero } from '../components/Hero';
-import { TrustBar } from '../components/TrustBar';
-import { TheProblem } from '../components/TheProblem';
-import { WhyUs } from '../components/WhyUs';
-import { TheProcess } from '../components/TheProcess';
-import { TheDoctor } from '../components/TheDoctor';
-import { PatientsSection } from '../components/PatientsSection';
-import { TheClinic } from '../components/TheClinic';
-import { FirstVisitSection } from '../components/FirstVisitSection';
-import { InsurancePayment } from '../components/InsurancePayment';
+import { MobileStickyBar } from '../components/MobileStickyBar';
 import { LocationSection } from '../components/LocationSection';
 import { FAQSection } from '../components/FAQSection';
-import { FinalCTA } from '../components/FinalCTA';
-import { MobileStickyBar } from '../components/MobileStickyBar';
-import { usePageMeta } from '../data/usePageMeta';
+import {
+  PracticeHero,
+  PracticeCareIndex,
+  PracticeApproach,
+  PracticeJourney,
+  PracticePeople,
+  PracticeSpace,
+  PracticeFees,
+  PracticeFinal,
+} from '../components/PublicSiteV2';
 
+/**
+ * The homepage is a patient guide, not a marketing-component showcase.
+ * Every chapter remains controlled by the existing Practice OS section switches.
+ * Booking remains delegated to the shared clinic context.
+ */
 export default function Home() {
   const { clinicData: clinic, openBookingModal, isBookingModalOpen } = useClinic();
   usePageMeta('Home', clinic.seoDescription || clinic.tagline);
+  const openBooking = () => openBookingModal();
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col font-sans relative pb-16 md:pb-0 overflow-x-hidden">
-      {clinic.showStickyBanner !== false && (
-        <StickyOfferBanner
-          clinic={clinic}
-          onClaim={() => openBookingModal('Back pain')}
-        />
+    <div className="pv2-home">
+      {clinic.showStickyBanner !== false && clinic.offerHeadline && (
+        <StickyOfferBanner clinic={clinic} onClaim={() => openBookingModal('Back pain')} />
       )}
-
-      <div className="flex-1">
-        {clinic.showSectionHero !== false && (
-          <Hero
-            clinic={clinic}
-            onBookClick={() => openBookingModal()}
-          />
-        )}
-
-        {clinic.showTrustBar !== false && <TrustBar clinic={clinic} />}
-
-        {clinic.showConditions !== false && (
-          <TheProblem
-            conditions={clinic.customConditions || conditionsData}
-            onSelectCondition={(cond) => openBookingModal(cond)}
-          />
-        )}
-
-        {clinic.showWhyUs !== false && <WhyUs clinic={clinic} />}
-
-        {clinic.showTheProcess !== false && <TheProcess clinic={clinic} />}
-
-        {clinic.showTheDoctor !== false && <TheDoctor clinic={clinic} />}
-
-        {clinic.showPatients !== false && <PatientsSection clinic={clinic} />}
-
-        {clinic.showTheClinic !== false && <TheClinic clinic={clinic} />}
-
-        {clinic.showSectionFirstVisit !== false && <FirstVisitSection clinic={clinic} />}
-
-        {clinic.showInsurancePayment !== false && <InsurancePayment clinic={clinic} />}
-
-        {clinic.showSectionLocation !== false && <LocationSection clinic={clinic} />}
-
-        {clinic.showFAQ !== false && <FAQSection clinic={clinic} />}
-
-        {clinic.showSectionFinalCta !== false && (
-          <FinalCTA
-            clinic={clinic}
-            onBookClick={() => openBookingModal()}
-          />
-        )}
-      </div>
-
+      {clinic.showSectionHero !== false && <PracticeHero clinic={clinic} onBookClick={openBooking} />}
+      {clinic.showConditions !== false && <PracticeCareIndex clinic={clinic} onBookClick={openBooking} />}
+      {clinic.showWhyUs !== false && <PracticeApproach clinic={clinic} />}
+      {clinic.showTheProcess !== false && <PracticeJourney clinic={clinic} />}
+      {clinic.showTheDoctor !== false && <PracticePeople clinic={clinic} />}
+      {clinic.showTheClinic !== false && <PracticeSpace clinic={clinic} />}
+      {clinic.showInsurancePayment !== false && <PracticeFees clinic={clinic} />}
+      {clinic.showSectionLocation !== false && <div className="pv2-legacy-location"><LocationSection clinic={clinic} /></div>}
+      {clinic.showFAQ !== false && <div className="pv2-legacy-faq"><FAQSection clinic={clinic} /></div>}
+      {clinic.showSectionFinalCta !== false && <PracticeFinal clinic={clinic} onBookClick={openBooking} />}
       {clinic.showMobileStickyBar !== false && !isBookingModalOpen && (
-        <MobileStickyBar
-          clinic={clinic}
-          onBookClick={() => openBookingModal()}
-        />
+        <MobileStickyBar clinic={clinic} onBookClick={openBooking} />
       )}
     </div>
   );
