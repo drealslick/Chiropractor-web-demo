@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
 import { firstVisitSteps, clinicRoomImg } from '../data/clinicData';
 import { usePageMeta } from '../data/usePageMeta';
+import type { ProcessStep } from '../types';
 
 const BRING_ITEMS = [
   'A list of current medications, if applicable',
@@ -13,7 +14,7 @@ const BRING_ITEMS = [
 
 export default function FirstVisit() {
   const { clinicData: clinic, openBookingModal } = useClinic();
-  const steps = clinic.customFirstVisitSteps?.length ? clinic.customFirstVisitSteps : firstVisitSteps;
+  const steps: ProcessStep[] = clinic.customFirstVisitSteps?.length ? clinic.customFirstVisitSteps : firstVisitSteps;
   const bringList: string[] = clinic.firstVisitBringList?.length
     ? clinic.firstVisitBringList : clinic.firstVisitBring
       ? String(clinic.firstVisitBring).split('\n').filter(Boolean) : BRING_ITEMS;
