@@ -1,0 +1,58 @@
+name: Public UI Browser QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/public-ui.spec.ts'
+      - 'playwright.public.config.ts'
+      - '.github/workflows/public-ui-qa.yml'
+
+concurrency:
+  group: public-ui-qa
+  cancel-in-progress: true
+
+jobs:
+  browser-qa:
+    name: Desktop and Mobile Browser Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium for visual checks
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local preview
+        run: |
+          npm run dev > /tmp/practice-os-ui.log 2>&1 &
+          for i in {1..45}; do
+            if curl --silent --fail http://127.0.0.1:3000/ > /dev/null; then
+              echo "Frontend is responding"
+              break
+            fi
+            sleep 2
+          done
+          curl --silent --show-error --fail http://127.0.0.1:3000/ > /dev/null || (cat /tmp/practice-os-ui.log && exit 1)
+
+      - name: Run public page and mobile interaction tests
+        run: npx playwright test --config playwright.public.config.ts
+
+      - name: Upload captured desktop/mobile screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-ui-browser-evidence
+          path: test-results/
+          retention-days: 14
