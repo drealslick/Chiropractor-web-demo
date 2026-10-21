@@ -450,3 +450,70 @@
   .public-v2 .pv2-essentials > div > div { border-right: 0; border-bottom: 1px solid var(--pv2-rule); padding: .85rem 0; flex-direction: row; align-items: baseline; justify-content: space-between; text-align: right; }
   .public-v2 .pv2-essentials > div > div:last-child { border-bottom: 0; }
 }
+
+
+/* Journal — reference shelf, not an article-card marketplace. */
+.public-v2 .pv2-journal-toolbar { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; border-bottom: 1px solid var(--pv2-rule); padding-bottom: 1.5rem; }
+.public-v2 .pv2-search-label { display: flex; flex-direction: column; gap: .5rem; color: var(--pv2-mute); font-size: .78rem; font-weight: 650; }
+.public-v2 .pv2-search-label input { background: #fff; border: 1px solid var(--pv2-rule); border-radius: 2px; padding: .85rem 1rem; font-size: .95rem; width: min(26rem,calc(100vw - 2rem)); color: var(--pv2-ink); }
+.public-v2 .pv2-journal-filter { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; }
+.public-v2 .pv2-journal-filter button { cursor: pointer; border-bottom: 1px solid transparent; padding: .55rem 0; font-size: .86rem; color: var(--pv2-mute); }
+.public-v2 .pv2-journal-filter button:is(.is-active,:hover) { border-color: currentColor; color: var(--pv2-ink); }
+.public-v2 .pv2-journal-list { border-top: 1px solid var(--pv2-ink); margin-top: 2rem; }
+.public-v2 .pv2-journal-entry { display: grid; grid-template-columns: 2.5rem minmax(0,1fr) 2rem; gap: clamp(1rem,3vw,4rem); padding: clamp(1.8rem,3vw,3rem) 0; color: var(--pv2-ink); text-decoration: none; border-bottom: 1px solid var(--pv2-rule); }
+.public-v2 .pv2-entry-meta { color: var(--pv2-mute); text-transform: uppercase; letter-spacing: .08em; font-size: .72rem; }
+.public-v2 .pv2-journal-entry h3 { font-size: clamp(1.8rem,3vw,3.5rem); line-height: 1.13; margin: .75rem 0 .9rem; max-width: 28ch; }
+.public-v2 .pv2-journal-entry:hover h3 { color: var(--pv2-accent); }
+.public-v2 .pv2-journal-entry p { max-width: 42rem; }
+.public-v2 .pv2-journal-entry small { font-size: .77rem; color: var(--pv2-mute); display: block; margin-top: 1rem; }
+
+/* Practitioner detail: one portrait and one readable narrative. */
+.public-v2 .pv2-breadcrumb { display: flex; gap: .8rem; align-items: baseline; padding-top: 1.6rem; font-size: .81rem; color: var(--pv2-mute); }
+.public-v2 .pv2-breadcrumb a { color: var(--pv2-accent); text-decoration: underline; }
+.public-v2 .pv2-profile-header { display: grid; grid-template-columns: minmax(0,.82fr) minmax(0,1.18fr); gap: clamp(2.5rem,8vw,9rem); align-items: center; padding: clamp(3rem,6vw,6rem) 0; border-bottom: 1px solid var(--pv2-ink); }
+.public-v2 .pv2-profile-photo img { width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; }
+.public-v2 .pv2-profile-photo figcaption { margin-top: .7rem; color: var(--pv2-mute); font-size: .74rem; }
+.public-v2 .pv2-profile-intro h1 { font-size: clamp(3.1rem,5.5vw,6.4rem); line-height: 1.06; margin: .3rem 0 1rem; }
+.public-v2 .pv2-profile-role { text-transform: uppercase; letter-spacing: .09em; font-size: .8rem; font-weight: 650; }
+.public-v2 .pv2-profile-summary { font-size: clamp(1.05rem,1.5vw,1.23rem); margin-block: 2rem; }
+.public-v2 .pv2-profile-intro blockquote { font: italic clamp(1.25rem,2vw,1.9rem)/1.5 var(--pv2-font-display); margin-bottom: 2rem; max-width: 30rem; }
+.public-v2 .pv2-profile .pv2-content-heading h2 { max-width: 20ch; }
+
+/* Deep content: preserve article blocks and clinical authored material without badges. */
+.public-v2 .pv2-prose { font-size: 1rem; }
+.public-v2 .pv2-prose > * + * { margin-top: 1.4rem; }
+.public-v2 .pv2-prose :is(h2,h3) { font-size: clamp(1.55rem,2.1vw,2.25rem); margin-top: 2.25rem; }
+.public-v2 .pv2-prose ul,.public-v2 .pv2-care-stages ol { list-style: decimal; padding-left: 1.5rem; }
+.public-v2 .pv2-prose li { padding-block: .35rem; line-height: 1.7; }
+.public-v2 .pv2-prose blockquote { border-left: 1px solid var(--pv2-accent); padding-left: 1.8rem; font: italic 1.4rem/1.5 var(--pv2-font-display); }
+.public-v2 .pv2-prose blockquote footer { font: normal .8rem/1.5 var(--font-body); color: var(--pv2-mute); margin-top: 1rem; }
+.public-v2 .pv2-prose figure img { width: 100%; max-height: 460px; object-fit: cover; }
+.public-v2 .pv2-prose figcaption { font-size: .75rem; color: var(--pv2-mute); margin-top: .5rem; }
+.public-v2 .pv2-prose aside { padding: 1.5rem; background: var(--pv2-soft); }
+.public-v2 .pv2-care-stages { border-top: 1px solid var(--pv2-rule); padding-top: 1rem; }
+.public-v2 .pv2-care-stages li { margin-bottom: .8rem; }
+.public-v2 .pv2-missing { min-height: 50vh; padding-block: 8rem; }
+.public-v2 .pv2-missing h1 { font-size: clamp(2.4rem,5vw,4rem); margin-bottom: 1rem; }
+.public-v2 .pv2-missing p { margin-bottom: 2rem; }
+
+/* Legacy but functional contact form and article details receive visual restraint. */
+.public-v2 .page-v2--contact { max-width: min(100% - 2rem,1200px); margin: 0 auto; padding-block: 4rem 6rem; }
+.public-v2 .page-v2--contact > section:first-child { max-width: 100%; text-align: left; padding-bottom: 3rem; border-bottom: 1px solid var(--pv2-ink); }
+.public-v2 .page-v2--contact > section:first-child h1 { font-size: clamp(3rem,5vw,6rem); }
+.public-v2 .page-v2--contact > div[class*="grid"] > div { border-radius: 3px; border: 0; box-shadow: none; background: transparent; }
+.public-v2 .page-v2--contact input,.public-v2 .page-v2--contact textarea { border-radius: 2px; }
+.public-v2 .page-v2--contact button[type="submit"] { border-radius: 2px; }
+.public-v2 .page-v2--blog-post article { max-width: 790px; }
+.public-v2 .page-v2--blog-post article h1 { font-size: clamp(2.8rem,5vw,5.6rem); font-weight: 500; }
+.public-v2 .page-v2--blog-post article > header { padding-bottom: 3rem; border-bottom: 1px solid var(--pv2-rule); }
+.public-v2 .page-v2--blog-post :is(.rounded-3xl,.rounded-2xl) { border-radius: 2px; box-shadow: none; }
+.public-v2 .page-v2--blog-post article :is(.leading-relaxed) { line-height: 1.85; }
+
+@media (max-width: 760px) {
+  .public-v2 .pv2-profile-header { grid-template-columns: 1fr; gap: 2rem; }
+  .public-v2 .pv2-profile-photo img { aspect-ratio: 5/4; }
+  .public-v2 .pv2-journal-toolbar { align-items: flex-start; flex-direction: column; }
+  .public-v2 .pv2-journal-entry { grid-template-columns: 1.8rem minmax(0,1fr) 1rem; gap: .8rem; }
+  .public-v2 .pv2-journal-entry h3 { font-size: clamp(1.5rem,6.2vw,2.7rem); }
+  .public-v2 .page-v2--contact { padding-top: 2rem; }
+}
