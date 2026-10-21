@@ -206,7 +206,7 @@ export default function TeamMemberDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50/70 py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
+    <div className="page-v2 page-v2--team-member min-h-screen bg-stone-50/70 py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
       {/* 🔗 Structured Data (Schema): Person & Physician */}
       <PhysicianSchema member={member} clinic={clinic} />
 
