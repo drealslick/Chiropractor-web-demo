@@ -34,7 +34,7 @@ export default function Conditions() {
   const list = clinic.customConditions?.length ? clinic.customConditions : conditionsData;
 
   return (
-    <div className="min-h-screen bg-stone-50/60 py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+    <div className="page-v2 page-v2--conditions min-h-screen bg-stone-50/60 py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-12 sm:space-y-14">
         {/* Header Section with Editorial Typography */}
         <section className="text-center space-y-4 max-w-3xl mx-auto">
