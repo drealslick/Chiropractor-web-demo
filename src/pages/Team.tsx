@@ -2,19 +2,24 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useClinic } from '../data/ClinicContext';
 import { usePageMeta } from '../data/usePageMeta';
-import { defaultPublicTeamMembers, defaultSupportStaff } from '../data/defaultTeamData';
-import { isExplicitDemo } from '../lib/mode';
+import { isExplicitDemo, isUnconfiguredMode } from '../lib/mode';
 import type { PublicTeamMember, SupportStaffMember } from '../types';
 
 export default function Team() {
   const { clinicData: clinic, openBookingModal } = useClinic();
-  const demo = isExplicitDemo();
+  const preview = isExplicitDemo() || isUnconfiguredMode();
   const hasPublishedTeam = Boolean(clinic.publicTeamMembers?.length);
   const clinicians: PublicTeamMember[] = hasPublishedTeam
     ? clinic.publicTeamMembers.filter((m: PublicTeamMember) => m.showOnWebsite !== false)
-    : demo ? defaultPublicTeamMembers : [];
-  const staff: SupportStaffMember[] = clinic.supportStaff?.length
-    ? clinic.supportStaff : demo ? defaultSupportStaff : [];
+    : preview ? [{
+        id: 'sample-practitioner', slug: 'sample-practitioner',
+        name: clinic.doctorName || 'Example practitioner',
+        role: clinic.doctorTitle || 'Illustrative clinician profile',
+        photoUrl: clinic.doctorImage || '/images/doctor_portrait.jpg',
+        shortSummary: 'Illustrative practitioner profile for this demonstration. A clinic owner replaces the name, image and biography with their own details.',
+        areasOfFocus: [], showOnWebsite: true,
+      }] : [];
+  const staff: SupportStaffMember[] = clinic.supportStaff?.length ? clinic.supportStaff : [];
   usePageMeta(clinic.teamPageTitle || 'Meet the Team',
     clinic.teamPageHeroText || 'Get to know the people behind the practice.');
 
@@ -32,7 +37,7 @@ export default function Team() {
           <div className="pv2-content-heading pv2-content-heading-wide">
             <span className="pv2-kicker">01 / Clinical team</span>
             <h2 id="clinicians-title">The people behind the care.</h2>
-            {!hasPublishedTeam && demo && <p>Illustrative profiles for the demonstration site. Real clinics replace these with their own people.</p>}
+            {!hasPublishedTeam && preview && <p>Illustrative profiles for the demonstration site. Real clinics replace these with their own people.</p>}
           </div>
           {clinicians.length ? (
             <div className="pv2-team-list">
