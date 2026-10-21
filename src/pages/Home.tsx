@@ -7,9 +7,12 @@ import { LocationSection } from '../components/LocationSection';
 import { FAQSection } from '../components/FAQSection';
 import {
   PracticeHero,
+  PracticeEssentials,
   PracticeCareIndex,
   PracticeApproach,
   PracticeJourney,
+  PracticeArrivalPreview,
+  PracticePatientVoices,
   PracticePeople,
   PracticeSpace,
   PracticeFees,
@@ -32,11 +35,14 @@ export default function Home() {
         <StickyOfferBanner clinic={clinic} onClaim={() => openBookingModal('Back pain')} />
       )}
       {clinic.showSectionHero !== false && <PracticeHero clinic={clinic} onBookClick={openBooking} />}
+      {clinic.showTrustBar !== false && <PracticeEssentials clinic={clinic} />}
       {clinic.showConditions !== false && <PracticeCareIndex clinic={clinic} onBookClick={openBooking} />}
       {clinic.showWhyUs !== false && <PracticeApproach clinic={clinic} />}
       {clinic.showTheProcess !== false && <PracticeJourney clinic={clinic} />}
+      {clinic.showSectionFirstVisit !== false && <PracticeArrivalPreview clinic={clinic} />}
       {clinic.showTheDoctor !== false && <PracticePeople clinic={clinic} />}
       {clinic.showTheClinic !== false && <PracticeSpace clinic={clinic} />}
+      {clinic.showPatients !== false && <PracticePatientVoices clinic={clinic} />}
       {clinic.showInsurancePayment !== false && <PracticeFees clinic={clinic} />}
       {clinic.showSectionLocation !== false && <div className="pv2-legacy-location"><LocationSection clinic={clinic} /></div>}
       {clinic.showFAQ !== false && <div className="pv2-legacy-faq"><FAQSection clinic={clinic} /></div>}
