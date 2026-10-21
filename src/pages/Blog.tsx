@@ -30,7 +30,7 @@ export default function Blog() {
   });
 
   return (
-    <div className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="page-v2 page-v2--blog min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-12">
         {/* Header Banner */}
         <section className="text-center space-y-4 max-w-2xl mx-auto">
